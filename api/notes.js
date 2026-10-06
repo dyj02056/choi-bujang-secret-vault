@@ -4,12 +4,28 @@ import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createLoginVerifier } from '../src/verify-login.mjs';
 
+// 로컬 환경 실행 시 .env 자동 로드
+try {
+  process.loadEnvFile?.(resolve(process.cwd(), '.env'));
+} catch {}
+
 let loginVerifier = null;
 
 async function getVerifier() {
   if (loginVerifier) return loginVerifier;
   const root = resolve(process.cwd());
   const config = JSON.parse(await readFile(resolve(root, 'aleph.config.json'), 'utf8'));
+
+  // .env 또는 환경변수의 SUPABASE_URL로 발급자 정보 자동 동기화 (파일에 직접 적지 않음)
+  if (process.env.SUPABASE_URL) {
+    const origin = process.env.SUPABASE_URL.replace(/\/+$/, '');
+    config.identityProvider = {
+      issuer: `${origin}/auth/v1`,
+      jwksUrl: `${origin}/auth/v1/.well-known/jwks.json`,
+      audience: config.identityProvider?.audience || 'authenticated',
+    };
+  }
+
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
   loginVerifier = createLoginVerifier({ config, supabaseSecretKey });
   return loginVerifier;
@@ -22,7 +38,7 @@ export default async function handler(req, res) {
   const supabaseKey = process.env.SUPABASE_SECRET_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    return res.status(503).json({ error: 'SERVER_CONFIG_MISSING', message: '서버 설정이 누락되었습니다.' });
+    return res.status(503).json({ error: 'SERVER_CONFIG_MISSING', message: '.env 또는 서버 환경변수 설정이 누락되었습니다.' });
   }
 
   // 1. 토큰 검증
@@ -31,7 +47,7 @@ export default async function handler(req, res) {
     const verify = await getVerifier();
     verified = await verify(req.headers.authorization);
   } catch (err) {
-    console.error('인증 검증기 오류');
+    console.error('인증 검증기 오류:', err.message);
     return res.status(500).json({ error: 'VERIFIER_ERROR', message: '인증 설정 오류가 발생했습니다.' });
   }
 
@@ -70,7 +86,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // 3. POST: 새 메모 추가 ({ id, title, body } -> 없으면 UUID 생성 후 { id } 반환)
+  // 3. POST: 새 메모 추가
   if (req.method === 'POST') {
     const { id: reqId, title, body } = req.body || {};
     if (!title || typeof title !== 'string') {

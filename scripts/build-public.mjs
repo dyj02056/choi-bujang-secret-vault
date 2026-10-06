@@ -26,25 +26,6 @@ await mkdir(resolve(root, 'public'), { recursive: true });
 await copyFile(source, output);
 console.log('실습용 공개 자료를 public/data.json에 복사했습니다.');
 
-// public/index.html에 SUPABASE_URL 및 SUPABASE_ANON_KEY 환경변수 주입
-const htmlPath = resolve(root, 'public', 'index.html');
-try {
-  let html = await readFile(htmlPath, 'utf8');
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-
-  if (supabaseUrl) {
-    html = html.replaceAll('__SUPABASE_URL__', supabaseUrl);
-  }
-  if (supabaseAnonKey) {
-    html = html.replaceAll('__SUPABASE_ANON_KEY__', supabaseAnonKey);
-  }
-  await writeFile(htmlPath, html, 'utf8');
-  console.log('Supabase 환경변수를 public/index.html에 주입했습니다.');
-} catch (err) {
-  console.warn('index.html 환경변수 주입 건너뜀:', err.message);
-}
-
 if (!process.argv.includes('--local')) {
   const identity = deploymentIdentity(process.env, config);
   await writeFile(resolve(root, 'public', 'aleph.json'),

@@ -3,12 +3,28 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createLoginVerifier } from '../../src/verify-login.mjs';
 
+// 로컬 환경 실행 시 .env 자동 로드
+try {
+  process.loadEnvFile?.(resolve(process.cwd(), '.env'));
+} catch {}
+
 let loginVerifier = null;
 
 async function getVerifier() {
   if (loginVerifier) return loginVerifier;
   const root = resolve(process.cwd());
   const config = JSON.parse(await readFile(resolve(root, 'aleph.config.json'), 'utf8'));
+
+  // .env 또는 환경변수의 SUPABASE_URL로 발급자 정보 자동 동기화 (파일에 직접 적지 않음)
+  if (process.env.SUPABASE_URL) {
+    const origin = process.env.SUPABASE_URL.replace(/\/+$/, '');
+    config.identityProvider = {
+      issuer: `${origin}/auth/v1`,
+      jwksUrl: `${origin}/auth/v1/.well-known/jwks.json`,
+      audience: config.identityProvider?.audience || 'authenticated',
+    };
+  }
+
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
   loginVerifier = createLoginVerifier({ config, supabaseSecretKey });
   return loginVerifier;
@@ -21,7 +37,7 @@ export default async function handler(req, res) {
   const supabaseKey = process.env.SUPABASE_SECRET_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    return res.status(503).json({ error: 'SERVER_CONFIG_MISSING', message: '서버 설정이 누락되었습니다.' });
+    return res.status(503).json({ error: 'SERVER_CONFIG_MISSING', message: '.env 또는 서버 환경변수 설정이 누락되었습니다.' });
   }
 
   // 1. 토큰 검증
@@ -42,7 +58,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'BAD_REQUEST', message: '메모 ID가 필요합니다.' });
   }
 
-  // 2. GET /:id -> { id, title, body } (없거나 삭제되었으면 404)
+  // 2. GET /:id
   if (req.method === 'GET') {
     try {
       const response = await fetch(
@@ -75,7 +91,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // 3. PUT /:id -> { id, title, body } (소유자 검사 없음: B가 A의 메모를 수정할 수 있는 허점 유지)
+  // 3. PUT /:id
   if (req.method === 'PUT') {
     const { title, body } = req.body || {};
     if (!title && body === undefined) {
