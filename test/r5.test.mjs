@@ -7,6 +7,7 @@ const config = {
   step: 1,
   judgeIssuer: 'https://aleph-judge-production.up.railway.app/defense/judge',
   sampleMarker: 'SAMPLE_NOTE_1',
+  originalApiUrl: 'https://xyzcompany.supabase.co/rest/v1/secret_notes',
   publicAppUrl: 'https://student-defense.vercel.app',
 };
 const env = {
@@ -26,6 +27,7 @@ test('build identity uses Vercel Git and deployment metadata', () => {
     publicAppUrl: 'https://student-defense-123.vercel.app',
     judgeIssuer: config.judgeIssuer,
     sampleMarker: config.sampleMarker,
+    originalApiUrl: config.originalApiUrl,
   });
   assert.throws(() => deploymentIdentity({ ...env, VERCEL_GIT_PROVIDER: undefined }, config));
   assert.throws(() => deploymentIdentity({ ...env, VERCEL_GIT_COMMIT_SHA: 'short' }, config));
