@@ -95,9 +95,9 @@
   </main>
 
   <script type="module">
-    // Supabase 설정 (사용자의 Supabase 대시보드 Settings > API에서 복사)
-    const SUPABASE_URL = window.SUPABASE_URL || 'https://placeholder.supabase.co';
-    const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || 'placeholder-anon-key';
+    // Supabase 설정 (빌드 시 build-public.mjs를 통해 환경변수에서 주입됨)
+    const SUPABASE_URL = '__SUPABASE_URL__';
+    const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
