@@ -28,6 +28,7 @@ ALTER TABLE secret_notes ENABLE ROW LEVEL SECURITY;
 --      ON secret_notes FOR SELECT
 --      USING (owner_id = auth.uid());
 
+
 -- 4. 가상 메모 3건 삽입 (학습용 — 실제 민감 정보 없음)
 INSERT INTO secret_notes (owner_id, title, content) VALUES
   (NULL, '과제',        '실습용 가상 과제 기록'),
