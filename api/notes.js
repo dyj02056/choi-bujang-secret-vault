@@ -107,7 +107,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           id: noteId,
-          owner_id: verified.userId,
+          owner_id: verified.userId, // 반드시 서버 검증 ID 사용 — 본문의 owner_id는 무시
           title,
           content: noteBody,
         }),

@@ -15,7 +15,6 @@ async function getVerifier() {
   const root = resolve(process.cwd());
   const config = JSON.parse(await readFile(resolve(root, 'aleph.config.json'), 'utf8'));
 
-  // .env 또는 환경변수의 SUPABASE_URL로 발급자 정보 자동 동기화 (파일에 직접 적지 않음)
   if (process.env.SUPABASE_URL) {
     const origin = process.env.SUPABASE_URL.replace(/\/+$/, '');
     config.identityProvider = {
@@ -40,7 +39,7 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'SERVER_CONFIG_MISSING', message: '.env 또는 서버 환경변수 설정이 누락되었습니다.' });
   }
 
-  // 1. 토큰 검증
+  // 1. 토큰 검증 (브라우저 전달 userId·role 불신)
   let verified = null;
   try {
     const verify = await getVerifier();
@@ -58,53 +57,65 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'BAD_REQUEST', message: '메모 ID가 필요합니다.' });
   }
 
-  // 2. GET /:id
+  // DB에서 메모 한 건 조회하는 내부 헬퍼 (owner_id 포함)
+  async function fetchNote(noteId) {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/secret_notes?id=eq.${noteId}&select=id,title,content,owner_id`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    if (!response.ok) return null;
+    const rows = await response.json();
+    return rows[0] ?? null;
+  }
+
+  // 2. GET /:id — 본인 소유 메모만 반환
   if (req.method === 'GET') {
     try {
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/secret_notes?id=eq.${id}&select=id,title,content`,
-        {
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        return res.status(502).json({ error: 'DB_FETCH_FAILED', message: '조회 실패' });
-      }
-
-      const rows = await response.json();
-      if (!rows.length) {
+      const note = await fetchNote(id);
+      if (!note) {
         return res.status(404).json({ error: 'NOT_FOUND', message: '메모를 찾을 수 없습니다.' });
       }
-
-      return res.status(200).json({
-        id: rows[0].id,
-        title: rows[0].title,
-        body: rows[0].content,
-      });
+      // 소유자 검증: DB owner_id와 검증된 userId 비교
+      if (note.owner_id !== verified.userId) {
+        return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 조회할 수 있습니다.' });
+      }
+      return res.status(200).json({ id: note.id, title: note.title, body: note.content });
     } catch {
       return res.status(502).json({ error: 'DB_NETWORK_ERROR', message: 'DB 통신 오류' });
     }
   }
 
-  // 3. PUT /:id
+  // 3. PUT /:id — 기존 행과 새 행의 소유자가 모두 본인인지 확인
   if (req.method === 'PUT') {
     const { title, body } = req.body || {};
     if (!title && body === undefined) {
       return res.status(400).json({ error: 'BAD_REQUEST', message: '수정할 내용을 입력해 주세요.' });
     }
 
-    const updates = {};
-    if (title !== undefined) updates.title = title;
-    if (body !== undefined) updates.content = body;
-
     try {
+      // 기존 행 소유자 확인
+      const existing = await fetchNote(id);
+      if (!existing) {
+        return res.status(404).json({ error: 'NOT_FOUND', message: '메모를 찾을 수 없습니다.' });
+      }
+      if (existing.owner_id !== verified.userId) {
+        return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 수정할 수 있습니다.' });
+      }
+
+      // 새 행에 owner_id 변경을 요청 본문에서 받지 않고, 서버가 직접 기존 값 유지
+      const updates = {};
+      if (title !== undefined) updates.title = title;
+      if (body !== undefined) updates.content = body;
+      // owner_id는 절대 본문에서 받지 않음 (소유자 변경 차단)
+
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/secret_notes?id=eq.${id}`,
+        `${supabaseUrl}/rest/v1/secret_notes?id=eq.${id}&owner_id=eq.${verified.userId}`,
         {
           method: 'PATCH',
           headers: {
@@ -123,24 +134,29 @@ export default async function handler(req, res) {
 
       const rows = await response.json();
       if (!rows.length) {
-        return res.status(404).json({ error: 'NOT_FOUND', message: '메모를 찾을 수 없습니다.' });
+        return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 수정할 수 있습니다.' });
       }
 
-      return res.status(200).json({
-        id: rows[0].id,
-        title: rows[0].title,
-        body: rows[0].content,
-      });
+      return res.status(200).json({ id: rows[0].id, title: rows[0].title, body: rows[0].content });
     } catch {
       return res.status(502).json({ error: 'DB_NETWORK_ERROR', message: 'DB 통신 오류' });
     }
   }
 
-  // 4. DELETE /:id
+  // 4. DELETE /:id — 본인 소유 메모만 삭제
   if (req.method === 'DELETE') {
     try {
+      // 기존 행 소유자 확인
+      const existing = await fetchNote(id);
+      if (!existing) {
+        return res.status(404).json({ error: 'NOT_FOUND', message: '메모를 찾을 수 없습니다.' });
+      }
+      if (existing.owner_id !== verified.userId) {
+        return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 삭제할 수 있습니다.' });
+      }
+
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/secret_notes?id=eq.${id}`,
+        `${supabaseUrl}/rest/v1/secret_notes?id=eq.${id}&owner_id=eq.${verified.userId}`,
         {
           method: 'DELETE',
           headers: {
