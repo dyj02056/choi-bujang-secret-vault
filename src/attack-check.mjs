@@ -1,7 +1,7 @@
 // src/attack-check.mjs
-// 학생의 자기 점검: 4단계 소유자 검증 및 타인 메모 접근 차단 확인
+// 학생의 자기 점검: 5단계 서버 한곳 모으기 + 원본 직접 요청 차단 확인
 export async function runAttackChecks(config) {
-  if (config.step !== 4) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (config.step !== 5) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -30,8 +30,8 @@ export async function runAttackChecks(config) {
     anonObserved = `점검 요청 연결 실패 (${err.message}) — 미실행`;
   }
 
-  // 2. 타인 메모 접근 시도 — 실제 로그인 토큰이 없으므로 미실행으로 기록
-  const crossObserved = '직접 B 토큰으로 A의 메모 ID에 GET/PUT/DELETE 요청을 보내 403이 반환됨을 확인해야 합니다 — 미실행';
+  // 2. 원본 직접 요청 차단 — 심판이 anon 키로 확인하므로 여기서는 미실행으로 기록
+  const crossObserved = '원본 주소(originalApiUrl)에 anon 키로 직접 요청 시 메모가 노출되지 않고 거부됨을 확인해야 합니다 — 미실행';
 
   return [
     {
@@ -40,8 +40,8 @@ export async function runAttackChecks(config) {
       observed: anonObserved,
     },
     {
-      attackId: 'cross_owner_access',
-      expected: 'B가 A의 메모 ID로 접근 시 403 반환',
+      attackId: 'original_direct_blocked',
+      expected: '원본 주소에 anon 키로 직접 요청 시 거부',
       observed: crossObserved,
     },
   ];
