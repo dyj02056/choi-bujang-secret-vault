@@ -95,11 +95,7 @@
   </main>
 
   <script type="module">
-    // Supabase 설정 (빌드 시 build-public.mjs를 통해 환경변수에서 주입됨)
-    const SUPABASE_URL = '__SUPABASE_URL__';
-    const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
-
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supabase = null;
 
     // DOM 요소
     const loginForm = document.getElementById('login-form');
@@ -120,8 +116,27 @@
     const btnCreateNote = document.getElementById('btn-create-note');
     const createError = document.getElementById('create-error');
 
+    // Supabase 설정 불러오기 및 초기화
+    try {
+      const cfgRes = await fetch('/api/auth-config');
+      if (cfgRes.ok) {
+        const { supabaseUrl, supabaseAnonKey } = await cfgRes.json();
+        if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('placeholder')) {
+          supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+          supabase.auth.onAuthStateChange((_event, session) => {
+            updateAuthState(session);
+          });
+        } else {
+          authError.textContent = '환경변수(SUPABASE_URL, SUPABASE_ANON_KEY) 설정이 필요합니다.';
+        }
+      }
+    } catch (err) {
+      authError.textContent = '인증 설정을 불러오지 못했습니다.';
+    }
+
     // 현재 세션의 Access Token 가져오기
     async function getAccessToken() {
+      if (!supabase) return null;
       const { data: { session } } = await supabase.auth.getSession();
       return session?.access_token || null;
     }
@@ -331,10 +346,6 @@
       }
     }
 
-    // 초기 세션 확인
-    supabase.auth.onAuthStateChange((_event, session) => {
-      updateAuthState(session);
-    });
   </script>
 </body>
 </html>
