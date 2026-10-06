@@ -17,7 +17,9 @@ export function deploymentIdentity(env, config) {
       || typeof config.sampleMarker !== 'string'
       || !/^[A-Z0-9_]{1,80}$/u.test(config.sampleMarker)
     || typeof config.originalApiUrl !== 'string'
-    || !/^https:\/\/[a-z0-9-]+\.supabase\.co\/rest\/v1\/secret_notes$/iu.test(config.originalApiUrl)) {
+    || !/^https:\/\/[a-z0-9-]+\.supabase\.co\/rest\/v1\/secret_notes$/iu.test(config.originalApiUrl)
+    || !Array.isArray(config.allowedRoutes) || !config.allowedRoutes.length
+    || config.allowedRoutes.some((route) => typeof route !== 'string' || !route.startsWith('/'))) {
     throw new Error('배포 식별 정보를 확인할 수 없습니다. Vercel 시스템 환경변수와 1단계 시작 틀을 확인하세요.');
   }
   return {
@@ -29,5 +31,6 @@ export function deploymentIdentity(env, config) {
     judgeIssuer: config.judgeIssuer,
     sampleMarker: config.sampleMarker,
     originalApiUrl: config.originalApiUrl,
+    allowedRoutes: [...config.allowedRoutes],
   };
 }
