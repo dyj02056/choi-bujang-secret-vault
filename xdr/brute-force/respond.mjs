@@ -55,3 +55,4 @@ if (isMain) {
     console.log(`- 규칙 ID: ${rule.ruleId} (근거 경보: ${rule.alertId}, 대상 IP: ${rule.targetIp}, 만료: ${rule.expiresAt})`);
   }
 }
+

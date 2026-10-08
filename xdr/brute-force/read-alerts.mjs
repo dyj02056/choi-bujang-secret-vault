@@ -27,3 +27,4 @@ if (isMain) {
   }
   console.log(`총 경보 건수: ${extracted.length}`);
 }
+
