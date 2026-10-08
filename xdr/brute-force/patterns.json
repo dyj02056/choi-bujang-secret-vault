@@ -1,0 +1,26 @@
+[
+  {
+    "name": "password-spray",
+    "description": "동일 IP에서 다수의 서로 다른 계정에 동일하거나 유사한 비밀번호로 로그인을 연속 시도하는 행위",
+    "condition": "level >= 10 이며 여러 계정 대상 시도(accounts 항목 존재 또는 계정 변경/여러 계정 언급) 혹은 15건 이상의 계정 순회 실패",
+    "rationale": "MITRE ATT&CK T1110.003(Password Spraying): 단일 계정 잠금을 우회하고자 여러 계정에 비밀번호를 연속 대입하는 공격 기법입니다."
+  },
+  {
+    "name": "high-volume-brute-force",
+    "description": "짧은 시간(1~3분) 내 동일 IP 또는 특정 계정 대상 30건 이상의 대량 로그인 실패 발생",
+    "condition": "level >= 10 이며 실패 횟수(count)가 30건 이상이거나 단시간(1~3분) 내 대량 집중 실패",
+    "rationale": "MITRE ATT&CK T1110.001(Password Guessing): 자동화 도구를 사용해 단시간에 수십 회 이상 무차별 대입을 시도하는 공격 기법입니다."
+  },
+  {
+    "name": "suspicious-failed-logins",
+    "description": "반복된 로그인 실패 후 성공하거나, 간헐적 또는 비정형 다수 실패가 관찰되는 이상 징후",
+    "condition": "level >= 5 이며 level < 10 (소수 실패 후 성공, 평소와 다른 주소 실패, 10건 미만의 비정상 실패 등)",
+    "rationale": "MITRE ATT&CK T1110: 무차별 대입 초기 정찰 또는 단순 입력 실수 가능성이 공존하여 추가 모니터링이 필요한 상태입니다."
+  },
+  {
+    "name": "normal-activity",
+    "description": "정상 로그인 성공, 로그아웃, 세션 확인, 정상적인 비밀번호 변경 등 통상적인 사용자 활동",
+    "condition": "level <= 3 이며 정상 로그인/로그아웃/세션 유지 등의 정상 이벤트",
+    "rationale": "정상적인 서비스 이용 과정에서 발생하는 표준 사용자 이벤트입니다."
+  }
+]
