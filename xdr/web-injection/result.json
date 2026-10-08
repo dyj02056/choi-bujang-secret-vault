@@ -1,0 +1,167 @@
+{
+  "schema": "aleph.xdr.result.v1",
+  "moduleKey": "web-injection",
+  "decisions": [
+    {
+      "alertId": "wi-01",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "sql-injection"
+    },
+    {
+      "alertId": "wi-02",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "xss-script-injection"
+    },
+    {
+      "alertId": "wi-03",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "path-traversal"
+    },
+    {
+      "alertId": "wi-04",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "sql-injection"
+    },
+    {
+      "alertId": "wi-05",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "sql-injection"
+    },
+    {
+      "alertId": "wi-06",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "mixed-command-injection"
+    },
+    {
+      "alertId": "wi-07",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "path-traversal"
+    },
+    {
+      "alertId": "wi-08",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "sql-injection"
+    },
+    {
+      "alertId": "wi-09",
+      "action": "alert",
+      "confidence": 0.65,
+      "reason": "suspicious-query-probe"
+    },
+    {
+      "alertId": "wi-10",
+      "action": "alert",
+      "confidence": 0.65,
+      "reason": "suspicious-query-probe"
+    },
+    {
+      "alertId": "wi-11",
+      "action": "alert",
+      "confidence": 0.65,
+      "reason": "suspicious-query-probe"
+    },
+    {
+      "alertId": "wi-12",
+      "action": "alert",
+      "confidence": 0.65,
+      "reason": "suspicious-query-probe"
+    },
+    {
+      "alertId": "wi-13",
+      "action": "alert",
+      "confidence": 0.65,
+      "reason": "suspicious-query-probe"
+    },
+    {
+      "alertId": "wi-14",
+      "action": "alert",
+      "confidence": 0.65,
+      "reason": "suspicious-query-probe"
+    },
+    {
+      "alertId": "wi-15",
+      "action": "alert",
+      "confidence": 0.65,
+      "reason": "suspicious-query-probe"
+    },
+    {
+      "alertId": "wi-16",
+      "action": "alert",
+      "confidence": 0.65,
+      "reason": "suspicious-query-probe"
+    },
+    {
+      "alertId": "wi-17",
+      "action": "alert",
+      "confidence": 0.65,
+      "reason": "suspicious-query-probe"
+    },
+    {
+      "alertId": "wi-18",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal-activity"
+    },
+    {
+      "alertId": "wi-19",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal-activity"
+    },
+    {
+      "alertId": "wi-20",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal-activity"
+    },
+    {
+      "alertId": "wi-21",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal-activity"
+    },
+    {
+      "alertId": "wi-22",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal-activity"
+    },
+    {
+      "alertId": "wi-23",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal-activity"
+    },
+    {
+      "alertId": "wi-24",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal-activity"
+    },
+    {
+      "alertId": "wi-25",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal-activity"
+    },
+    {
+      "alertId": "wi-26",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal-activity"
+    }
+  ],
+  "counts": {
+    "block": 8,
+    "alert": 9,
+    "record": 9
+  }
+}

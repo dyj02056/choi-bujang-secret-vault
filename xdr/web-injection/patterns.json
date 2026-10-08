@@ -1,0 +1,38 @@
+[
+  {
+    "name": "sql-injection",
+    "description": "SQL 구문 표기(OR, 체이닝, DB 조회 등)를 반복하여 데이터베이스 무단 조회나 조작을 시도하는 행위",
+    "condition": "level >= 10 이며 SQL 구문 표기 또는 DB 조회 구문 반복(count >= 8)",
+    "rationale": "MITRE ATT&CK T1190(외부 공개 앱 악용): 입력값 검증 미흡을 악용하여 데이터베이스 SQL 구문을 주입하는 웹 공격 기법입니다."
+  },
+  {
+    "name": "xss-script-injection",
+    "description": "스크립트 태그 또는 스크립트 삽입 표기를 요청 인자에 반복 전송하여 악성 스크립트 실행을 유도하는 행위",
+    "condition": "level >= 10 이며 스크립트 삽입 표기 반복(count >= 8)",
+    "rationale": "MITRE ATT&CK T1190(외부 공개 앱 악용): 사용자 입력값 필터링 미흡을 노려 악성 스크립트 코드를 주입하는 기법입니다."
+  },
+  {
+    "name": "path-traversal",
+    "description": "경로 거슬러 올라가기(../) 또는 경로 이탈 표기를 반복하여 상위 및 임의 디렉터리 접근을 시도하는 행위",
+    "condition": "level >= 10 이며 경로 거슬러 올라가기 또는 경로 이탈 표기 반복(count >= 8)",
+    "rationale": "MITRE ATT&CK T1190(외부 공개 앱 악용): 파일 경로 인자 검증 우회를 통해 제한된 시스템 파일에 접근하려는 기법입니다."
+  },
+  {
+    "name": "mixed-command-injection",
+    "description": "명령 구분자 표기 반복 또는 스크립트와 SQL 표식을 번갈아 시도하는 복합 주입 행위",
+    "condition": "level >= 10 이며 명령 구분자 반복 또는 복합 표식 반복(count >= 8)",
+    "rationale": "MITRE ATT&CK T1190(외부 공개 앱 악용): 웹 요청 내 다양한 명령·구문 구분자를 삽입하여 실행을 유도하는 기법입니다."
+  },
+  {
+    "name": "suspicious-query-probe",
+    "description": "단발성 따옴표, 수업명/단어(select, script, sql, up) 포함 검색, 단순 1회 표기 등 오탐 가능성이 있는 의심 탐색",
+    "condition": "level >= 5 이며 level < 10 (단발성 특수문자, 1회 키워드 검색 등 반복 없는 의심 시도)",
+    "rationale": "MITRE ATT&CK T1190(외부 공개 앱 악용): 정상 사용자 검색어와 유사하여 차단 시 오탐 위험이 있어 추가 모니터링이 필요한 징후입니다."
+  },
+  {
+    "name": "normal-activity",
+    "description": "자료 목록 조회, 본인 메모 조회, 공지 확인, 화면 새로고침, 로그아웃 등 통상적인 웹 서비스 이용",
+    "condition": "level <= 4 이며 인증된 사용자의 정상적인 서비스 이용 이벤트",
+    "rationale": "웹 애플리케이션의 일상적인 기능 호출에서 발생하는 표준 트래픽입니다."
+  }
+]
