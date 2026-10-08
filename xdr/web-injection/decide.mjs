@@ -82,3 +82,4 @@ export async function decide(alert) {
     reason: PATTERNS[5].name,
   };
 }
+
