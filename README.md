@@ -1,25 +1,28 @@
-# BYTE BACK 방어전 - 점령된 자료실 (5단계)
+# BYTE BACK — secret-note vault (step 6)
 
-이 저장소는 5단계 「자료 요청을 서버 한곳으로 모읍니다」 기능이 적용된 상태입니다. 브라우저는 로그인(Auth)만 직접 호출하고, 메모 읽기·추가·수정·삭제는 서버 API(`/api/notes`, `/api/notes/:id`)로만 요청합니다. 서버 API는 로그인 검증 후 본인(`owner_id = verified.userId`) 자료만 처리하며, 서버 전용 키로 DB에 접근합니다.
+This app protects private notes with verified Supabase login and server-side
+ownership checks. The browser calls only `/api/notes` and `/api/notes/:id`;
+the server permits access only when `owner_id` matches the verified user.
+Direct browser access to the `secret_notes` table remains blocked.
 
-## 5단계 현재 작동하는 기능
+Step 6 adds one decision policy: requests from a registered device are allowed;
+requests from an unregistered device are denied. The policy uses only the
+engine-provided `deviceRegistered` value and does not store device details,
+credentials, or note contents.
 
-1. **서버 한곳으로 모으기:**
-   - 브라우저 직접 자료 호출 없음 — 로그인(Auth) 제외, 메모는 모두 서버 함수 호출로 처리됩니다.
-2. **원본 직접 요청 차단:**
-   - 학습용 메모 테이블(`secret_notes`)의 PUBLIC·anon·authenticated 직접 권한을 거둬 원본 HTTPS 경로로의 직접 접근을 차단합니다. 다른 테이블은 건드리지 않습니다.
-   - 원본 주소는 `aleph.config.json`의 `originalApiUrl`에 기록되어 있으며, 심판이 anon 키로 직접 요청 차단을 확인합니다.
-3. **A 정상 동작 유지:**
-   - A 계정으로 로그인 시 A 소유 메모만 목록·추가·수정·삭제가 정상 동작합니다.
+## Run and check
 
-## 다시 실행 및 테스트 방법
+```powershell
+npm run decider:test
+```
 
-1. **로컬 빌드 검증:**
-   ```powershell
-   npm run build -- --local
-   ```
-2. **배포 및 동작 확인:**
-   - A 계정으로 로그인 시 A 소유 메모만 목록에 나타나고 추가·수정·삭제가 되는지 확인
-   - B 사용자가 A의 메모 ID로 직접 `GET /api/notes/:id` 또는 `PUT`, `DELETE` 요청 시 `403 Forbidden`으로 거부되는지 확인
-   - 비로그인 요청 시 `401 Unauthorized`로 거부되는지 확인
-   - 원본 주소(`originalApiUrl`)에 anon 키로 직접 요청 시 메모가 노출되지 않고 거부되는지 확인
+Expected normal result: a virtual request with `deviceRegistered: true` is
+allowed. Expected rejection: the same request with `deviceRegistered: false`
+is denied with `device_not_registered`.
+
+`npm run decider:test` is local practice only; it is not a live judge result.
+
+To check the existing UI, start the app using the project's normal local
+workflow, sign in, and open the note list. Your own notes should be visible.
+Requests without a valid login should return `401`, and another user's note
+ID should return `403`.

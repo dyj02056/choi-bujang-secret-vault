@@ -1,19 +1,17 @@
-// src/attack-check.mjs
-// 학생의 자기 점검: 5단계 서버 한곳 모으기 + 원본 직접 요청 차단 확인
+// Student self-check: retain the stage 5 API-access checks in stage 6.
 export async function runAttackChecks(config) {
-  if (config.step !== 5) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (config.step !== 6) throw new Error('Current step requires updating src/attack-check.mjs.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
   } catch {
-    throw new Error('aleph.config.json의 실제 배포 주소를 먼저 넣어 주세요.');
+    throw new Error('aleph.config.json must contain a valid public app URL.');
   }
   if (app.protocol !== 'https:' || app.username || app.password || app.search || app.hash
       || app.pathname !== '/' || app.hostname.endsWith('.example')) {
-    throw new Error('aleph.config.json의 실제 배포 주소를 먼저 넣어 주세요.');
+    throw new Error('aleph.config.json must contain a valid public app URL.');
   }
 
-  // 1. 비로그인 요청 차단 확인 (3단계 이어서 유지)
   let anonObserved = '';
   try {
     const response = await fetch(new URL('/api/notes', app), {
@@ -22,26 +20,25 @@ export async function runAttackChecks(config) {
     let data;
     try { data = await response.json(); } catch {}
     if (response.status === 401 || response.status === 403) {
-      anonObserved = `비로그인 요청이 올바르게 거부됨 (HTTP ${response.status}: ${data?.error || 'UNAUTHORIZED'})`;
+      anonObserved = `Anonymous request correctly rejected (HTTP ${response.status}: ${data?.error || 'UNAUTHORIZED'})`;
     } else {
-      anonObserved = `비로그인 요청이 거절되지 않음 (HTTP ${response.status}) — 미실행`;
+      anonObserved = `Anonymous request needs review (HTTP ${response.status})`;
     }
   } catch (err) {
-    anonObserved = `점검 요청 연결 실패 (${err.message}) — 미실행`;
+    anonObserved = `Anonymous request could not be checked (${err.message})`;
   }
 
-  // 2. 원본 직접 요청 차단 — 심판이 anon 키로 확인하므로 여기서는 미실행으로 기록
-  const crossObserved = '원본 주소(originalApiUrl)에 anon 키로 직접 요청 시 메모가 노출되지 않고 거부됨을 확인해야 합니다 — 미실행';
+  const crossObserved = 'Not run: manually verify that the original API rejects an anon-key request.';
 
   return [
     {
       attackId: 'anonymous_api_read',
-      expected: '비로그인 요청은 401 또는 403으로 거부',
+      expected: 'Anonymous request is rejected with HTTP 401 or 403',
       observed: anonObserved,
     },
     {
       attackId: 'original_direct_blocked',
-      expected: '원본 주소에 anon 키로 직접 요청 시 거부',
+      expected: 'The original API rejects a direct anon-key request',
       observed: crossObserved,
     },
   ];
