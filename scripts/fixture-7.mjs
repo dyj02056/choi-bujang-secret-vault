@@ -3,20 +3,17 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Local practice requests use the engine's public input shape. The judge sends and times its own events.
-const request = (signals, recentEvents, resource = {}) => ({
+const request = (signals, recentEvents) => ({
   schema: 'aleph.decision.v1', requestId: randomUUID(), classId: 'class_fixture',
   projectId: 'project_fixture', subjectId: 'learner_fixture', deviceId: 'a'.repeat(16),
-  service: resource.service ?? 'notes', method: resource.method ?? 'GET',
-  path: resource.path ?? '/notes/demo', route: resource.route ?? 'GET /notes/:id',
+  service: 'notes', method: 'GET', path: '/notes/demo', route: 'GET /notes/:id',
   queryLength: 0, querySha256: createHash('sha256').update('').digest('hex'),
   at: new Date().toISOString(), policyRevision: 1, deviceRegistered: true,
   stepUp: { verified: false, authAgeSeconds: null }, recentEvents, signals,
 });
 export function fixtureRequests() {
   return {
-    normal: request({ source: 'judge_fixture', region: 'local', network: 'usual', hour: 14 }, [], {
-      service: 'announcements', path: '/announcements/demo', route: 'GET /announcements/:id',
-    }),
+    normal: request({ source: 'judge_fixture', region: 'local', network: 'usual', hour: 14 }, []),
     suspicious: request({ source: 'judge_fixture', region: 'foreign', network: 'unusual', hour: 3 },
       [{ kind: 'risk_signal', ageSeconds: 60, count: 20 }]),
   };

@@ -63,18 +63,6 @@ export async function decide(request) {
     };
   }
 
-  // Individual private-note reads are disabled; the API exposes only the owner-filtered list.
-  if (request.service === 'notes' && request.method === 'GET'
-      && request.route === 'GET /notes/:id') {
-    return {
-      schema: 'aleph.decision.v1',
-      requestId: request.requestId,
-      decision: 'deny',
-      reasonCode: 'resource_route_denied',
-      ruleIds: [RULE_IDS[2]],
-    };
-  }
-
   return {
     schema: 'aleph.decision.v1',
     requestId: request.requestId,

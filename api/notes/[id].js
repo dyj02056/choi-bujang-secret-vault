@@ -59,11 +59,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'INVALID_RESOURCE_ID', message: '올바른 메모 ID가 필요합니다.' });
   }
 
-  // Individual-note reads are disabled; clients must use the owner-filtered list API.
-  if (req.method === 'GET') {
-    return res.status(403).json({ error: 'RESOURCE_READ_DISABLED', message: '개별 메모 조회는 허용되지 않습니다.' });
-  }
-
   // DB에서 메모 한 건 조회하는 내부 헬퍼 (owner_id 포함)
   async function fetchNote(noteId) {
     const response = await fetch(
@@ -81,7 +76,24 @@ export default async function handler(req, res) {
     return rows[0] ?? null;
   }
 
-  // 2. PUT /:id — 기존 행과 새 행의 소유자가 모두 본인인지 확인
+  // 2. GET /:id — 본인 소유 메모만 반환
+  if (req.method === 'GET') {
+    try {
+      const note = await fetchNote(id);
+      if (!note) {
+        return res.status(404).json({ error: 'NOT_FOUND', message: '메모를 찾을 수 없습니다.' });
+      }
+      if (typeof note.owner_id !== 'string'
+          || note.owner_id.toLowerCase() !== verified.userId.toLowerCase()) {
+        return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 조회할 수 있습니다.' });
+      }
+      return res.status(200).json({ id: note.id, title: note.title, body: note.content });
+    } catch {
+      return res.status(502).json({ error: 'DB_NETWORK_ERROR', message: 'DB 통신 오류' });
+    }
+  }
+
+  // 3. PUT /:id — 기존 행과 새 행의 소유자가 모두 본인인지 확인
   if (req.method === 'PUT') {
     const { title, body } = req.body || {};
     if (!title && body === undefined) {
@@ -133,7 +145,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // 3. DELETE /:id — 본인 소유 메모만 삭제
+  // 4. DELETE /:id — 본인 소유 메모만 삭제
   if (req.method === 'DELETE') {
     try {
       // 기존 행 소유자 확인
