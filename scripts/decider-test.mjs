@@ -38,6 +38,17 @@ export async function checkDecider({ decide, ruleIds }) {
       decision: 'allow' },
     );
   }
+  if (ruleIds.includes('resource_zone_route')) {
+    checks.push(
+      { name: 'instructor announcement update route', request: { ...normal,
+        requestId: randomUUID(), service: 'announcements', method: 'PUT',
+        path: '/announcements/demo', route: 'PUT /announcements/:id' },
+      decision: 'deny', reasonCode: 'resource_route_denied' },
+      { name: 'unknown nested resource route', request: { ...normal,
+        requestId: randomUUID(), path: '/notes/demo/export', route: 'GET /notes/:id/export' },
+      decision: 'deny', reasonCode: 'resource_route_denied' },
+    );
+  }
   const results = [];
   for (const item of checks) {
     const response = await decide(item.request);

@@ -59,7 +59,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/secret_notes?owner_id=eq.${verified.userId}&select=id,title,content,created_at&order=created_at.desc`,
+        `${supabaseUrl}/rest/v1/secret_notes?owner_id=eq.${verified.userId}&select=id,title,content,created_at,owner_id&order=created_at.desc`,
         {
           headers: {
             apikey: supabaseKey,
@@ -74,11 +74,14 @@ export default async function handler(req, res) {
       }
 
       const rows = await response.json();
-      const notes = rows.map((r) => ({
-        id: r.id,
-        title: r.title,
-        body: r.content,
-      }));
+      const notes = rows
+        .filter((r) => typeof r.owner_id === 'string'
+          && r.owner_id.toLowerCase() === verified.userId.toLowerCase())
+        .map((r) => ({
+          id: r.id,
+          title: r.title,
+          body: r.content,
+        }));
 
       return res.status(200).json(notes);
     } catch {

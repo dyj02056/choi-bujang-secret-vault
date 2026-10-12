@@ -1,6 +1,6 @@
-// Student self-check: retain the stage 5 API-access checks in stage 7.
+// Student self-check: retain API-access checks in stage 8.
 export async function runAttackChecks(config) {
-  if (config.step !== 7) throw new Error('Current step requires updating src/attack-check.mjs.');
+  if (config.step !== 8) throw new Error('Current step requires updating src/attack-check.mjs.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -12,6 +12,7 @@ export async function runAttackChecks(config) {
     throw new Error('aleph.config.json must contain a valid public app URL.');
   }
 
+  
   let anonObserved = '';
   try {
     const response = await fetch(new URL('/api/notes', app), {
@@ -29,6 +30,7 @@ export async function runAttackChecks(config) {
   }
 
   const crossObserved = 'Not run: manually verify that the original API rejects an anon-key request.';
+  const zoneObserved = 'Not run: manually verify that another user cannot read or modify a private note.';
 
   return [
     {
@@ -40,6 +42,11 @@ export async function runAttackChecks(config) {
       attackId: 'original_direct_blocked',
       expected: 'The original API rejects a direct anon-key request',
       observed: crossObserved,
+    },
+    {
+      attackId: 'cross_zone_note_access',
+      expected: 'Another user is denied access to a private note with HTTP 403',
+      observed: zoneObserved,
     },
   ];
 }
