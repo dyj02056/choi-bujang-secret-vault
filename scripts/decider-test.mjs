@@ -35,11 +35,14 @@ export async function checkDecider({ decide, ruleIds }) {
         reasonCode: 'step_up_required' },
       { name: '다시 확인한 복합 이상 접속', request: { ...suspicious,
         requestId: randomUUID(), stepUp: { verified: true, authAgeSeconds: 60 } },
-      decision: 'allow' },
+      decision: 'deny', reasonCode: 'resource_route_denied' },
     );
   }
   if (ruleIds.includes('resource_zone_route')) {
     checks.push(
+      { name: 'individual private-note read route', request: { ...normal,
+        requestId: randomUUID(), service: 'notes', path: '/notes/demo',
+        route: 'GET /notes/:id' }, decision: 'deny', reasonCode: 'resource_route_denied' },
       { name: 'instructor announcement update route', request: { ...normal,
         requestId: randomUUID(), service: 'announcements', method: 'PUT',
         path: '/announcements/demo', route: 'PUT /announcements/:id' },
