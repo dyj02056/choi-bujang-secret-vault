@@ -62,7 +62,7 @@ export default async function handler(req, res) {
   // DB에서 메모 한 건 조회하는 내부 헬퍼 (owner_id 포함)
   async function fetchNote(noteId) {
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/secret_notes?id=eq.${noteId}&select=id,title,content,owner_id`,
+      `${supabaseUrl}/rest/v1/secret_notes?id=eq.${noteId}&owner_id=eq.${verified.userId}&select=id,title,content,owner_id`,
       {
         headers: {
           apikey: supabaseKey,
