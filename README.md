@@ -377,7 +377,7 @@ are local practice or build checks only; they are not live judge results.
 ## XDR bonus modules (student work)
 
 `xdr/<moduleKey>/decide.mjs` answers each practice Wazuh-shaped alert in `xdr/fixtures/<moduleKey>.json` with
-`{ action: block | alert | record, confidence, reason }`. Done: `brute-force`, `web-injection`, `known-cve`, `persistence`, `privilege`.
+`{ action: block | alert | record, confidence, reason }`. Done: all six — `brute-force`, `web-injection`, `known-cve`, `persistence`, `privilege`, `exfiltration`.
 `decide.mjs` has no `import`, reads and writes no file and asks nothing outside; `respond.mjs` writes `xdr/alerts.log`
 (append only) and builds deny-rule candidates with an expiry time and the evidence alert IDs. The decider contract
 (`docs/DECIDER_REQUEST.md`) has no source address, so those rules are candidates for the front relay; `src/decider.mjs`
@@ -431,4 +431,22 @@ node xdr/privilege/respond.mjs
 
 Expected: `경보 26건 · 뽑은 줄 26줄 · 일치`; `xdr/privilege/result.json` counts block 9 · alert 8 · record 9 with no
 normal event (pv-18–26) blocked; replay shows `정상 이벤트 막힘 0건`. `respond.mjs` appends 17 lines to
+`xdr/alerts.log` on every run. Local practice results, not judge results.
+
+`exfiltration` (MITRE ATT&CK T1041 exfiltration over the command channel, T1048 over an alternative protocol): a
+T1041/T1048 alert at level 5 or more starts at 0.6 (`alert`); clear signals add 0.15 each, mostly from the alert's
+numbers rather than its text (50 MB or more in `bytes`, a first-seen destination, outside class or work hours, an
+archive file sent at that size, 5 or more repeats in `count`, 50 or more `files`, an unusual port or protocol), and
+below level 10 it stays at most 0.84, so it cannot `block`. Anything else is `record` (0). `respond.mjs` blocks one
+destination address (`dstip`) per rule — never a source address or account — and never a destination that normal
+events use (the repository addresses). Patterns and their one-line evidence: `xdr/exfiltration/patterns.json`.
+
+```powershell
+node xdr/exfiltration/read-alerts.mjs
+npm run xdr:run -- exfiltration
+node xdr/exfiltration/respond.mjs
+```
+
+Expected: `경보 30건 · 뽑은 줄 30줄 · 일치`; `xdr/exfiltration/result.json` counts block 10 · alert 10 · record 10
+with no normal event (ex-21–30) blocked; replay shows `정상 이벤트 막힘 0건`. `respond.mjs` appends 20 lines to
 `xdr/alerts.log` on every run. Local practice results, not judge results.

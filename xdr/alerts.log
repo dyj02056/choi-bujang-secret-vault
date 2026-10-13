@@ -149,3 +149,43 @@
 [2026-10-13T11:53:52.089Z] [ALERT] module=privilege alertId=pv-15 ip=203.0.113.55 user=user06 reason=unverified-privilege-change confidence=0.6
 [2026-10-13T11:53:52.089Z] [ALERT] module=privilege alertId=pv-16 ip=192.0.2.56 user=user07 reason=unverified-privilege-change confidence=0.6
 [2026-10-13T11:53:52.089Z] [ALERT] module=privilege alertId=pv-17 ip=198.51.100.56 user=user08 reason=unverified-privilege-change confidence=0.6
+[2026-10-13T12:04:21.505Z] [BLOCK] module=exfiltration alertId=ex-01 ip=192.0.2.20 user=user01 dst=203.0.113.50 reason=large-volume-transfer, first-seen-destination, bulk-file-transfer confidence=0.99
+[2026-10-13T12:04:21.505Z] [BLOCK] module=exfiltration alertId=ex-02 ip=192.0.2.20 user=user01 dst=198.51.100.40 reason=large-volume-transfer, first-seen-destination, off-hours-transfer, archive-exfiltration confidence=0.99
+[2026-10-13T12:04:21.505Z] [BLOCK] module=exfiltration alertId=ex-03 ip=198.51.100.20 user=user02 dst=203.0.113.50 reason=large-volume-transfer, repeated-transfer-same-destination confidence=0.9
+[2026-10-13T12:04:21.505Z] [BLOCK] module=exfiltration alertId=ex-04 ip=203.0.113.20 user=user03 dst=198.51.100.40 reason=large-volume-transfer, bulk-file-transfer, unusual-protocol-port confidence=0.99
+[2026-10-13T12:04:21.505Z] [BLOCK] module=exfiltration alertId=ex-05 ip=192.0.2.25 user=user04 dst=203.0.113.55 reason=large-volume-transfer, first-seen-destination, bulk-file-transfer confidence=0.99
+[2026-10-13T12:04:21.505Z] [BLOCK] module=exfiltration alertId=ex-06 ip=198.51.100.25 user=user05 dst=192.0.2.90 reason=large-volume-transfer, off-hours-transfer, repeated-transfer-same-destination confidence=0.99
+[2026-10-13T12:04:21.505Z] [BLOCK] module=exfiltration alertId=ex-07 ip=203.0.113.25 user=user06 dst=198.51.100.45 reason=large-volume-transfer, first-seen-destination, archive-exfiltration confidence=0.99
+[2026-10-13T12:04:21.505Z] [BLOCK] module=exfiltration alertId=ex-08 ip=192.0.2.26 user=user07 dst=203.0.113.60 reason=large-volume-transfer, first-seen-destination, bulk-file-transfer confidence=0.99
+[2026-10-13T12:04:21.505Z] [BLOCK] module=exfiltration alertId=ex-09 ip=198.51.100.26 user=user08 dst=203.0.113.61 reason=large-volume-transfer, first-seen-destination, repeated-transfer-same-destination confidence=0.99
+[2026-10-13T12:04:21.505Z] [BLOCK] module=exfiltration alertId=ex-10 ip=203.0.113.26 user=user01 dst=198.51.100.46 reason=large-volume-transfer, first-seen-destination, archive-exfiltration confidence=0.99
+[2026-10-13T12:04:21.505Z] [ALERT] module=exfiltration alertId=ex-11 ip=192.0.2.57 user=user01 dst=192.0.2.80 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:21.505Z] [ALERT] module=exfiltration alertId=ex-12 ip=198.51.100.57 user=user02 dst=198.51.100.80 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:21.505Z] [ALERT] module=exfiltration alertId=ex-13 ip=203.0.113.57 user=user03 dst=none reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:21.505Z] [ALERT] module=exfiltration alertId=ex-14 ip=192.0.2.58 user=user04 dst=203.0.113.80 reason=first-seen-destination confidence=0.75
+[2026-10-13T12:04:21.505Z] [ALERT] module=exfiltration alertId=ex-15 ip=198.51.100.58 user=user05 dst=192.0.2.81 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:21.505Z] [ALERT] module=exfiltration alertId=ex-16 ip=203.0.113.58 user=user06 dst=198.51.100.81 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:21.505Z] [ALERT] module=exfiltration alertId=ex-17 ip=192.0.2.59 user=user07 dst=192.0.2.10 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:21.505Z] [ALERT] module=exfiltration alertId=ex-18 ip=198.51.100.59 user=user08 dst=203.0.113.81 reason=first-seen-destination confidence=0.75
+[2026-10-13T12:04:21.505Z] [ALERT] module=exfiltration alertId=ex-19 ip=203.0.113.59 user=user01 dst=198.51.100.82 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:21.505Z] [ALERT] module=exfiltration alertId=ex-20 ip=192.0.2.63 user=user02 dst=203.0.113.82 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:53.610Z] [BLOCK] module=exfiltration alertId=ex-01 ip=192.0.2.20 user=user01 dst=203.0.113.50 reason=large-volume-transfer, first-seen-destination, bulk-file-transfer confidence=0.99
+[2026-10-13T12:04:53.610Z] [BLOCK] module=exfiltration alertId=ex-02 ip=192.0.2.20 user=user01 dst=198.51.100.40 reason=large-volume-transfer, first-seen-destination, off-hours-transfer, archive-exfiltration confidence=0.99
+[2026-10-13T12:04:53.610Z] [BLOCK] module=exfiltration alertId=ex-03 ip=198.51.100.20 user=user02 dst=203.0.113.50 reason=large-volume-transfer, repeated-transfer-same-destination confidence=0.9
+[2026-10-13T12:04:53.610Z] [BLOCK] module=exfiltration alertId=ex-04 ip=203.0.113.20 user=user03 dst=198.51.100.40 reason=large-volume-transfer, bulk-file-transfer, unusual-protocol-port confidence=0.99
+[2026-10-13T12:04:53.610Z] [BLOCK] module=exfiltration alertId=ex-05 ip=192.0.2.25 user=user04 dst=203.0.113.55 reason=large-volume-transfer, first-seen-destination, bulk-file-transfer confidence=0.99
+[2026-10-13T12:04:53.610Z] [BLOCK] module=exfiltration alertId=ex-06 ip=198.51.100.25 user=user05 dst=192.0.2.90 reason=large-volume-transfer, off-hours-transfer, repeated-transfer-same-destination confidence=0.99
+[2026-10-13T12:04:53.610Z] [BLOCK] module=exfiltration alertId=ex-07 ip=203.0.113.25 user=user06 dst=198.51.100.45 reason=large-volume-transfer, first-seen-destination, archive-exfiltration confidence=0.99
+[2026-10-13T12:04:53.610Z] [BLOCK] module=exfiltration alertId=ex-08 ip=192.0.2.26 user=user07 dst=203.0.113.60 reason=large-volume-transfer, first-seen-destination, bulk-file-transfer confidence=0.99
+[2026-10-13T12:04:53.610Z] [BLOCK] module=exfiltration alertId=ex-09 ip=198.51.100.26 user=user08 dst=203.0.113.61 reason=large-volume-transfer, first-seen-destination, repeated-transfer-same-destination confidence=0.99
+[2026-10-13T12:04:53.610Z] [BLOCK] module=exfiltration alertId=ex-10 ip=203.0.113.26 user=user01 dst=198.51.100.46 reason=large-volume-transfer, first-seen-destination, archive-exfiltration confidence=0.99
+[2026-10-13T12:04:53.610Z] [ALERT] module=exfiltration alertId=ex-11 ip=192.0.2.57 user=user01 dst=192.0.2.80 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:53.610Z] [ALERT] module=exfiltration alertId=ex-12 ip=198.51.100.57 user=user02 dst=198.51.100.80 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:53.610Z] [ALERT] module=exfiltration alertId=ex-13 ip=203.0.113.57 user=user03 dst=none reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:53.610Z] [ALERT] module=exfiltration alertId=ex-14 ip=192.0.2.58 user=user04 dst=203.0.113.80 reason=first-seen-destination confidence=0.75
+[2026-10-13T12:04:53.610Z] [ALERT] module=exfiltration alertId=ex-15 ip=198.51.100.58 user=user05 dst=192.0.2.81 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:53.610Z] [ALERT] module=exfiltration alertId=ex-16 ip=203.0.113.58 user=user06 dst=198.51.100.81 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:53.610Z] [ALERT] module=exfiltration alertId=ex-17 ip=192.0.2.59 user=user07 dst=192.0.2.10 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:53.610Z] [ALERT] module=exfiltration alertId=ex-18 ip=198.51.100.59 user=user08 dst=203.0.113.81 reason=first-seen-destination confidence=0.75
+[2026-10-13T12:04:53.610Z] [ALERT] module=exfiltration alertId=ex-19 ip=203.0.113.59 user=user01 dst=198.51.100.82 reason=unverified-outbound-transfer confidence=0.6
+[2026-10-13T12:04:53.610Z] [ALERT] module=exfiltration alertId=ex-20 ip=192.0.2.63 user=user02 dst=203.0.113.82 reason=unverified-outbound-transfer confidence=0.6
