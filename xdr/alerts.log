@@ -83,3 +83,35 @@
 [2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-14 ip=203.0.113.46 user=none reason=cve-keyword-probe confidence=0.6
 [2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-15 ip=192.0.2.47 user=none reason=cve-keyword-probe confidence=0.6
 [2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-16 ip=198.51.100.47 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:42:59.948Z] [BLOCK] module=persistence alertId=ps-01 ip=203.0.113.12 user=user01 reason=unsigned-new-service, user-writable-executable confidence=0.9
+[2026-10-13T11:42:59.948Z] [BLOCK] module=persistence alertId=ps-02 ip=203.0.113.12 user=user01 reason=unfamiliar-persistence-entry, user-writable-executable confidence=0.9
+[2026-10-13T11:42:59.948Z] [BLOCK] module=persistence alertId=ps-03 ip=198.51.100.12 user=user02 reason=unfamiliar-persistence-entry, startup-folder-change confidence=0.99
+[2026-10-13T11:42:59.948Z] [BLOCK] module=persistence alertId=ps-04 ip=192.0.2.12 user=user03 reason=unsigned-new-service, repeated-service-registration confidence=0.9
+[2026-10-13T11:42:59.948Z] [BLOCK] module=persistence alertId=ps-05 ip=203.0.113.19 user=user04 reason=unfamiliar-persistence-entry, user-writable-executable confidence=0.9
+[2026-10-13T11:42:59.948Z] [BLOCK] module=persistence alertId=ps-06 ip=198.51.100.19 user=user05 reason=unsigned-new-service, user-writable-executable confidence=0.9
+[2026-10-13T11:42:59.948Z] [BLOCK] module=persistence alertId=ps-07 ip=192.0.2.19 user=user06 reason=user-writable-executable, combined-persistence confidence=0.9
+[2026-10-13T11:42:59.948Z] [BLOCK] module=persistence alertId=ps-08 ip=203.0.113.33 user=user07 reason=unfamiliar-persistence-entry, user-writable-executable confidence=0.9
+[2026-10-13T11:42:59.948Z] [ALERT] module=persistence alertId=ps-09 ip=192.0.2.48 user=user01 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:42:59.948Z] [ALERT] module=persistence alertId=ps-10 ip=198.51.100.48 user=user02 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:42:59.948Z] [ALERT] module=persistence alertId=ps-11 ip=203.0.113.48 user=user03 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:42:59.948Z] [ALERT] module=persistence alertId=ps-12 ip=192.0.2.49 user=user04 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:42:59.948Z] [ALERT] module=persistence alertId=ps-13 ip=198.51.100.49 user=user05 reason=user-writable-executable confidence=0.75
+[2026-10-13T11:42:59.948Z] [ALERT] module=persistence alertId=ps-14 ip=203.0.113.49 user=user06 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:42:59.948Z] [ALERT] module=persistence alertId=ps-15 ip=192.0.2.53 user=user07 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:42:59.948Z] [ALERT] module=persistence alertId=ps-16 ip=198.51.100.53 user=svc-lab reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:43:42.106Z] [BLOCK] module=persistence alertId=ps-01 ip=203.0.113.12 user=user01 reason=unsigned-new-service, user-writable-executable confidence=0.9
+[2026-10-13T11:43:42.106Z] [BLOCK] module=persistence alertId=ps-02 ip=203.0.113.12 user=user01 reason=unfamiliar-persistence-entry, user-writable-executable confidence=0.9
+[2026-10-13T11:43:42.106Z] [BLOCK] module=persistence alertId=ps-03 ip=198.51.100.12 user=user02 reason=unfamiliar-persistence-entry, startup-folder-change confidence=0.99
+[2026-10-13T11:43:42.106Z] [BLOCK] module=persistence alertId=ps-04 ip=192.0.2.12 user=user03 reason=unsigned-new-service, repeated-service-registration confidence=0.9
+[2026-10-13T11:43:42.106Z] [BLOCK] module=persistence alertId=ps-05 ip=203.0.113.19 user=user04 reason=unfamiliar-persistence-entry, user-writable-executable confidence=0.9
+[2026-10-13T11:43:42.106Z] [BLOCK] module=persistence alertId=ps-06 ip=198.51.100.19 user=user05 reason=unsigned-new-service, user-writable-executable confidence=0.9
+[2026-10-13T11:43:42.106Z] [BLOCK] module=persistence alertId=ps-07 ip=192.0.2.19 user=user06 reason=user-writable-executable, combined-persistence confidence=0.9
+[2026-10-13T11:43:42.106Z] [BLOCK] module=persistence alertId=ps-08 ip=203.0.113.33 user=user07 reason=unfamiliar-persistence-entry, user-writable-executable confidence=0.9
+[2026-10-13T11:43:42.106Z] [ALERT] module=persistence alertId=ps-09 ip=192.0.2.48 user=user01 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:43:42.106Z] [ALERT] module=persistence alertId=ps-10 ip=198.51.100.48 user=user02 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:43:42.106Z] [ALERT] module=persistence alertId=ps-11 ip=203.0.113.48 user=user03 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:43:42.106Z] [ALERT] module=persistence alertId=ps-12 ip=192.0.2.49 user=user04 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:43:42.106Z] [ALERT] module=persistence alertId=ps-13 ip=198.51.100.49 user=user05 reason=user-writable-executable confidence=0.75
+[2026-10-13T11:43:42.106Z] [ALERT] module=persistence alertId=ps-14 ip=203.0.113.49 user=user06 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:43:42.106Z] [ALERT] module=persistence alertId=ps-15 ip=192.0.2.53 user=user07 reason=unverified-persistence-change confidence=0.6
+[2026-10-13T11:43:42.106Z] [ALERT] module=persistence alertId=ps-16 ip=198.51.100.53 user=svc-lab reason=unverified-persistence-change confidence=0.6

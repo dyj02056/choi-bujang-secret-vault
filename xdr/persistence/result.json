@@ -1,0 +1,155 @@
+{
+  "schema": "aleph.xdr.result.v1",
+  "moduleKey": "persistence",
+  "decisions": [
+    {
+      "alertId": "ps-01",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "unsigned-new-service, user-writable-executable"
+    },
+    {
+      "alertId": "ps-02",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "unfamiliar-persistence-entry, user-writable-executable"
+    },
+    {
+      "alertId": "ps-03",
+      "action": "block",
+      "confidence": 0.99,
+      "reason": "unfamiliar-persistence-entry, startup-folder-change"
+    },
+    {
+      "alertId": "ps-04",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "unsigned-new-service, repeated-service-registration"
+    },
+    {
+      "alertId": "ps-05",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "unfamiliar-persistence-entry, user-writable-executable"
+    },
+    {
+      "alertId": "ps-06",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "unsigned-new-service, user-writable-executable"
+    },
+    {
+      "alertId": "ps-07",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "user-writable-executable, combined-persistence"
+    },
+    {
+      "alertId": "ps-08",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "unfamiliar-persistence-entry, user-writable-executable"
+    },
+    {
+      "alertId": "ps-09",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-persistence-change"
+    },
+    {
+      "alertId": "ps-10",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-persistence-change"
+    },
+    {
+      "alertId": "ps-11",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-persistence-change"
+    },
+    {
+      "alertId": "ps-12",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-persistence-change"
+    },
+    {
+      "alertId": "ps-13",
+      "action": "alert",
+      "confidence": 0.75,
+      "reason": "user-writable-executable"
+    },
+    {
+      "alertId": "ps-14",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-persistence-change"
+    },
+    {
+      "alertId": "ps-15",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-persistence-change"
+    },
+    {
+      "alertId": "ps-16",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-persistence-change"
+    },
+    {
+      "alertId": "ps-17",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "ps-18",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "ps-19",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "ps-20",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "ps-21",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "ps-22",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "ps-23",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "ps-24",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    }
+  ],
+  "counts": {
+    "block": 8,
+    "alert": 8,
+    "record": 8
+  }
+}

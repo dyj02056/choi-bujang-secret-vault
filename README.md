@@ -377,7 +377,7 @@ are local practice or build checks only; they are not live judge results.
 ## XDR bonus modules (student work)
 
 `xdr/<moduleKey>/decide.mjs` answers each practice Wazuh-shaped alert in `xdr/fixtures/<moduleKey>.json` with
-`{ action: block | alert | record, confidence, reason }`. Done: `brute-force`, `web-injection`, `known-cve`.
+`{ action: block | alert | record, confidence, reason }`. Done: `brute-force`, `web-injection`, `known-cve`, `persistence`.
 `decide.mjs` has no `import`, reads and writes no file and asks nothing outside; `respond.mjs` writes `xdr/alerts.log`
 (append only) and builds deny-rule candidates with an expiry time and the evidence alert IDs. The decider contract
 (`docs/DECIDER_REQUEST.md`) has no source address, so those rules are candidates for the front relay; `src/decider.mjs`
@@ -396,3 +396,20 @@ node xdr/known-cve/respond.mjs
 Expected: `경보 24건 · 뽑은 줄 24줄 · 일치`; `xdr/known-cve/result.json` counts block 8 · alert 8 · record 8 with no
 normal event (kc-17–24) blocked; replay shows `정상 이벤트 막힘 0건`. `respond.mjs` appends 16 lines to `xdr/alerts.log`
 on every run. These are local practice results, not judge results.
+
+`persistence` (MITRE ATT&CK T1543 services and startup items, T1053 scheduled tasks): a T1543/T1053 alert at level 5 or
+more starts at 0.6 (`alert`); clear signals add to it (unsigned new service, unfamiliar or random-named entry, executable
+in the user Temp folder, startup folder, repeated registration, T1543 and T1053 together), and below level 10 it stays at
+most 0.84, so it cannot `block`. Anything else is `record` (0). `respond.mjs` isolates one source address + account pair
+per rule (never an account alone or the PC name alone, which also appear in normal events) and skips addresses seen in
+normal events. Patterns and their one-line evidence: `xdr/persistence/patterns.json`.
+
+```powershell
+node xdr/persistence/read-alerts.mjs
+npm run xdr:run -- persistence
+node xdr/persistence/respond.mjs
+```
+
+Expected: `경보 24건 · 뽑은 줄 24줄 · 일치`; `xdr/persistence/result.json` counts block 8 · alert 8 · record 8 with no
+normal event (ps-17–24, including user01's normal login) blocked; replay shows `정상 이벤트 막힘 0건`. `respond.mjs`
+appends 16 lines to `xdr/alerts.log` on every run. Local practice results, not judge results.
