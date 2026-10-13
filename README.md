@@ -34,13 +34,17 @@ icon and manifest, never `/api/` responses.
 After login the app shows the **device approval** screen first. Notes stay hidden until the server approves
 this device:
 
-1. The app makes an ECDSA P-256 key with WebCrypto. The private key cannot be exported and lives only in the
-   open page's memory, never in browser storage, so a reload needs a new approval.
-2. "이 기기 승인 요청" sends `POST /api/devices` with the public key, signed by that same key.
+1. The device key is a **passkey** (WebAuthn, ES256) inside the operating system's authenticator (Windows Hello,
+   Touch ID, phone screen lock). The page never creates, exports, shows or stores a key; it only attaches the
+   authenticator's signature result. Nothing key-related goes into browser storage, Git or the submission.
+2. "이 기기 등록·승인 요청" creates the passkey and sends `POST /api/devices` with its credential ID and public
+   key (SPKI), signed by that same passkey. After a reload, "승인된 패스키로 자료실 열기" asks the server to check
+   the existing passkey.
 3. The server approves only if the login token shows a real login within the last 10 minutes; otherwise the
    device stays `pending` and the app asks for the password again. The button alone never grants access.
 4. Every protected request (`/api/notes`, `/api/notes/:id`, `/api/announcements/:id`, `/api/restore/notes`)
-   carries a signature over method, path with query, body SHA-256, time and a one-time number. The server rebuilds
+   carries a passkey signature whose challenge is the hash of method, path with query, body SHA-256, time and a
+   one-time number (the authenticator asks for confirmation each time). The server rebuilds
    that text from what it really received, so a request without a signature, or whose path or body changed after
    signing, is rejected. The full contract is in `docs/DEVICE_SIGNATURE.md`.
 
@@ -48,7 +52,7 @@ this device:
 |---|---|
 | Approved device, signed as sent | the earlier result (200 for own note, 403 for another user's note, ...) |
 | Logged in, no signature | 401 `DEVICE_SIGNATURE_REQUIRED` |
-| Path, query or method changed after signing | 403 `DEVICE_SIGNATURE_MISMATCH` |
+| Path, query or method changed after signing, or a signature made for another site | 403 `DEVICE_SIGNATURE_MISMATCH` |
 | Body changed after signing | 403 `DEVICE_SIGNATURE_MISMATCH` |
 | Same signature sent again / older than 60 s | 403 `DEVICE_SIGNATURE_REPLAYED` / 401 `DEVICE_SIGNATURE_EXPIRED` |
 | Pending, unknown or another account's device | 403 `DEVICE_NOT_APPROVED` |
@@ -179,7 +183,7 @@ records are not touched.
 ### Run after a restore (steps 1 to 9)
 
 This README does not contain results. `npm run bundle` runs `src/attack-check.mjs`, which first gets one
-virtual device approved per test account (`s11_device_approval`; the key exists only in that process), signs every
+virtual passkey authenticator approved per test account (`s11_device_approval`; its key exists only in that process), signs every
 login request with it, and sends the requests below after the restore and writes only what really happened into the
 submission (`attackAttempts`: expected, observed with HTTP status and time). A request
 that could not be sent says `Not run: <reason>`. A result that is not the expected one

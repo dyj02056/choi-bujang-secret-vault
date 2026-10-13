@@ -1,35 +1,47 @@
 import { createHash, createPublicKey, verify } from 'node:crypto';
 
-// 11단계: 접속 앱(설치형 웹앱)의 기기 서명. 보호 요청마다 기기 키로 아래 문자열에 서명합니다.
-//   aleph.device.v1 \n 메서드 \n 경로(쿼리 포함) \n 본문 SHA-256 \n 시각(ms) \n 일회용 번호 \n 기기 ID
-// 서버는 실제로 받은 메서드·경로·본문으로 같은 문자열을 다시 만들어 검증하므로, 서명한 뒤 경로나 본문을
-// 바꾸면 서명이 맞지 않습니다. 기기 공개키와 승인 상태는 서버 표 device_keys 에만 있습니다.
-// 브라우저가 보낸 "승인됨" 같은 값은 믿지 않습니다. 개인키는 서버로 오지 않고 저장하지도 않습니다.
-export const SIGNATURE_SCHEME = 'aleph.device.v1';
+// 11단계: 접속 앱(설치형 웹앱)의 기기 서명. 기기 키는 운영체제 인증기(패스키, WebAuthn) 안에만 있고,
+// 화면 코드·브라우저 저장소·서버·Git·제출물 어디에도 키 값이 없습니다. 서버는 등록 때 받은 공개키만 가집니다.
+// 보호 요청마다 앱은 아래 문자열의 SHA-256 을 패스키 도전값(challenge)으로 넣어 인증기 서명을 받습니다.
+//   aleph.device.v2 \n 메서드 \n 경로(쿼리 포함) \n 본문 SHA-256 \n 시각(ms) \n 일회용 번호
+// 서버는 실제로 받은 메서드·경로·본문으로 같은 문자열을 다시 만들어 도전값을 비교하고 서명을 검증하므로,
+// 서명한 뒤 경로나 본문을 바꾸면 거부됩니다. 승인 상태는 서버 표 device_keys 에만 있습니다.
+export const SIGNATURE_SCHEME = 'aleph.device.v2';
 export const MAX_SKEW_MS = 60_000;
 export const DEVICE_ID = /^[0-9a-f]{16}$/u;
 const NONCE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
-const SIGNATURE = /^[A-Za-z0-9_-]{86}$/u; // P-256 서명 64바이트(r||s)의 base64url
+const SIGNATURE = /^[A-Za-z0-9_-]{60,120}$/u; // ES256 DER 서명의 base64url
+const B64URL = /^[A-Za-z0-9_-]+$/u;
 const TIMESTAMP = /^[0-9]{13}$/u;
 const B64URL_32 = /^[A-Za-z0-9_-]{43}$/u;
 
 export const HEADERS = Object.freeze({
-  device: 'x-aleph-device', timestamp: 'x-aleph-timestamp', nonce: 'x-aleph-nonce', signature: 'x-aleph-signature',
+  device: 'x-aleph-device',
+  timestamp: 'x-aleph-timestamp',
+  nonce: 'x-aleph-nonce',
+  signature: 'x-aleph-signature',
+  authenticatorData: 'x-aleph-authenticator-data',
+  clientData: 'x-aleph-client-data',
 });
 
-const sha256 = (text) => createHash('sha256').update(text, 'utf8').digest('hex');
+const sha256 = (data) => createHash('sha256').update(data).digest();
+const sha256Hex = (text) => createHash('sha256').update(text, 'utf8').digest('hex');
 
 // 서명할 본문 문자열. 본문이 없으면 빈 문자열, 문자열이면 그대로, JSON이면 JSON.stringify 결과입니다.
-// 브라우저가 JSON.stringify(값)으로 보낸 본문은 서버가 해석한 뒤 다시 문자열로 만들어도 같습니다.
 export function canonicalBody(body) {
   if (body === undefined || body === null || body === '') return '';
   if (typeof body === 'string') return body;
   if (Buffer.isBuffer(body)) return body.toString('utf8');
   return JSON.stringify(body);
 }
-export const bodySha256 = (body) => sha256(canonicalBody(body));
+export const bodySha256 = (body) => sha256Hex(canonicalBody(body));
 
-// 공개키(JWK)는 P-256 의 kty·crv·x·y 네 값만 받습니다. 개인키 값(d)이 들어 있으면 거부합니다.
+export function signingString({ method, path, bodyHash, timestamp, nonce }) {
+  return [SIGNATURE_SCHEME, String(method).toUpperCase(), path, bodyHash, timestamp, nonce].join('\n');
+}
+export const challengeOf = (text) => sha256(Buffer.from(text, 'utf8')).toString('base64url');
+
+// 저장된 공개키는 P-256 의 kty·crv·x·y 네 값만 씁니다. 개인키 값(d)이 들어 있으면 거부합니다.
 export function publicJwkOf(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   if ('d' in value || value.kty !== 'EC' || value.crv !== 'P-256'
@@ -37,27 +49,24 @@ export function publicJwkOf(value) {
   return { crv: 'P-256', kty: 'EC', x: value.x, y: value.y };
 }
 
-// 기기 ID = 공개키(JWK 정규형)의 SHA-256 앞 16자리. 반 엔진 계약의 deviceId 형식(16자리 소문자 16진수)과 같습니다.
-export function deviceIdOf(jwk) {
-  const key = publicJwkOf(jwk);
-  if (!key) return null;
-  return sha256(JSON.stringify({ crv: key.crv, kty: key.kty, x: key.x, y: key.y })).slice(0, 16);
-}
-
-export function signingString({ method, path, bodyHash, timestamp, nonce, deviceId }) {
-  return [SIGNATURE_SCHEME, String(method).toUpperCase(), path, bodyHash, timestamp, nonce, deviceId].join('\n');
-}
-
-export function verifySignature(jwk, text, signature) {
-  const key = publicJwkOf(jwk);
-  if (!key || !SIGNATURE.test(signature ?? '')) return false;
+// 패스키 등록 응답의 공개키(SPKI, base64url)를 P-256 공개키 JWK로 바꿉니다. 다른 형식이면 null.
+export function publicJwkFromSpki(spkiB64url) {
+  if (typeof spkiB64url !== 'string' || !B64URL.test(spkiB64url) || spkiB64url.length > 400) return null;
   try {
-    return verify('sha256', Buffer.from(text, 'utf8'),
-      { key: createPublicKey({ key, format: 'jwk' }), dsaEncoding: 'ieee-p1363' },
-      Buffer.from(signature, 'base64url'));
+    const key = createPublicKey({ key: Buffer.from(spkiB64url, 'base64url'), format: 'der', type: 'spki' });
+    if (key.asymmetricKeyType !== 'ec' || key.asymmetricKeyDetails?.namedCurve !== 'prime256v1') return null;
+    return publicJwkOf(key.export({ format: 'jwk' }));
   } catch {
-    return false;
+    return null;
   }
+}
+
+// 기기 ID = 패스키 자격 ID(credential ID) 바이트의 SHA-256 앞 16자리. 반 엔진 계약의 deviceId 형식과 같습니다.
+export function deviceIdOfCredential(credentialIdB64url) {
+  if (typeof credentialIdB64url !== 'string' || !B64URL.test(credentialIdB64url)) return null;
+  const raw = Buffer.from(credentialIdB64url, 'base64url');
+  if (raw.length < 16 || raw.length > 1023) return null;
+  return sha256(raw).toString('hex').slice(0, 16);
 }
 
 // 요청이 실제로 가리키는 경로(쿼리 포함). 서명은 이 값과 비교합니다.
@@ -71,24 +80,34 @@ export function requestPath(req) {
   }
 }
 
+// 패스키는 앱 주소(호스트)에 묶입니다. 요청을 받은 호스트의 https 주소만 출처로 인정합니다.
+export function expectedOrigin(req) {
+  const forwarded = req.headers?.['x-forwarded-host'];
+  const host = String((typeof forwarded === 'string' && forwarded) || req.headers?.host || '').split(',')[0].trim().toLowerCase();
+  if (!/^[a-z0-9.-]+(?::[0-9]{1,5})?$/u.test(host)) return null;
+  const hostname = host.replace(/:[0-9]+$/u, '');
+  const local = hostname === 'localhost' || hostname === '127.0.0.1';
+  return { origin: `${local ? 'http' : 'https'}://${host}`, rpId: hostname };
+}
+
 const header = (req, name) => {
   const value = req.headers?.[name];
   return typeof value === 'string' ? value.trim() : '';
 };
 
-// 서명 머리글을 읽고 형식과 시각을 확인합니다. 키 확인은 하지 않습니다.
+// 서명 머리글을 읽고 형식·시각을 확인한 뒤, 실제로 받은 요청으로 도전값을 만듭니다. 키 확인은 하지 않습니다.
 export function readSignedRequest(req, now = Date.now()) {
-  const deviceId = header(req, HEADERS.device);
-  const timestamp = header(req, HEADERS.timestamp);
-  const nonce = header(req, HEADERS.nonce).toLowerCase();
-  const signature = header(req, HEADERS.signature);
-  if (!deviceId && !timestamp && !nonce && !signature) {
+  const values = Object.fromEntries(Object.entries(HEADERS).map(([key, name]) => [key, header(req, name)]));
+  if (Object.values(values).every((value) => !value)) {
     return { ok: false, status: 401, error: 'DEVICE_SIGNATURE_REQUIRED', message: '접속 앱의 기기 서명이 필요합니다.' };
   }
-  if (!DEVICE_ID.test(deviceId) || !TIMESTAMP.test(timestamp) || !NONCE.test(nonce) || !SIGNATURE.test(signature)) {
+  const nonce = values.nonce.toLowerCase();
+  if (!DEVICE_ID.test(values.device) || !TIMESTAMP.test(values.timestamp) || !NONCE.test(nonce)
+      || !SIGNATURE.test(values.signature) || !B64URL.test(values.authenticatorData)
+      || values.authenticatorData.length > 1400 || !B64URL.test(values.clientData) || values.clientData.length > 2800) {
     return { ok: false, status: 401, error: 'DEVICE_SIGNATURE_INVALID', message: '기기 서명 형식이 올바르지 않습니다.' };
   }
-  if (Math.abs(now - Number(timestamp)) > MAX_SKEW_MS) {
+  if (Math.abs(now - Number(values.timestamp)) > MAX_SKEW_MS) {
     return { ok: false, status: 401, error: 'DEVICE_SIGNATURE_EXPIRED', message: '기기 서명 시각이 너무 오래되었습니다.' };
   }
   let bodyHash;
@@ -97,8 +116,31 @@ export function readSignedRequest(req, now = Date.now()) {
   } catch {
     return { ok: false, status: 400, error: 'BAD_REQUEST', message: '요청 본문을 읽을 수 없습니다.' };
   }
-  const text = signingString({ method: req.method, path: requestPath(req), bodyHash, timestamp, nonce, deviceId });
-  return { ok: true, deviceId, nonce, signature, text };
+  const text = signingString({ method: req.method, path: requestPath(req), bodyHash, timestamp: values.timestamp, nonce });
+  return {
+    ok: true, deviceId: values.device, nonce, challenge: challengeOf(text), target: expectedOrigin(req),
+    signature: values.signature, authenticatorData: values.authenticatorData, clientData: values.clientData,
+  };
+}
+
+// WebAuthn 서명(assertion) 검증: 도전값·출처·종류·호스트·사용자 확인 표시와 ES256 서명.
+export function verifyAssertion(jwk, signed) {
+  const key = publicJwkOf(jwk);
+  if (!key || !signed.target) return false;
+  try {
+    const clientDataJSON = Buffer.from(signed.clientData, 'base64url');
+    const clientData = JSON.parse(clientDataJSON.toString('utf8'));
+    if (clientData.type !== 'webauthn.get' || clientData.challenge !== signed.challenge
+        || clientData.origin !== signed.target.origin || clientData.crossOrigin === true) return false;
+    const authenticatorData = Buffer.from(signed.authenticatorData, 'base64url');
+    if (authenticatorData.length < 37
+        || !authenticatorData.subarray(0, 32).equals(sha256(Buffer.from(signed.target.rpId, 'utf8')))
+        || (authenticatorData[32] & 0x01) !== 0x01) return false; // 사용자 존재(UP) 표시가 있어야 합니다.
+    const data = Buffer.concat([authenticatorData, sha256(clientDataJSON)]);
+    return verify('sha256', data, createPublicKey({ key, format: 'jwk' }), Buffer.from(signed.signature, 'base64url'));
+  } catch {
+    return false;
+  }
 }
 
 const db = (supabaseUrl, serviceKey) => ({
@@ -150,7 +192,7 @@ export async function checkRequestSignature({ req, ownerId, fetchImpl = fetch, s
       || device.status !== 'approved') {
     return { ok: false, status: 403, error: 'DEVICE_NOT_APPROVED', message: '이 계정에서 승인된 기기가 아닙니다.' };
   }
-  if (!verifySignature(device.public_key, signed.text, signed.signature)) {
+  if (!verifyAssertion(device.public_key, signed)) {
     return { ok: false, status: 403, error: 'DEVICE_SIGNATURE_MISMATCH', message: '서명한 요청과 받은 요청(경로·본문)이 다릅니다.' };
   }
   const used = await useNonce({ fetchImpl, supabaseUrl, serviceKey, deviceId: signed.deviceId, nonce: signed.nonce });

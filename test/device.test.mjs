@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { checkRequestSignature, deviceIdOf } from '../src/device-signature.mjs';
+import { createPublicKey, generateKeyPairSync } from 'node:crypto';
+import { checkRequestSignature, deviceIdOfCredential } from '../src/device-signature.mjs';
 import { createVirtualDevice } from '../src/device-client.mjs';
 import { handleDevices } from '../src/device-approval.mjs';
 
@@ -9,6 +10,9 @@ const OWNER_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const OWNER_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const NOTE = '11111111-1111-4111-8111-111111111111';
 const BASE = { supabaseUrl: 'https://example.invalid', serviceKey: 'test-key-not-real' };
+const HOST = 'byteback-test.vercel.app';
+const ORIGIN = `https://${HOST}`;
+const newDevice = () => createVirtualDevice({ origin: ORIGIN });
 
 function makeDb() {
   const db = { devices: [], nonces: [] };
@@ -47,10 +51,14 @@ function makeDb() {
 }
 
 // 받은 요청을 흉내 냅니다. Vercel 처럼 JSON 본문은 해석된 값으로 들어옵니다.
-const incoming = ({ method = 'GET', url, headers = {}, body }) => ({ method, url, headers, body });
+const incoming = ({ method = 'GET', url, headers = {}, body }) => ({ method, url, headers: { host: HOST, ...headers }, body });
+const publicJwkOf = (device) => {
+  const jwk = createPublicKey({ key: Buffer.from(device.registration().publicKey, 'base64url'), format: 'der', type: 'spki' }).export({ format: 'jwk' });
+  return { crv: 'P-256', kty: 'EC', x: jwk.x, y: jwk.y };
+};
 const approvedDevice = (db, owner = OWNER_A) => {
-  const device = createVirtualDevice();
-  db.devices.push({ device_id: device.id, owner_id: owner, public_key: device.publicJwk, status: 'approved', approved_at: 'now' });
+  const device = newDevice();
+  db.devices.push({ device_id: device.id, owner_id: owner, public_key: publicJwkOf(device), status: 'approved', approved_at: 'now' });
   return device;
 };
 const check = (db, req, ownerId = OWNER_A) => checkRequestSignature({ req, ownerId, fetchImpl: db.fetch, ...BASE });
@@ -113,13 +121,13 @@ test('같은 서명을 다시 보내거나 오래된 서명은 거부된다', as
 
 test('승인 대기 기기, 다른 계정의 기기, 등록 안 된 기기는 거부된다', async () => {
   const db = makeDb();
-  const pending = createVirtualDevice();
-  db.devices.push({ device_id: pending.id, owner_id: OWNER_A, public_key: pending.publicJwk, status: 'pending', approved_at: null });
+  const pending = newDevice();
+  db.devices.push({ device_id: pending.id, owner_id: OWNER_A, public_key: publicJwkOf(pending), status: 'pending', approved_at: null });
   const path = '/api/notes';
   assert.equal((await check(db, incoming({ url: path, headers: pending.signHeaders({ path }) }))).error, 'DEVICE_NOT_APPROVED');
   const ofB = approvedDevice(db, OWNER_B);
   assert.equal((await check(db, incoming({ url: path, headers: ofB.signHeaders({ path }) }))).error, 'DEVICE_NOT_APPROVED');
-  const unknown = createVirtualDevice();
+  const unknown = newDevice();
   assert.equal((await check(db, incoming({ url: path, headers: unknown.signHeaders({ path }) }))).error, 'DEVICE_NOT_APPROVED');
 });
 
@@ -127,24 +135,24 @@ test('승인 대기 기기, 다른 계정의 기기, 등록 안 된 기기는 �
 const NOW = Date.now();
 const fresh = { kind: 'student', userId: OWNER_A, authTime: Math.floor(NOW / 1000) - 60 };
 const stale = { kind: 'student', userId: OWNER_A, authTime: Math.floor(NOW / 1000) - 3600 };
-const register = (db, verified, device, body = { publicKey: device.publicJwk }, headers) => handleDevices({
+const register = (db, verified, device, body = device.registration(), headers) => handleDevices({
   req: incoming({ method: 'POST', url: '/api/devices', body, headers: headers ?? device.signHeaders({ method: 'POST', path: '/api/devices', body }) }),
   verified, fetchImpl: db.fetch, ...BASE, now: NOW,
 });
 
 test('최근에 로그인한 토큰과 그 키의 서명이 있어야 기기가 승인된다', async () => {
   const db = makeDb();
-  const device = createVirtualDevice();
+  const device = newDevice();
   const result = await register(db, fresh, device);
   assert.equal(result.status, 200);
   assert.equal(result.body.device.status, 'approved');
   assert.equal(result.body.device.deviceId, device.id);
-  assert.equal(JSON.stringify(result.body).includes(device.publicJwk.x), false, '공개키도 응답에 다시 싣지 않습니다');
+  assert.equal(JSON.stringify(result.body).includes(device.registration().publicKey), false, '공개키도 응답에 다시 싣지 않습니다');
 });
 
 test('오래된 로그인으로는 대기 상태로만 남고, 다시 로그인한 뒤 승인된다', async () => {
   const db = makeDb();
-  const device = createVirtualDevice();
+  const device = newDevice();
   const first = await register(db, stale, device);
   assert.equal(first.status, 403);
   assert.equal(first.body.error, 'REAUTH_REQUIRED');
@@ -157,31 +165,47 @@ test('오래된 로그인으로는 대기 상태로만 남고, 다시 로그인�
   assert.equal((await check(db, incoming({ url: path, headers: device.signHeaders({ path }) }))).ok, true);
 });
 
-test('다른 키로 서명했거나 서명이 없거나 개인키를 보낸 등록은 거부된다', async () => {
+test('다른 패스키로 서명했거나 서명이 없거나 P-256 공개키가 아닌 등록은 거부된다', async () => {
   const db = makeDb();
-  const device = createVirtualDevice();
-  const other = createVirtualDevice();
-  const body = { publicKey: device.publicJwk };
+  const device = newDevice();
+  const other = newDevice();
+  const body = device.registration();
   const forged = await register(db, fresh, device, body, other.signHeaders({ method: 'POST', path: '/api/devices', body }));
   assert.equal(forged.body.error, 'DEVICE_SIGNATURE_MISMATCH');
   const unsigned = await register(db, fresh, device, body, {});
   assert.equal(unsigned.body.error, 'DEVICE_SIGNATURE_REQUIRED');
-  const withPrivate = await register(db, fresh, device, { publicKey: { ...device.publicJwk, d: 'x'.repeat(43) } });
-  assert.equal(withPrivate.body.error, 'INVALID_DEVICE_KEY');
+  const rsa = generateKeyPairSync('rsa', { modulusLength: 2048 }).publicKey.export({ format: 'der', type: 'spki' }).toString('base64url');
+  for (const bad of [{ ...body, publicKey: rsa }, { ...body, publicKey: 'not-a-key' }, { publicKey: body.publicKey }, { ...body, credentialId: 'short' }]) {
+    assert.equal((await register(db, fresh, device, bad)).body.error, 'INVALID_DEVICE_KEY');
+  }
   assert.equal(db.devices.length, 0);
 });
 
 test('다른 계정이 같은 기기 키를 가져가 승인받을 수 없다', async () => {
   const db = makeDb();
-  const device = createVirtualDevice();
+  const device = newDevice();
   await register(db, fresh, device);
   const takeover = await register(db, { kind: 'student', userId: OWNER_B, authTime: fresh.authTime }, device);
   assert.equal(takeover.status, 409);
   assert.equal(db.devices[0].owner_id, OWNER_A);
 });
 
-test('기기 ID는 공개키에서 정해지는 16자리 16진수다', () => {
-  const device = createVirtualDevice();
+test('기기 ID는 패스키 자격 ID에서 정해지는 16자리 16진수다', () => {
+  const device = newDevice();
   assert.match(device.id, /^[0-9a-f]{16}$/u);
-  assert.equal(deviceIdOf(device.publicJwk), device.id);
+  assert.equal(deviceIdOfCredential(device.registration().credentialId), device.id);
+});
+
+test('다른 사이트(출처·호스트)에서 받은 패스키 서명은 거부된다', async () => {
+  const db = makeDb();
+  const device = approvedDevice(db);
+  const path = '/api/notes';
+  const elsewhere = await check(db, { method: 'GET', url: path, headers: { host: 'evil.vercel.app', ...device.signHeaders({ path }) } });
+  assert.equal(elsewhere.error, 'DEVICE_SIGNATURE_MISMATCH');
+});
+
+test('등록 본문과 서명 머리글 어디에도 개인키 값이 없다', () => {
+  const device = newDevice();
+  const sent = JSON.stringify({ body: device.registration(), headers: device.signHeaders({ path: '/api/notes' }) });
+  assert.equal(/"d"s*:|PRIVATE KEY/u.test(sent), false);
 });

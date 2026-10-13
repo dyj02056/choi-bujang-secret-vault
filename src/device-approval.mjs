@@ -1,9 +1,10 @@
 // 11단계: 접속 앱의 기기 승인 판단. api/devices.js 가 부릅니다.
-// 승인은 서버가 정합니다: 등록하려는 키로 요청에 서명했고, 최근 10분 안에 실제로 로그인한 토큰일 때만 'approved'.
+// 기기 = 이 기기의 운영체제 인증기에 만든 패스키. 본문에는 공개키(SPKI)와 자격 ID만 오고, 개인키는 인증기 밖으로 나오지 않습니다.
+// 승인은 서버가 정합니다: 그 패스키로 이 등록 요청에 서명했고, 최근 10분 안에 실제로 로그인한 토큰일 때만 'approved'.
 // 아니면 'pending' 으로 남기고 다시 로그인하라고 알립니다. 브라우저의 승인 버튼이나 본문 값만으로는 승인되지 않습니다.
 import { ownerKeyOf } from './owner-key.mjs';
 import {
-  deviceIdOf, publicJwkOf, readDevice, readSignedRequest, useNonce, verifySignature,
+  deviceIdOfCredential, publicJwkFromSpki, readDevice, readSignedRequest, useNonce, verifyAssertion,
 } from './device-signature.mjs';
 
 export const APPROVAL_WINDOW_SECONDS = 600;
@@ -58,15 +59,17 @@ export async function handleDevices({ req, verified, fetchImpl = fetch, supabase
   if (req.method !== 'POST') return { status: 405, body: { error: 'METHOD_NOT_ALLOWED', message: '지원하지 않는 메서드입니다.' } };
 
   const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
-  const publicKey = publicJwkOf(body.publicKey);
+  const publicKey = publicJwkFromSpki(body.publicKey);
+  const deviceId = deviceIdOfCredential(body.credentialId);
   const label = typeof body.label === 'string' ? body.label.trim().slice(0, 40) || null : null;
-  if (!publicKey) return { status: 400, body: { error: 'INVALID_DEVICE_KEY', message: 'P-256 공개키(JWK)만 등록할 수 있습니다.' } };
-  const deviceId = deviceIdOf(publicKey);
+  if (!publicKey || !deviceId) {
+    return { status: 400, body: { error: 'INVALID_DEVICE_KEY', message: 'P-256 패스키의 공개키(SPKI)와 자격 ID만 등록할 수 있습니다.' } };
+  }
 
-  // 등록하려는 키로 이 요청 자체에 서명했는지 확인합니다(경로·본문이 바뀌면 실패).
+  // 등록하려는 패스키로 이 요청 자체에 서명했는지 확인합니다(경로·본문이 바뀌면 실패).
   const signed = readSignedRequest(req, now);
   if (!signed.ok) return { status: signed.status, body: { error: signed.error, message: signed.message } };
-  if (signed.deviceId !== deviceId || !verifySignature(publicKey, signed.text, signed.signature)) {
+  if (signed.deviceId !== deviceId || !verifyAssertion(publicKey, signed)) {
     return { status: 403, body: { error: 'DEVICE_SIGNATURE_MISMATCH', message: '등록할 키의 서명이 요청과 맞지 않습니다.' } };
   }
 

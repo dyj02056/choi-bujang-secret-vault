@@ -54,7 +54,7 @@
     <div class="eyebrow">BYTE BACK 접속 앱 · 11단계</div>
     <h1>내 자료실</h1>
     <p>로그인하고 이 기기가 서버에서 승인된 뒤에만 본인의 가상 메모를 조회·추가·수정·삭제할 수 있습니다.
-      보호 요청은 모두 이 기기의 키로 서명해 보냅니다.</p>
+      보호 요청은 모두 이 기기의 패스키로 서명해 보냅니다.</p>
     <div id="offline-banner" class="notice warn" hidden>오프라인입니다. 보호 자료는 기기에 저장하지 않으므로 연결이 돌아올 때까지 표시하지 않습니다.</div>
     <div id="install-card" class="notice info" hidden>
       이 앱을 홈 화면이나 바탕화면에 설치할 수 있습니다. 설치는 실행을 편하게 할 뿐이며 <strong>기기 확인이 아닙니다</strong>.
@@ -91,15 +91,16 @@
     <div id="device-section" class="card" hidden>
       <h3 style="margin-top:0;">기기 승인</h3>
       <div class="status-row">
-        <span>이 기기 ID: <code id="device-id">만드는 중</code></span>
         <span>서버 승인 상태: <code id="device-status">확인 전</code></span>
       </div>
       <p style="font-size:14px; margin:0 0 12px;">
-        이 기기의 서명 키는 이 화면이 열려 있는 동안 메모리에만 있고, 브라우저 저장소에 저장하지 않습니다.
-        그래서 새로고침하거나 앱을 다시 열면 새 키로 다시 승인을 받아야 합니다. 승인은 서버가
-        <strong>최근 10분 안의 실제 로그인</strong>과 이 키의 서명을 확인한 뒤에만 정합니다.
+        보호 요청은 이 기기의 패스키(Windows Hello, Touch ID, 휴대폰 화면 잠금 등)로 서명합니다.
+        서명 키는 운영체제 인증기 안에만 있고, 이 화면·브라우저 저장소·서버에는 없습니다.
+        승인은 서버가 <strong>최근 10분 안의 실제 로그인</strong>과 그 패스키의 서명을 확인한 뒤에만 정하며,
+        승인 전에는 자료를 받지도 표시하지도 않습니다. 요청할 때마다 인증기 확인 창이 뜹니다.
       </p>
-      <button id="btn-request-approval">이 기기 승인 요청</button>
+      <button id="btn-register-device">이 기기 등록·승인 요청</button>
+      <button id="btn-open-vault" class="secondary">승인된 패스키로 자료실 열기</button>
       <div id="reauth-form" hidden style="margin-top:12px;">
         <div class="form-group">
           <label for="reauth-password">승인하려면 비밀번호를 다시 입력해 로그인을 확인하세요</label>
@@ -161,9 +162,9 @@
     const installCard = document.getElementById('install-card');
     const btnInstall = document.getElementById('btn-install');
     const deviceSection = document.getElementById('device-section');
-    const deviceIdText = document.getElementById('device-id');
     const deviceStatusText = document.getElementById('device-status');
-    const btnRequestApproval = document.getElementById('btn-request-approval');
+    const btnRegisterDevice = document.getElementById('btn-register-device');
+    const btnOpenVault = document.getElementById('btn-open-vault');
     const reauthForm = document.getElementById('reauth-form');
     const reauthPassword = document.getElementById('reauth-password');
     const btnReauth = document.getElementById('btn-reauth');
@@ -187,37 +188,28 @@
       installCard.hidden = true;
     });
 
-    // ── 기기 키: 이 화면의 메모리에만 둡니다. 개인키는 내보낼 수 없게 만들고 어디에도 저장하지 않습니다. ──
-    const device = { keyPair: null, id: null, publicJwk: null, approved: false };
+    // ── 기기 서명: 이 기기의 운영체제 인증기(패스키)가 서명합니다. ──
+    // 이 화면은 기기 키를 만들거나 받거나 저장하지 않습니다. 인증기가 돌려준 서명 결과만 요청에 붙여 보냅니다.
+    const passkeySupported = Boolean(window.PublicKeyCredential && navigator.credentials);
+    const session = { approved: false, passkeyId: null, registration: null }; // passkeyId: 어떤 패스키를 쓸지 고르는 식별자(키 아님)
     const encoder = new TextEncoder();
     const hex = (buffer) => [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
-    const sha256Hex = async (text) => hex(await crypto.subtle.digest('SHA-256', encoder.encode(text)));
+    const sha256Hex = async (data) => hex(await crypto.subtle.digest('SHA-256', typeof data === 'string' ? encoder.encode(data) : data));
     const base64url = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)))
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-    async function ensureDeviceKey() {
-      if (device.keyPair) return;
-      device.keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']);
-      const jwk = await crypto.subtle.exportKey('jwk', device.keyPair.publicKey);
-      device.publicJwk = { crv: 'P-256', kty: 'EC', x: jwk.x, y: jwk.y };
-      device.id = (await sha256Hex(JSON.stringify(device.publicJwk))).slice(0, 16);
-      deviceIdText.textContent = device.id;
+    // 서버가 승인했다고 답한 경우에만 자료실을 엽니다. 그 밖에는 자료를 지우고 숨깁니다.
+    function setApproved(approved, label) {
+      session.approved = approved && navigator.onLine;
+      deviceStatusText.textContent = label;
+      notesSection.hidden = !session.approved;
+      if (!session.approved) notesList.innerHTML = '';
     }
 
     function forgetDevice() {
-      device.keyPair = null;
-      device.id = null;
-      device.publicJwk = null;
+      session.passkeyId = null;
+      session.registration = null;
       setApproved(false, '확인 전');
-      deviceIdText.textContent = '만드는 중';
-    }
-
-    // 서버가 승인했다고 답한 경우에만 자료실을 엽니다. 그 밖에는 자료를 지우고 숨깁니다.
-    function setApproved(approved, label) {
-      device.approved = approved && navigator.onLine;
-      deviceStatusText.textContent = label;
-      notesSection.hidden = !device.approved;
-      if (!device.approved) notesList.innerHTML = '';
     }
 
     function showResult(kind, text) {
@@ -226,20 +218,32 @@
       deviceResult.hidden = false;
     }
 
-    // 보호 요청: 메서드·경로·본문 해시·시각·일회용 번호·기기 ID에 서명해 함께 보냅니다.
+    // 보호 요청: 메서드·경로·본문 해시·시각·일회용 번호를 묶은 문자열의 해시를 패스키 도전값으로 서명받아 보냅니다.
     async function signedFetch(path, { method = 'GET', body } = {}) {
+      if (!passkeySupported) throw new Error('이 브라우저는 패스키를 지원하지 않습니다.');
       const token = await getAccessToken();
-      await ensureDeviceKey();
       const bodyText = body === undefined ? '' : JSON.stringify(body);
       const timestamp = String(Date.now());
       const nonce = crypto.randomUUID();
-      const text = ['aleph.device.v1', method, path, await sha256Hex(bodyText), timestamp, nonce, device.id].join('\n');
-      const signature = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, device.keyPair.privateKey, encoder.encode(text));
+      const text = ['aleph.device.v2', method, path, await sha256Hex(bodyText), timestamp, nonce].join('\n');
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: await crypto.subtle.digest('SHA-256', encoder.encode(text)),
+          rpId: location.hostname,
+          userVerification: 'preferred',
+          timeout: 60000,
+          allowCredentials: session.passkeyId ? [{ type: 'public-key', id: session.passkeyId }] : [],
+        },
+      });
+      if (!assertion) throw new Error('기기 서명이 취소되었습니다.');
+      session.passkeyId = assertion.rawId;
       const headers = {
-        'x-aleph-device': device.id,
+        'x-aleph-device': (await sha256Hex(assertion.rawId)).slice(0, 16),
         'x-aleph-timestamp': timestamp,
         'x-aleph-nonce': nonce,
-        'x-aleph-signature': base64url(signature),
+        'x-aleph-signature': base64url(assertion.response.signature),
+        'x-aleph-authenticator-data': base64url(assertion.response.authenticatorData),
+        'x-aleph-client-data': base64url(assertion.response.clientDataJSON),
       };
       if (token) headers.Authorization = `Bearer ${token}`;
       if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -251,52 +255,77 @@
       return res;
     }
 
-    async function requestApproval() {
-      deviceResult.hidden = true;
-      if (!navigator.onLine) {
-        showResult('warn', '오프라인에서는 승인을 요청할 수 없습니다.');
-        return;
+    // 승인 요청 결과를 화면에 보여 줍니다. 승인 여부는 서버 응답으로만 정합니다.
+    async function sendRegistration() {
+      const res = await signedFetch('/api/devices', { method: 'POST', body: session.registration });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.device?.status === 'approved') {
+        reauthForm.hidden = true;
+        setApproved(true, '승인됨');
+        showResult('ok', '서버가 이 기기를 승인했습니다. 자료실을 엽니다.');
+        await loadNotes();
+      } else if (data.error === 'REAUTH_REQUIRED') {
+        setApproved(false, '대기(다시 로그인 필요)');
+        reauthForm.hidden = false;
+        showResult('warn', '서버가 아직 승인하지 않았습니다. 최근 10분 안에 로그인한 기록이 필요합니다. 비밀번호로 다시 로그인한 뒤 요청하세요.');
+      } else {
+        setApproved(false, '거부됨');
+        showResult('warn', `승인되지 않았습니다: ${data.message || data.error || `HTTP ${res.status}`}`);
       }
-      await ensureDeviceKey();
-      setApproved(false, '요청 중');
+    }
+
+    // 이 기기에 패스키를 새로 만들고, 그 패스키로 서명한 등록 요청을 보냅니다.
+    btnRegisterDevice.addEventListener('click', async () => {
+      deviceResult.hidden = true;
+      if (!passkeySupported) return showResult('warn', '이 브라우저는 패스키를 지원하지 않아 기기를 승인할 수 없습니다.');
+      if (!navigator.onLine) return showResult('warn', '오프라인에서는 승인을 요청할 수 없습니다.');
       try {
-        const res = await signedFetch('/api/devices', { method: 'POST', body: { publicKey: device.publicJwk, label: '접속 앱' } });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.device?.status === 'approved') {
-          reauthForm.hidden = true;
-          setApproved(true, '승인됨');
-          showResult('ok', `서버가 이 기기(${device.id})를 승인했습니다. 자료실을 엽니다.`);
-          await loadNotes();
-        } else if (data.error === 'REAUTH_REQUIRED') {
-          setApproved(false, '대기(다시 로그인 필요)');
-          reauthForm.hidden = false;
-          showResult('warn', '서버가 아직 승인하지 않았습니다. 최근 10분 안에 로그인한 기록이 필요합니다. 비밀번호로 다시 로그인한 뒤 요청하세요.');
-        } else {
-          setApproved(false, '거부됨');
-          showResult('warn', `승인되지 않았습니다: ${data.message || data.error || `HTTP ${res.status}`}`);
-        }
+        const { data: { session: auth } } = await supabase.auth.getSession();
+        const name = auth?.user?.email || 'BYTE BACK';
+        setApproved(false, '요청 중');
+        const created = await navigator.credentials.create({
+          publicKey: {
+            challenge: crypto.getRandomValues(new Uint8Array(32)),
+            rp: { name: 'BYTE BACK 접속 앱', id: location.hostname },
+            user: { id: crypto.getRandomValues(new Uint8Array(16)), name, displayName: name },
+            pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+            authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
+            attestation: 'none',
+            timeout: 60000,
+          },
+        });
+        const spki = created?.response?.getPublicKey?.();
+        if (!spki || created.response.getPublicKeyAlgorithm?.() !== -7) throw new Error('이 인증기는 지원하는 서명 방식(ES256)을 쓰지 않습니다.');
+        session.passkeyId = created.rawId;
+        session.registration = { credentialId: base64url(created.rawId), publicKey: base64url(spki), label: '접속 앱' };
+        await sendRegistration();
       } catch (err) {
         setApproved(false, '확인 실패');
         showResult('warn', `승인 요청 실패: ${err.message}`);
       }
-    }
+    });
 
-    btnRequestApproval.addEventListener('click', requestApproval);
+    // 이미 승인한 패스키로 자료실 열기(새로고침 뒤 등). 서버가 서명과 승인 상태를 확인해야 열립니다.
+    btnOpenVault.addEventListener('click', async () => {
+      deviceResult.hidden = true;
+      setApproved(false, '확인 중');
+      await loadNotes({ probe: true });
+    });
+
     btnReauth.addEventListener('click', async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const email = session?.user?.email;
+      const { data: { session: auth } } = await supabase.auth.getSession();
+      const email = auth?.user?.email;
       const password = reauthPassword.value;
-      if (!email || !password) {
-        showResult('warn', '비밀번호를 입력해 주세요.');
-        return;
-      }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
       reauthPassword.value = '';
-      if (error) {
-        showResult('warn', `다시 로그인 실패: ${error.message}`);
-        return;
+      if (!email || !password) return showResult('warn', '비밀번호를 입력해 주세요.');
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return showResult('warn', `다시 로그인 실패: ${error.message}`);
+      if (!session.registration) return showResult('warn', '먼저 이 기기 등록·승인 요청을 눌러 주세요.');
+      try {
+        await sendRegistration();
+      } catch (err) {
+        showResult('warn', `승인 요청 실패: ${err.message}`);
       }
-      await requestApproval();
     });
 
     function updateOnline() {
@@ -334,18 +363,18 @@
 
     // UI 상태 갱신: 로그인만으로는 자료실을 열지 않고, 기기 승인 화면을 먼저 보여 줍니다.
     let lastUserId = null;
-    async function updateAuthState(session) {
-      if (session && session.user) {
+    async function updateAuthState(auth) {
+      if (auth && auth.user) {
         loginForm.style.display = 'none';
         userInfo.style.display = 'block';
-        userEmailSpan.textContent = session.user.email;
+        userEmailSpan.textContent = auth.user.email;
         deviceSection.hidden = false;
         authError.textContent = '';
-        if (lastUserId !== session.user.id) {
+        if (lastUserId !== auth.user.id) {
           forgetDevice();
-          lastUserId = session.user.id;
+          lastUserId = auth.user.id;
         }
-        await ensureDeviceKey();
+        if (!passkeySupported) showResult('warn', '이 브라우저는 패스키를 지원하지 않아 기기를 승인할 수 없습니다.');
       } else {
         lastUserId = null;
         loginForm.style.display = 'block';
@@ -398,54 +427,72 @@
       await updateAuthState(null);
     });
 
-    // 메모 목록 로드 (GET /api/notes) — 승인된 기기에서만
-    async function loadNotes() {
-      if (!device.approved) return;
+    // 메모는 서명 요청 한 번으로 받아 화면 메모리에만 두고, 저장소에는 넣지 않습니다.
+    let currentNotes = [];
 
-      notesList.innerHTML = '<li>메모를 불러오는 중입니다...</li>';
+    function renderNotes() {
+      notesList.innerHTML = '';
+      if (!session.approved) return;
+      if (currentNotes.length === 0) {
+        notesList.innerHTML = '<li>등록된 메모가 없습니다.</li>';
+        return;
+      }
+      currentNotes.forEach(note => {
+        const li = document.createElement('li');
+        li.id = `note-${note.id}`;
+
+        const title = document.createElement('strong');
+        title.textContent = note.title;
+
+        const body = document.createElement('span');
+        body.textContent = note.body;
+
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'secondary';
+        editBtn.textContent = '수정';
+        editBtn.onclick = () => renderEditForm(li, note);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'danger';
+        deleteBtn.textContent = '삭제';
+        deleteBtn.onclick = () => deleteNote(note.id);
+
+        actions.append(editBtn, deleteBtn);
+        li.append(title, body, actions);
+        notesList.appendChild(li);
+      });
+    }
+
+    // 메모 목록 로드 (GET /api/notes). probe 는 승인된 패스키인지 서버에 확인하는 첫 요청입니다.
+    async function loadNotes({ probe = false } = {}) {
+      if (!session.approved && !probe) return;
       try {
         const res = await signedFetch('/api/notes');
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || `오류 발생 (HTTP ${res.status})`);
+          if (probe) {
+            setApproved(false, data.error === 'DEVICE_NOT_APPROVED' ? '승인되지 않은 기기' : '확인 실패');
+            showResult('warn', `${data.message || `HTTP ${res.status}`} 이 기기 등록·승인 요청을 눌러 주세요.`);
+            return;
+          }
+          throw new Error(data.message || `오류 발생 (HTTP ${res.status})`);
         }
-        const notes = await res.json();
-        if (!device.approved) return;
-        if (!Array.isArray(notes) || notes.length === 0) {
-          notesList.innerHTML = '<li>등록된 메모가 없습니다.</li>';
+        if (probe) {
+          setApproved(true, '승인됨');
+          showResult('ok', '서버가 이 기기의 서명과 승인 상태를 확인했습니다.');
+        }
+        currentNotes = Array.isArray(data) ? data : [];
+        renderNotes();
+      } catch (err) {
+        if (probe) {
+          setApproved(false, '확인 실패');
+          showResult('warn', `확인 실패: ${err.message}`);
           return;
         }
-
-        notesList.innerHTML = '';
-        notes.forEach(note => {
-          const li = document.createElement('li');
-          li.id = `note-${note.id}`;
-
-          const title = document.createElement('strong');
-          title.textContent = note.title;
-
-          const body = document.createElement('span');
-          body.textContent = note.body;
-
-          const actions = document.createElement('div');
-          actions.className = 'actions';
-
-          const editBtn = document.createElement('button');
-          editBtn.className = 'secondary';
-          editBtn.textContent = '수정';
-          editBtn.onclick = () => renderEditForm(li, note);
-
-          const deleteBtn = document.createElement('button');
-          deleteBtn.className = 'danger';
-          deleteBtn.textContent = '삭제';
-          deleteBtn.onclick = () => deleteNote(note.id);
-
-          actions.append(editBtn, deleteBtn);
-          li.append(title, body, actions);
-          notesList.appendChild(li);
-        });
-      } catch (err) {
-        if (!device.approved) return;
+        if (!session.approved) return;
         notesList.innerHTML = '';
         const li = document.createElement('li');
         li.textContent = `자료 로드 실패: ${err.message}`;
@@ -464,13 +511,12 @@
       }
       try {
         const res = await signedFetch('/api/notes', { method: 'POST', body: { title, body } });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || '저장 실패');
-        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || '저장 실패');
         newTitle.value = '';
         newBody.value = '';
-        await loadNotes();
+        currentNotes = [{ id: data.id, title, body }, ...currentNotes];
+        renderNotes();
       } catch (err) {
         createError.textContent = err.message;
       }
@@ -501,17 +547,16 @@
           const res = await signedFetch(`/api/notes/${note.id}`, {
             method: 'PUT', body: { title: updatedTitle, body: updatedBody },
           });
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.message || '수정 실패');
-          }
-          await loadNotes();
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.message || '수정 실패');
+          currentNotes = currentNotes.map((item) => (item.id === note.id ? { id: data.id, title: data.title, body: data.body } : item));
+          renderNotes();
         } catch (err) {
           errDiv.textContent = err.message;
         }
       };
 
-      li.querySelector(`#cancel-${note.id}`).onclick = () => loadNotes();
+      li.querySelector(`#cancel-${note.id}`).onclick = () => renderNotes();
     }
 
     // 메모 삭제 (DELETE /api/notes/:id)
@@ -523,7 +568,8 @@
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.message || '삭제 실패');
         }
-        await loadNotes();
+        currentNotes = currentNotes.filter((item) => item.id !== id);
+        renderNotes();
       } catch (err) {
         alert(`삭제 실패: ${err.message}`);
       }

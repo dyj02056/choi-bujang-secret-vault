@@ -5,7 +5,7 @@
 //   $env:ALEPH_CHECK_TOKEN_A = '<test account A token>'   (also _B)
 //   $env:ALEPH_CHECK_NOTE_A  = '<A note UUID>'            (also _B)
 // Tokens are used only in the Authorization header and are never printed or stored.
-// Step 11: every login request is signed by a virtual device (a key that lives only in this process),
+// Step 11: every login request is signed by a virtual passkey authenticator (its key lives only in this process),
 // registered and approved through POST /api/devices first. Approval needs a recent login, so use fresh tokens.
 import { randomUUID } from 'node:crypto';
 import { fixtureRequests } from '../scripts/fixture-7.mjs';
@@ -77,12 +77,12 @@ export async function runAttackChecks(config) {
   const results = [];
 
   // 0) Step 11: each test account gets one virtual device, approved by the server (recent login required).
-  const deviceA = createVirtualDevice();
-  const deviceB = createVirtualDevice();
+  const deviceA = createVirtualDevice({ origin: app.origin });
+  const deviceB = createVirtualDevice({ origin: app.origin });
   const approval = (device, token) => send(app, '/api/devices', {
-    method: 'POST', token, device, body: { publicKey: device.publicJwk, label: 'bundle self-check' },
+    method: 'POST', token, device, body: { ...device.registration(), label: 'bundle self-check' },
   });
-  const approvalExpected = 'A virtual device signed with its own key and a recent login is approved: HTTP 200, device=approved';
+  const approvalExpected = 'A virtual passkey that signs its own registration, with a recent login, is approved: HTTP 200, device=approved';
   results.push(loginReady
     ? await live('s11_device_approval', approvalExpected,
       (r) => r.status === 200 && r.deviceStatus === 'approved', () => approval(deviceA, tokenA))
