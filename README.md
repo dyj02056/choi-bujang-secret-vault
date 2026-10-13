@@ -80,18 +80,35 @@ automatically; compare it with the commit you trust and restore it by hand.
 
 ### Where the audit records are
 
-There are two audit records, because a deployed function cannot write files into the repository.
+A deployed function cannot write files into the repository, so the records live in four
+places. Nothing below holds note titles, note text, tokens or keys.
 
-| Record | Where | What it holds | Written by |
-|---|---|---|---|
-| Note restore calls (live) | table `secret_notes_restore_log` in Supabase, and `audit.seq` in every restore response | note ID, owner, mode, time. Append only; update and delete are blocked by a trigger | `src/restore-note.mjs`, before any change |
-| Local procedures | `audit/restore-audit.log` in this repository, one JSON line per event | time, action, policy version and hash, which settings changed, whether anything was written | `scripts/policy-restore.mjs`, `policy-snapshot.mjs`, `backup-notes.mjs` |
+| # | Record | Where | What it holds | Written by |
+|---|---|---|---|---|
+| 1 | Database table | `secret_notes_restore_log` in Supabase (created by `supabase/migrations/004` and `005`) | note ID, owner, mode (`updated`, `reinserted`, `unchanged`), time. Append only; update and delete are blocked by a trigger | `src/restore-note.mjs`, before any change |
+| 2 | Repository file | `audit/restore-audit.log`, one JSON line per event | time, action, policy version and hash, counts, whether anything was written | `scripts/policy-snapshot.mjs`, `policy-restore.mjs`, `backup-notes.mjs`, `backup-verify.mjs` |
+| 3 | Restore response | `audit` (`recorded`, `seq`) in the body of every `POST /api/restore/notes` | the number of the row in record 1 | `src/restore-note.mjs` |
+| 4 | Class engine record | held by the class operator, **not in this repository** | decisions the engine made | the provided ALEPH SDP engine |
 
-Neither record holds note titles, note text, tokens or keys. `audit/restore-audit.log` is only
-ever appended to; no script in this repository truncates or rewrites it, and restoring the
-policy leaves it untouched. The lines already in it came from running these scripts locally
-(including a trial where `allowedRoutes` was changed on purpose and then restored). The live
-restore records are in the Supabase table, which the repository cannot show.
+### Where the backups and their logs are
+
+| Backup | Where it lives | Log that it was made or checked |
+|---|---|---|
+| Note copies | private table `secret_notes_backup` in Supabase. The first version of every note is copied there automatically when the note is created, once, with its original `created_at` | the row itself (`backed_up_at`); for notes copied by hand, `npm run backup:notes -- --note <UUID>` adds a `note_backup_copied` line to `audit/restore-audit.log`; `npm run backup:verify` re-reads every copy, recomputes its hash and adds a `note_backups_verified` line |
+| Safe policy copy | `policy/safe-policy.json` (SHA-256 checked on every use) | `policy_snapshot_created` when `npm run policy:snapshot` made it, `policy_copy_verified` each time `npm run backup:verify` re-checks it |
+
+`audit/restore-audit.log` is only ever appended to. No script truncates or rewrites it, and
+restoring the policy leaves it untouched. It records only what was really run: a verification
+that could not run (for example without the server settings) writes no line. The lines
+already in it came from running these scripts locally, including trials where
+`allowedRoutes` was changed on purpose and then restored, and where the policy copy was
+damaged on purpose and the check failed. The first policy copy was made before the log
+existed, so it has no `policy_snapshot_created` line; its first line is `policy_copy_verified`.
+The live restore records (record 1) are in the Supabase table, which the repository cannot show.
+
+A restore changes only the one note that was named. Other notes, the order of the list
+(`created_at` is copied into the backup and put back), the decider rules and the audit
+records are not touched.
 
 ### Run after a restore (steps 1 to 9)
 
@@ -151,6 +168,7 @@ npm run fixture:7
 npm run detect:test
 npm run test:restore
 npm run policy:diff
+npm run backup:verify -- --policy-only
 npm run build -- --local
 ```
 

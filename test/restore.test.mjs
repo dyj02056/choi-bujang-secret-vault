@@ -213,3 +213,33 @@ test('복구는 지정한 한 건만 바꾸고 다른 메모와 기존 감사 �
   assert.equal(JSON.stringify([db.notes[1], other, db.log[0]]), before);
   assert.equal(db.log.length, 2);
 });
+
+test('삭제 뒤 복구해도 생성 시각과 B의 목록 순서가 그대로다', async () => {
+  const db = makeDb();
+  const OLD = '2026-10-01T00:00:00.000Z';
+  const NEW = '2026-10-02T00:00:00.000Z';
+  const newer = { id: '33333333-3333-4333-8333-333333333333', owner_id: OWNER_B, title: '더 최근 메모', content: '유지', created_at: NEW };
+  db.notes[0].created_at = OLD;
+  db.backup[0].created_at = OLD;
+  db.notes.push(newer);
+  const listOrder = () => db.notes.filter((note) => note.owner_id === OWNER_B)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at)).map((note) => note.id);
+  const before = listOrder();
+  db.notes.splice(0, 1);
+  const result = await run(db);
+  assert.equal(result.body.mode, 'reinserted');
+  assert.deepEqual(listOrder(), before, '복구 뒤에도 목록 순서가 같아야 합니다');
+  assert.equal(db.notes.find((note) => note.id === NOTE_B).created_at, OLD);
+  assert.equal(db.notes.find((note) => note.id === newer.id).content, '유지');
+});
+
+test('첫 버전 사본에 생성 시각이 함께 저장된다', async () => {
+  const { saveFirstBackup } = await import('../src/note-backup.mjs');
+  let sent;
+  await saveFirstBackup({
+    fetchImpl: async (url, options) => { sent = JSON.parse(options.body); return { ok: true, status: 201 }; },
+    supabaseUrl: 'https://example.invalid', serviceKey: 'test-key-not-real',
+    id: NOTE_B, ownerId: OWNER_B, title: 't', content: 'c', createdAt: '2026-10-01T00:00:00.000Z',
+  });
+  assert.equal(sent.created_at, '2026-10-01T00:00:00.000Z');
+});

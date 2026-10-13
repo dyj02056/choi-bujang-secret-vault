@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path';
 // 파일을 열어 덮어쓰거나 줄이지 않습니다. 메모 제목·내용, 토큰, 키는 절대 적지 않습니다.
 export const AUDIT_FILE = resolve(import.meta.dirname, '..', 'audit', 'restore-audit.log');
 
-const ALLOWED = ['policyVersion', 'policyHash', 'changedKeys', 'applied', 'noteId', 'created', 'skipped', 'result'];
+const ALLOWED = ['policyVersion', 'policyHash', 'changedKeys', 'applied', 'noteId', 'created', 'skipped', 'verified', 'failed', 'result'];
 
 export function appendAudit(action, details = {}) {
   const entry = { at: new Date().toISOString(), action };

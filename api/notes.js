@@ -101,6 +101,8 @@ export default async function handler(req, res) {
 
     const noteId = reqId && typeof reqId === 'string' ? reqId : randomUUID();
     const noteBody = typeof body === 'string' ? body : '';
+    // 10단계: 생성 시각을 서버가 한 번 정해 메모와 사본에 같이 적습니다. 복구해도 목록 순서가 변하지 않습니다.
+    const createdAt = new Date().toISOString();
 
     try {
       const response = await fetch(`${supabaseUrl}/rest/v1/secret_notes`, {
@@ -116,6 +118,7 @@ export default async function handler(req, res) {
           owner_id: ownerId, // 반드시 서버 검증 ID 사용 — 본문의 owner_id는 무시
           title,
           content: noteBody,
+          created_at: createdAt,
         }),
       });
 
@@ -125,7 +128,7 @@ export default async function handler(req, res) {
 
       // 10단계: 만들어진 첫 버전을 비공개 사본에 한 번만 남깁니다(실패해도 생성은 유지).
       await saveFirstBackup({
-        supabaseUrl, serviceKey: supabaseKey, id: noteId, ownerId, title, content: noteBody,
+        supabaseUrl, serviceKey: supabaseKey, id: noteId, ownerId, title, content: noteBody, createdAt,
       });
 
       return res.status(201).json({ id: noteId });

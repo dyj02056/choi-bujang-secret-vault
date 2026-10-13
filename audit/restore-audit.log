@@ -1,3 +1,8 @@
 {"at":"2026-10-13T04:43:40.269Z","action":"policy_restore_checked","policyVersion":1,"policyHash":"f17cc40258c7","changedKeys":[],"applied":false,"result":"no_difference"}
 {"at":"2026-10-13T04:43:40.433Z","action":"policy_restore_preview","policyVersion":1,"policyHash":"f17cc40258c7","changedKeys":["allowedRoutes"],"applied":false,"result":"preview_only"}
 {"at":"2026-10-13T04:43:40.514Z","action":"policy_restore_applied","policyVersion":1,"policyHash":"f17cc40258c7","changedKeys":["allowedRoutes"],"applied":true,"result":"config_restored"}
+{"at":"2026-10-13T04:52:51.805Z","action":"policy_copy_verified","policyVersion":1,"policyHash":"f17cc40258c7","result":"ok"}
+{"at":"2026-10-13T04:52:51.977Z","action":"policy_copy_verified","result":"failed"}
+{"at":"2026-10-13T04:54:13.770Z","action":"note_backup_copied","noteId":"c4e5fd73-5912-455d-8b92-9bea85745fc1","created":0,"skipped":1,"result":"ok"}
+{"at":"2026-10-13T04:54:24.298Z","action":"policy_copy_verified","policyVersion":1,"policyHash":"f17cc40258c7","result":"ok"}
+{"at":"2026-10-13T04:54:24.549Z","action":"note_backups_verified","verified":2,"failed":0,"result":"ok"}

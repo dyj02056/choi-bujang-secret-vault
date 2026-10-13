@@ -9,7 +9,9 @@ export function noteHash(title, content) {
 
 // 메모가 만들어진 직후의 첫 버전을 비공개 사본 표에 한 번만 남깁니다. 이미 있으면 덮어쓰지 않고,
 // 사본 저장에 실패해도 메모 생성 자체는 막지 않습니다(성공 여부만 돌려줍니다).
-export async function saveFirstBackup({ fetchImpl = fetch, supabaseUrl, serviceKey, id, ownerId, title, content }) {
+export async function saveFirstBackup({
+  fetchImpl = fetch, supabaseUrl, serviceKey, id, ownerId, title, content, createdAt,
+}) {
   try {
     const response = await fetchImpl(`${supabaseUrl}/rest/v1/secret_notes_backup?on_conflict=id`, {
       method: 'POST',
@@ -17,7 +19,10 @@ export async function saveFirstBackup({ fetchImpl = fetch, supabaseUrl, serviceK
         apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json',
         Prefer: 'resolution=ignore-duplicates,return=minimal',
       },
-      body: JSON.stringify({ id, owner_id: ownerId, title, content, content_sha256: noteHash(title, content) }),
+      body: JSON.stringify({
+        id, owner_id: ownerId, title, content, content_sha256: noteHash(title, content),
+        ...(createdAt ? { created_at: createdAt } : {}),
+      }),
     });
     return response.ok;
   } catch {
