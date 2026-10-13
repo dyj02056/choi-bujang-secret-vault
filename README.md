@@ -7,9 +7,9 @@ listed in the server-side `instructor_roles` table can modify an announcement.
 The browser UI and existing note addresses are unchanged.
 
 The decision policy accepts only exact single-resource routes with no query
-string: note read, update, or delete; and announcement read. Announcement
-writes are always denied by the policy because the decision contract has no
-instructor role. A note is bound to the first subject the policy lets use it,
+string: note read, update, or delete; and announcement read or update. The
+decision contract has no instructor role, so the API checks `instructor_roles`
+for every announcement update. A note is bound to the first subject the policy lets use it,
 and other subjects are denied that note. Unknown or nested routes are denied. Registered devices remain required, and a risky
 private-note read still requires additional verification before it is allowed.
 

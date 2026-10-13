@@ -2,6 +2,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createLoginVerifier } from '../../src/verify-login.mjs';
+import { ownerKeyOf } from '../../src/owner-key.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
@@ -50,7 +51,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'VERIFIER_ERROR', message: '인증 설정 오류가 발생했습니다.' });
   }
 
-  if (!verified || !verified.userId) {
+  const ownerId = ownerKeyOf(verified);
+  if (!ownerId) {
     return res.status(401).json({ error: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
   }
 
@@ -95,7 +97,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'NOT_FOUND', message: '메모를 찾을 수 없습니다.' });
       }
       if (typeof note.owner_id !== 'string'
-          || note.owner_id.toLowerCase() !== verified.userId.toLowerCase()) {
+          || note.owner_id.toLowerCase() !== ownerId.toLowerCase()) {
         return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 조회할 수 있습니다.' });
       }
       return res.status(200).json({ id: note.id, title: note.title, body: note.content });
@@ -118,7 +120,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'NOT_FOUND', message: '메모를 찾을 수 없습니다.' });
       }
       if (typeof existing.owner_id !== 'string'
-          || existing.owner_id.toLowerCase() !== verified.userId.toLowerCase()) {
+          || existing.owner_id.toLowerCase() !== ownerId.toLowerCase()) {
         return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 수정할 수 있습니다.' });
       }
 
@@ -129,7 +131,7 @@ export default async function handler(req, res) {
       // owner_id는 절대 본문에서 받지 않음 (소유자 변경 차단)
 
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/secret_notes?id=eq.${id}&owner_id=eq.${verified.userId}`,
+        `${supabaseUrl}/rest/v1/secret_notes?id=eq.${id}&owner_id=eq.${ownerId}`,
         {
           method: 'PATCH',
           headers: {
@@ -166,12 +168,12 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'NOT_FOUND', message: '메모를 찾을 수 없습니다.' });
       }
       if (typeof existing.owner_id !== 'string'
-          || existing.owner_id.toLowerCase() !== verified.userId.toLowerCase()) {
+          || existing.owner_id.toLowerCase() !== ownerId.toLowerCase()) {
         return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 삭제할 수 있습니다.' });
       }
 
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/secret_notes?id=eq.${id}&owner_id=eq.${verified.userId}`,
+        `${supabaseUrl}/rest/v1/secret_notes?id=eq.${id}&owner_id=eq.${ownerId}`,
         {
           method: 'DELETE',
           headers: {

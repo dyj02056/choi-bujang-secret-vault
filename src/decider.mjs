@@ -70,12 +70,6 @@ function bindNoteOwner(request) {
   NOTE_OWNERS.set(key, request.subjectId);
 }
 
-// The instructor role is not in the contract, and a step-up proves nothing about role,
-// so the policy never allows an announcement write.
-function isAnnouncementWrite(request) {
-  return request.service === 'announcements' && request.method !== 'GET';
-}
-
 export async function decide(request) {
   if (request.deviceRegistered !== true) {
     return {
@@ -98,16 +92,6 @@ export async function decide(request) {
   }
 
   if (isOtherUsersNote(request)) {
-    return {
-      schema: 'aleph.decision.v1',
-      requestId: request.requestId,
-      decision: 'deny',
-      reasonCode: 'resource_route_denied',
-      ruleIds: [RULE_IDS[2]],
-    };
-  }
-
-  if (isAnnouncementWrite(request)) {
     return {
       schema: 'aleph.decision.v1',
       requestId: request.requestId,

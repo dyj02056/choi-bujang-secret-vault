@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createLoginVerifier } from '../src/verify-login.mjs';
+import { ownerKeyOf } from '../src/owner-key.mjs';
 
 // 로컬 환경 실행 시 .env 자동 로드
 try {
@@ -51,7 +52,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'VERIFIER_ERROR', message: '인증 설정 오류가 발생했습니다.' });
   }
 
-  if (!verified || !verified.userId) {
+  const ownerId = ownerKeyOf(verified);
+  if (!ownerId) {
     return res.status(401).json({ error: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
   }
 
@@ -59,7 +61,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/secret_notes?owner_id=eq.${verified.userId}&select=id,title,content,created_at,owner_id&order=created_at.desc`,
+        `${supabaseUrl}/rest/v1/secret_notes?owner_id=eq.${ownerId}&select=id,title,content,created_at,owner_id&order=created_at.desc`,
         {
           headers: {
             apikey: supabaseKey,
@@ -76,7 +78,7 @@ export default async function handler(req, res) {
       const rows = await response.json();
       const notes = rows
         .filter((r) => typeof r.owner_id === 'string'
-          && r.owner_id.toLowerCase() === verified.userId.toLowerCase())
+          && r.owner_id.toLowerCase() === ownerId.toLowerCase())
         .map((r) => ({
           id: r.id,
           title: r.title,
@@ -110,7 +112,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           id: noteId,
-          owner_id: verified.userId, // 반드시 서버 검증 ID 사용 — 본문의 owner_id는 무시
+          owner_id: ownerId, // 반드시 서버 검증 ID 사용 — 본문의 owner_id는 무시
           title,
           content: noteBody,
         }),
