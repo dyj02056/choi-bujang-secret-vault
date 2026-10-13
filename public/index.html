@@ -542,7 +542,7 @@
       ]);
       fillLines(opsDetect, [
         [data.detection.recentGetCount, `건: 최근 ${data.detection.windowMinutes}분 GET (회수 기준 ${data.detection.limit}건 초과)`],
-        `최근 사건 결과: ${counts(data.detection.outcomeCounts)}`,
+        `최근 사건 최종 결과(HTTP 기준): ${counts(data.detection.outcomeCounts)}`,
       ]);
       fillLines(opsRevoke, [
         [data.revocation.revoked ? '회수됨' : '회수 안 됨', data.revocation.revoked ? `(${data.revocation.reason}, ${data.revocation.revokedAt})` : ''],
@@ -554,9 +554,10 @@
         `사본 ${data.restore.backups}개 · ${counts(data.restore.byMode)}`,
         latest ? `마지막 복구 #${latest.seq} ${latest.mode}${latest.reason ? `(${latest.reason})` : ''} ${latest.note} ${latest.at}` : '복구 기록 없음',
       ]);
-      fillTable(opsEvents, ['요청 ID', '경로 모양', '결과', '시각'],
-        data.detection.recentEvents.map((event) => ({ cells: [event.requestId, event.route, event.outcome, event.at], outcome: event.outcome })),
-        (row) => (row.outcome === 'allowed' ? 'v-ok' : 'v-bad'));
+      // 결과 = 서버가 기록한 최종 HTTP 상태(access_results). 관문 = 핸들러 앞 관문의 결정. 결과 줄이 없으면 not_recorded 그대로 둡니다.
+      fillTable(opsEvents, ['요청 ID', '경로 모양', '관문', 'HTTP', '최종 결과', '시각'],
+        data.detection.recentEvents.map((event) => ({ cells: [event.requestId, event.route, event.gate ?? '-', event.status ?? '기록 없음', event.outcome, event.at], outcome: event.outcome })),
+        (row) => (row.outcome === 'allowed' ? 'v-ok' : (row.outcome === 'not_recorded' || row.outcome === 'this_request' ? '' : 'v-bad')));
     }
 
     function clearSummary(reason) {
