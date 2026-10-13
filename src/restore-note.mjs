@@ -49,11 +49,34 @@ export async function restoreNote({ fetchImpl = fetch, supabaseUrl, serviceKey, 
   if (current && String(current.owner_id).toLowerCase() !== backup.owner_id.toLowerCase()) {
     return deny(409, 'OWNER_CONFLICT', '현재 자료의 소유자가 사본과 달라 복구를 중단했습니다.');
   }
+  // 감사 기록은 추가만 하는 표에 남기며, 자료를 바꾸기 전에 먼저 씁니다. 번호(seq)를 받으면 기록된 것입니다.
+  async function writeAudit(mode) {
+    try {
+      const log = await fetchImpl(`${supabaseUrl}/rest/v1/secret_notes_restore_log`, {
+        method: 'POST', headers: { ...headers, Prefer: 'return=representation' },
+        body: JSON.stringify({ note_id: id, owner_id: backup.owner_id, mode }),
+      });
+      if (!log.ok) return { recorded: false };
+      const rows = await log.json();
+      const seq = Array.isArray(rows) ? rows[0]?.seq : undefined;
+      return seq === undefined || seq === null ? { recorded: false } : { recorded: true, seq };
+    } catch {
+      return { recorded: false };
+    }
+  }
+
   if (current && noteHash(current.title, current.content) === backup.content_sha256.toLowerCase()) {
-    return { status: 200, body: { id, restored: false, mode: 'unchanged', contentSha256: backup.content_sha256 } };
+    // 바꿀 것이 없어도 호출 사실은 남깁니다. 기록에 실패해도 자료는 바뀌지 않았으므로 결과만 알립니다.
+    const audit = await writeAudit('unchanged');
+    return { status: 200, body: { id, restored: false, mode: 'unchanged', contentSha256: backup.content_sha256, audit } };
   }
 
   const mode = current ? 'updated' : 'reinserted';
+  // 기록을 남길 수 없으면 아무것도 바꾸지 않고 중단합니다.
+  const audit = await writeAudit(mode);
+  if (!audit.recorded) {
+    return deny(502, 'AUDIT_UNAVAILABLE', '감사 기록을 남길 수 없어 복구하지 않았습니다.');
+  }
   try {
     const write = current
       ? await fetchImpl(table('secret_notes', `id=eq.${id}&owner_id=eq.${backup.owner_id}`), {
@@ -78,16 +101,5 @@ export async function restoreNote({ fetchImpl = fetch, supabaseUrl, serviceKey, 
     return deny(502, 'DB_NETWORK_ERROR', '복구 중 통신 오류가 났습니다.');
   }
 
-  // 감사 기록은 추가만 합니다. 기록에 실패해도 복구 결과는 되돌리지 않고 알려 줍니다.
-  let audited = true;
-  try {
-    const log = await fetchImpl(`${supabaseUrl}/rest/v1/secret_notes_restore_log`, {
-      method: 'POST', headers: { ...headers, Prefer: 'return=minimal' },
-      body: JSON.stringify({ note_id: id, owner_id: backup.owner_id, mode }),
-    });
-    audited = log.ok;
-  } catch {
-    audited = false;
-  }
-  return { status: 200, body: { id, restored: true, mode, contentSha256: backup.content_sha256, audited } };
+  return { status: 200, body: { id, restored: true, mode, contentSha256: backup.content_sha256, audit } };
 }

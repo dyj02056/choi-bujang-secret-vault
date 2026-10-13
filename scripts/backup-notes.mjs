@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import { appendAudit } from './audit-lib.mjs';
 import { UUID, noteHash } from '../src/note-backup.mjs';
 
 // 침해 전에 학생이 직접 실행합니다. secret_notes의 메모를 비공개 사본 표에 한 번만 복사합니다.
@@ -36,6 +37,9 @@ try {
   });
   if (!write.ok) throw new Error(`사본을 쓰지 못했습니다 (HTTP ${write.status}). 004 마이그레이션을 실행했는지 확인해 주세요.`);
   const created = await write.json();
+  appendAudit('note_backup_copied', {
+    ...(noteId ? { noteId } : {}), created: created.length, skipped: rows.length - created.length, result: 'ok',
+  });
   process.stdout.write(`사본 생성 ${created.length}건, 이미 있어 건너뜀 ${rows.length - created.length}건\n`);
 } catch (error) {
   process.stderr.write(`사본 생성 첫 오류: ${error.message}\n`);

@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { appendAudit } from './audit-lib.mjs';
 import { CONFIG, CONFIG_KEYS, currentPolicy, describe, diffPolicy, loadSafeCopy } from './policy-lib.mjs';
 
 // 안전 사본으로 시험 정책을 되돌립니다. 기본은 미리보기이고 --yes 를 주어야 씁니다.
@@ -8,7 +9,9 @@ try {
   const copy = loadSafeCopy();
   const changes = diffPolicy(copy.policy, await currentPolicy());
   process.stdout.write(`복원 기준: 안전 정책 사본 v${copy.version} (해시 ${copy.sha256.slice(0, 12)} 검증됨)\n`);
+  const base = { policyVersion: copy.version, policyHash: copy.sha256.slice(0, 12) };
   if (!changes.length) {
+    appendAudit('policy_restore_checked', { ...base, changedKeys: [], applied: false, result: 'no_difference' });
     process.stdout.write('바뀔 항목이 없습니다.\n');
   } else {
     const writable = changes.filter((change) => CONFIG_KEYS.includes(change.key));
@@ -22,6 +25,7 @@ try {
         + `git diff 로 안전했던 커밋과 비교해 되돌리세요.\n`);
     }
     if (!process.argv.includes('--yes')) {
+      appendAudit('policy_restore_preview', { ...base, changedKeys: changes.map((change) => change.key), applied: false, result: 'preview_only' });
       process.stdout.write('미리보기입니다. 위 항목을 확인한 뒤 실제로 쓰려면 --yes 를 붙여 다시 실행하세요.\n');
     } else if (writable.length) {
       const raw = readFileSync(CONFIG, 'utf8');
@@ -30,6 +34,10 @@ try {
       for (const change of writable) config[change.key] = copy.policy[change.key];
       const out = `${JSON.stringify(config, null, 2)}\n`;
       writeFileSync(CONFIG, crlf ? out.replace(/\n/gu, '\r\n') : out, 'utf8');
+      appendAudit('policy_restore_applied', {
+        ...base, changedKeys: writable.map((change) => change.key), applied: true,
+        result: manual.length ? 'config_restored_code_rules_manual' : 'config_restored',
+      });
       process.stdout.write(`aleph.config.json 의 ${writable.map((change) => change.key).join(', ')} 를 사본 값으로 되돌렸습니다.\n`);
     }
     if (manual.length) process.exitCode = 2;

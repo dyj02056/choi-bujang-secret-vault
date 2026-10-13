@@ -26,14 +26,14 @@ async function send(app, path, { method = 'GET', token, body, base } = {}) {
   });
   let data;
   try { data = await response.json(); } catch { /* body is not JSON */ }
-  return { status: response.status, error: data?.error, mode: data?.mode };
+  return { status: response.status, error: data?.error, mode: data?.mode, audit: data?.audit };
 }
 
 // Sends one request and judges it with `accept`. A network failure is reported as such.
 async function live(id, expected, accept, run) {
   try {
     const result = await run();
-    const text = `HTTP ${result.status}${result.error ? ` ${result.error}` : ''}${result.mode ? ` mode=${result.mode}` : ''}`;
+    const text = `HTTP ${result.status}${result.error ? ` ${result.error}` : ''}${result.mode ? ` mode=${result.mode}` : ''}${result.audit ? ` audit=${result.audit.recorded ? `#${result.audit.seq}` : 'missing'}` : ''}`;
     return entry(id, expected, `${accept(result) ? 'As expected' : 'Needs review'}: ${text} at ${new Date().toISOString()}`);
   } catch (error) {
     return entry(id, expected, `Could not be checked (${error.name}) at ${new Date().toISOString()}`);
@@ -70,10 +70,10 @@ export async function runAttackChecks(config) {
   const results = [];
 
   // 1) Restore first, so every check below runs after the data came back.
-  const restoreExpected = 'Account B restores its own note: HTTP 200 with mode updated, reinserted or unchanged';
+  const restoreExpected = 'Account B restores its own note: HTTP 200, mode updated/reinserted/unchanged, and an audit record number';
   results.push(loginReady && restoreUsable
     ? await live('s10_restore_own_note', restoreExpected,
-      (r) => r.status === 200 && ['updated', 'reinserted', 'unchanged'].includes(r.mode),
+      (r) => r.status === 200 && ['updated', 'reinserted', 'unchanged'].includes(r.mode) && r.audit?.recorded === true,
       () => send(app, restorePath, { method: 'POST', token: tokenB, body: { id: noteB } }))
     : entry('s10_restore_own_note', restoreExpected, loginReady ? noRestoreRoute : missing));
 

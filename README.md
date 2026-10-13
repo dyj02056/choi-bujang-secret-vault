@@ -35,6 +35,8 @@ the live app yet, and a passing local test is not a judge result.
    Editor. It creates two private tables with no browser access: `secret_notes_backup`
    (rows cannot be changed or deleted afterwards) and `secret_notes_restore_log`
    (append only).
+   After 004, also run `supabase/migrations/005_restore_log_unchanged.sql` once so that
+   calls which change nothing can be recorded too.
 2. Every note created through `POST /api/notes` now also leaves its first version in the
    private backup automatically (once, never overwritten; a failed backup does not block
    the note). This means a restore returns a note to its **first saved version**, not to
@@ -55,9 +57,10 @@ the live app yet, and a passing local test is not a judge result.
 | Body | `{ "id": "<note UUID>" }` only. No query string, no owner or role in the body |
 | Login | Required. Only the owner of the backed-up note can restore it |
 | Checks | Backup row exists; its stored SHA-256 matches a fresh hash of its title and content; its owner equals the verified caller; an existing row with the same ID must have the same owner |
+| Audit | Before any change the call is written to the append-only `secret_notes_restore_log` (note ID, owner, mode, time). If that cannot be written, nothing is changed and the call fails with 502 `AUDIT_UNAVAILABLE`. A call that changes nothing is recorded as `unchanged`. The response carries `audit.seq` |
 | Writes | A tampered note is updated back; a deleted note is inserted again with the same ID and owner; nothing else is touched. The note is re-read and its ID, owner and hash are compared with the backup |
-| Response | ID, `restored`, `mode` (`updated`, `reinserted`, `unchanged`) and the hash. Never the note text |
-| Refusals | 400 bad ID, 401 no login, 403 not your note, 404 no backup, 409 backup failed verification or owner conflict |
+| Response | ID, `restored`, `mode` (`updated`, `reinserted`, `unchanged`), the hash and `audit` (`recorded`, `seq`). Never the note text |
+| Refusals | 400 bad ID, 401 no login, 403 not your note, 404 no backup, 409 backup failed verification or owner conflict, 502 audit record could not be written |
 
 Only the note the caller names is touched, so other notes, the other account data and
 the restore log are preserved. A repeated call changes nothing (`unchanged`).
@@ -74,6 +77,21 @@ If the safe copy is missing, malformed or its hash does not match, both commands
 `--yes` rewrites only `allowedRoutes` and `restoreRoute` in `aleph.config.json`.
 A difference in the decider rules (`src/decider.mjs`) is reported but never rewritten
 automatically; compare it with the commit you trust and restore it by hand.
+
+### Where the audit records are
+
+There are two audit records, because a deployed function cannot write files into the repository.
+
+| Record | Where | What it holds | Written by |
+|---|---|---|---|
+| Note restore calls (live) | table `secret_notes_restore_log` in Supabase, and `audit.seq` in every restore response | note ID, owner, mode, time. Append only; update and delete are blocked by a trigger | `src/restore-note.mjs`, before any change |
+| Local procedures | `audit/restore-audit.log` in this repository, one JSON line per event | time, action, policy version and hash, which settings changed, whether anything was written | `scripts/policy-restore.mjs`, `policy-snapshot.mjs`, `backup-notes.mjs` |
+
+Neither record holds note titles, note text, tokens or keys. `audit/restore-audit.log` is only
+ever appended to; no script in this repository truncates or rewrites it, and restoring the
+policy leaves it untouched. The lines already in it came from running these scripts locally
+(including a trial where `allowedRoutes` was changed on purpose and then restored). The live
+restore records are in the Supabase table, which the repository cannot show.
 
 ### Run after a restore (steps 1 to 9)
 

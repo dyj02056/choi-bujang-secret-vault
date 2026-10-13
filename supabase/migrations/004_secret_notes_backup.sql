@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS secret_notes_restore_log (
   seq         bigserial PRIMARY KEY,
   note_id     uuid NOT NULL,
   owner_id    uuid NOT NULL,
-  mode        text NOT NULL CHECK (mode IN ('updated', 'reinserted')),
+  mode        text NOT NULL CHECK (mode IN ('updated', 'reinserted', 'unchanged')),
   restored_at timestamptz NOT NULL DEFAULT now()
 );
 
