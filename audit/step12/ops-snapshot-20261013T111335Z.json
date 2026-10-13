@@ -1,0 +1,895 @@
+{
+  "schema": "aleph.ops.snapshot.v1",
+  "app": "https://choi-bujang-secret-vault-tau.vercel.app",
+  "account": "test account A (owner masked)",
+  "api": {
+    "route": "GET /api/ops/summary",
+    "status": 200,
+    "requestId": "a6f8128c-c867-459f-bc35-eb522452c49f",
+    "receivedAt": "2026-10-13T11:13:35.169Z",
+    "body": {
+      "schema": "aleph.ops.summary.v1",
+      "generatedAt": "2026-10-13T11:13:21.095Z",
+      "rules": {
+        "source": "src/decider.mjs (학생 판정기)",
+        "ruleIds": [
+          "device_registered",
+          "step_up_required",
+          "resource_zone_route"
+        ],
+        "resourceMethods": {
+          "notes": [
+            "GET",
+            "PUT",
+            "DELETE"
+          ],
+          "announcements": [
+            "GET"
+          ]
+        },
+        "actionRoutes": [
+          "POST /restore/notes"
+        ]
+      },
+      "detection": {
+        "source": "src/detect.mjs 규칙을 서버 기록 access_events 에 적용, 결과는 access_results 의 최종 HTTP 상태",
+        "windowMinutes": 10,
+        "limit": 120,
+        "recentGetCount": 6,
+        "recentEvents": [
+          {
+            "requestId": "a6f8128c-c867-459f-bc35-eb522452c49f",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": null,
+            "outcome": "not_recorded",
+            "at": "2026-10-13T11:13:20.727371+00:00"
+          },
+          {
+            "requestId": "a0be76e8-c755-4010-8157-2d6b823fdfb7",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T11:13:13.095561+00:00"
+          },
+          {
+            "requestId": "fac9acfd-e5d2-4fb3-b058-a443db403f53",
+            "route": "GET /notes/:id",
+            "gate": "device_not_approved",
+            "status": 403,
+            "outcome": "device_not_approved",
+            "at": "2026-10-13T11:13:09.494403+00:00"
+          },
+          {
+            "requestId": "d02aa863-dbea-4a57-b6ec-d0cefcbd8d3b",
+            "route": "PUT /notes/:id",
+            "gate": "device_signature_mismatch",
+            "status": 403,
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T11:13:06.793478+00:00"
+          },
+          {
+            "requestId": "6687ed50-ed01-4b6e-8c3d-a5a2a3eb09da",
+            "route": "GET /notes",
+            "gate": "device_signature_mismatch",
+            "status": 403,
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T11:13:04.812456+00:00"
+          },
+          {
+            "requestId": "b94bf3a2-2fab-40cc-92a3-cabb59d0554c",
+            "route": "GET /notes/:id",
+            "gate": "device_signature_required",
+            "status": 401,
+            "outcome": "device_signature_required",
+            "at": "2026-10-13T11:13:02.13779+00:00"
+          },
+          {
+            "requestId": "d55678c1-67a5-4019-8de3-16367f6ddf93",
+            "route": "POST /restore/notes",
+            "gate": "gate_passed",
+            "status": 403,
+            "outcome": "forbidden",
+            "at": "2026-10-13T11:12:58.915277+00:00"
+          },
+          {
+            "requestId": "26bd593e-f68f-429b-a43f-6bc38d0c282c",
+            "route": "PUT /announcements/:id",
+            "gate": "gate_passed",
+            "status": 403,
+            "outcome": "instructor_required",
+            "at": "2026-10-13T11:12:55.192494+00:00"
+          },
+          {
+            "requestId": "c8fe17b2-bb14-4d64-8b71-de7dde0ff85f",
+            "route": "GET /notes/:id",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T11:12:44.731671+00:00"
+          },
+          {
+            "requestId": "ae785779-a383-466a-8854-4ea18548de2b",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T10:59:37.825086+00:00"
+          },
+          {
+            "requestId": "83ce07c7-b957-489a-9186-537044f4147d",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T10:59:29.591175+00:00"
+          },
+          {
+            "requestId": "906a1338-b8d2-4993-b78e-1c2f476f81ba",
+            "route": "GET /notes/:id",
+            "gate": "device_not_approved",
+            "status": 403,
+            "outcome": "device_not_approved",
+            "at": "2026-10-13T10:59:26.023155+00:00"
+          },
+          {
+            "requestId": "932b1771-4278-4206-a909-15d3e691a86c",
+            "route": "PUT /notes/:id",
+            "gate": "device_signature_mismatch",
+            "status": 403,
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T10:59:24.060215+00:00"
+          },
+          {
+            "requestId": "30c15e01-2f05-4fab-b148-363d7900c548",
+            "route": "GET /notes",
+            "gate": "device_signature_mismatch",
+            "status": 403,
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T10:59:21.564991+00:00"
+          },
+          {
+            "requestId": "ce95dc66-60f0-4009-9d6a-6e4e5ab2b54b",
+            "route": "GET /notes/:id",
+            "gate": "device_signature_required",
+            "status": 401,
+            "outcome": "device_signature_required",
+            "at": "2026-10-13T10:59:19.375844+00:00"
+          },
+          {
+            "requestId": "efb894de-b818-489d-b6cf-2b36b79d8a60",
+            "route": "POST /restore/notes",
+            "gate": "gate_passed",
+            "status": 403,
+            "outcome": "forbidden",
+            "at": "2026-10-13T10:59:16.369484+00:00"
+          },
+          {
+            "requestId": "96a43105-9b3c-4624-a805-d46f2360fc65",
+            "route": "PUT /announcements/:id",
+            "gate": "gate_passed",
+            "status": 403,
+            "outcome": "instructor_required",
+            "at": "2026-10-13T10:59:12.308042+00:00"
+          },
+          {
+            "requestId": "22b222a3-20f4-4c79-96ed-fea5d67bcde4",
+            "route": "GET /notes/:id",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T10:59:01.335163+00:00"
+          },
+          {
+            "requestId": "989a830f-8fae-4489-8086-ceda35dbb51f",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T10:45:43.897946+00:00"
+          },
+          {
+            "requestId": "db19ac15-49ac-4848-ac0f-a473459e7df6",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T10:45:36.614609+00:00"
+          }
+        ],
+        "outcomeCounts": {
+          "not_recorded": 1,
+          "allowed": 7,
+          "device_not_approved": 2,
+          "device_signature_mismatch": 4,
+          "device_signature_required": 2,
+          "forbidden": 2,
+          "instructor_required": 2
+        }
+      },
+      "revocation": {
+        "revoked": false,
+        "reason": null,
+        "revokedAt": null,
+        "devices": {
+          "approved": 27,
+          "pending": 0,
+          "revoked": 0
+        }
+      },
+      "restore": {
+        "auditRows": 14,
+        "byMode": {
+          "refused": 14
+        },
+        "backups": 1,
+        "latest": {
+          "seq": 36,
+          "mode": "refused",
+          "reason": "not_owner",
+          "note": "note_e294dae70b",
+          "at": "2026-10-13T11:13:00.222378+00:00"
+        }
+      }
+    }
+  },
+  "serverRecord": {
+    "source": "masked raw server rows of the same account (maskedRecords), recounted by scripts/ops-snapshot.mjs at the same reference time",
+    "body": {
+      "rules": {
+        "source": "src/decider.mjs (학생 판정기)",
+        "ruleIds": [
+          "device_registered",
+          "step_up_required",
+          "resource_zone_route"
+        ],
+        "resourceMethods": {
+          "notes": [
+            "GET",
+            "PUT",
+            "DELETE"
+          ],
+          "announcements": [
+            "GET"
+          ]
+        },
+        "actionRoutes": [
+          "POST /restore/notes"
+        ]
+      },
+      "detection": {
+        "source": "src/detect.mjs 규칙을 서버 기록 access_events 에 적용, 결과는 access_results 의 최종 HTTP 상태",
+        "windowMinutes": 10,
+        "limit": 120,
+        "recentGetCount": 6,
+        "recentEvents": [
+          {
+            "requestId": "a6f8128c-c867-459f-bc35-eb522452c49f",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": null,
+            "outcome": "not_recorded",
+            "at": "2026-10-13T11:13:20.727371+00:00"
+          },
+          {
+            "requestId": "a0be76e8-c755-4010-8157-2d6b823fdfb7",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T11:13:13.095561+00:00"
+          },
+          {
+            "requestId": "fac9acfd-e5d2-4fb3-b058-a443db403f53",
+            "route": "GET /notes/:id",
+            "gate": "device_not_approved",
+            "status": 403,
+            "outcome": "device_not_approved",
+            "at": "2026-10-13T11:13:09.494403+00:00"
+          },
+          {
+            "requestId": "d02aa863-dbea-4a57-b6ec-d0cefcbd8d3b",
+            "route": "PUT /notes/:id",
+            "gate": "device_signature_mismatch",
+            "status": 403,
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T11:13:06.793478+00:00"
+          },
+          {
+            "requestId": "6687ed50-ed01-4b6e-8c3d-a5a2a3eb09da",
+            "route": "GET /notes",
+            "gate": "device_signature_mismatch",
+            "status": 403,
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T11:13:04.812456+00:00"
+          },
+          {
+            "requestId": "b94bf3a2-2fab-40cc-92a3-cabb59d0554c",
+            "route": "GET /notes/:id",
+            "gate": "device_signature_required",
+            "status": 401,
+            "outcome": "device_signature_required",
+            "at": "2026-10-13T11:13:02.13779+00:00"
+          },
+          {
+            "requestId": "d55678c1-67a5-4019-8de3-16367f6ddf93",
+            "route": "POST /restore/notes",
+            "gate": "gate_passed",
+            "status": 403,
+            "outcome": "forbidden",
+            "at": "2026-10-13T11:12:58.915277+00:00"
+          },
+          {
+            "requestId": "26bd593e-f68f-429b-a43f-6bc38d0c282c",
+            "route": "PUT /announcements/:id",
+            "gate": "gate_passed",
+            "status": 403,
+            "outcome": "instructor_required",
+            "at": "2026-10-13T11:12:55.192494+00:00"
+          },
+          {
+            "requestId": "c8fe17b2-bb14-4d64-8b71-de7dde0ff85f",
+            "route": "GET /notes/:id",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T11:12:44.731671+00:00"
+          },
+          {
+            "requestId": "ae785779-a383-466a-8854-4ea18548de2b",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T10:59:37.825086+00:00"
+          },
+          {
+            "requestId": "83ce07c7-b957-489a-9186-537044f4147d",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T10:59:29.591175+00:00"
+          },
+          {
+            "requestId": "906a1338-b8d2-4993-b78e-1c2f476f81ba",
+            "route": "GET /notes/:id",
+            "gate": "device_not_approved",
+            "status": 403,
+            "outcome": "device_not_approved",
+            "at": "2026-10-13T10:59:26.023155+00:00"
+          },
+          {
+            "requestId": "932b1771-4278-4206-a909-15d3e691a86c",
+            "route": "PUT /notes/:id",
+            "gate": "device_signature_mismatch",
+            "status": 403,
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T10:59:24.060215+00:00"
+          },
+          {
+            "requestId": "30c15e01-2f05-4fab-b148-363d7900c548",
+            "route": "GET /notes",
+            "gate": "device_signature_mismatch",
+            "status": 403,
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T10:59:21.564991+00:00"
+          },
+          {
+            "requestId": "ce95dc66-60f0-4009-9d6a-6e4e5ab2b54b",
+            "route": "GET /notes/:id",
+            "gate": "device_signature_required",
+            "status": 401,
+            "outcome": "device_signature_required",
+            "at": "2026-10-13T10:59:19.375844+00:00"
+          },
+          {
+            "requestId": "efb894de-b818-489d-b6cf-2b36b79d8a60",
+            "route": "POST /restore/notes",
+            "gate": "gate_passed",
+            "status": 403,
+            "outcome": "forbidden",
+            "at": "2026-10-13T10:59:16.369484+00:00"
+          },
+          {
+            "requestId": "96a43105-9b3c-4624-a805-d46f2360fc65",
+            "route": "PUT /announcements/:id",
+            "gate": "gate_passed",
+            "status": 403,
+            "outcome": "instructor_required",
+            "at": "2026-10-13T10:59:12.308042+00:00"
+          },
+          {
+            "requestId": "22b222a3-20f4-4c79-96ed-fea5d67bcde4",
+            "route": "GET /notes/:id",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T10:59:01.335163+00:00"
+          },
+          {
+            "requestId": "989a830f-8fae-4489-8086-ceda35dbb51f",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T10:45:43.897946+00:00"
+          },
+          {
+            "requestId": "db19ac15-49ac-4848-ac0f-a473459e7df6",
+            "route": "GET /ops/summary",
+            "gate": "gate_passed",
+            "status": 200,
+            "outcome": "allowed",
+            "at": "2026-10-13T10:45:36.614609+00:00"
+          }
+        ],
+        "outcomeCounts": {
+          "not_recorded": 1,
+          "allowed": 7,
+          "device_not_approved": 2,
+          "device_signature_mismatch": 4,
+          "device_signature_required": 2,
+          "forbidden": 2,
+          "instructor_required": 2
+        }
+      },
+      "revocation": {
+        "revoked": false,
+        "reason": null,
+        "revokedAt": null,
+        "devices": {
+          "approved": 27,
+          "pending": 0,
+          "revoked": 0
+        }
+      },
+      "restore": {
+        "auditRows": 14,
+        "byMode": {
+          "refused": 14
+        },
+        "backups": 1,
+        "latest": {
+          "seq": 36,
+          "mode": "refused",
+          "reason": "not_owner",
+          "note": "note_e294dae70b",
+          "at": "2026-10-13T11:13:00.222378+00:00"
+        }
+      }
+    }
+  },
+  "maskedRecords": {
+    "owner": "owner_49c3b2ec3c",
+    "referenceTime": "2026-10-13T11:13:21.095Z",
+    "accessEventsLatest20": [
+      {
+        "seq": 184,
+        "requestId": "a6f8128c-c867-459f-bc35-eb522452c49f",
+        "method": "GET",
+        "route": "GET /ops/summary",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T11:13:20.727371+00:00"
+      },
+      {
+        "seq": 183,
+        "requestId": "a0be76e8-c755-4010-8157-2d6b823fdfb7",
+        "method": "GET",
+        "route": "GET /ops/summary",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T11:13:13.095561+00:00"
+      },
+      {
+        "seq": 182,
+        "requestId": "fac9acfd-e5d2-4fb3-b058-a443db403f53",
+        "method": "GET",
+        "route": "GET /notes/:id",
+        "outcome": "device_not_approved",
+        "at": "2026-10-13T11:13:09.494403+00:00"
+      },
+      {
+        "seq": 181,
+        "requestId": "d02aa863-dbea-4a57-b6ec-d0cefcbd8d3b",
+        "method": "PUT",
+        "route": "PUT /notes/:id",
+        "outcome": "device_signature_mismatch",
+        "at": "2026-10-13T11:13:06.793478+00:00"
+      },
+      {
+        "seq": 180,
+        "requestId": "6687ed50-ed01-4b6e-8c3d-a5a2a3eb09da",
+        "method": "GET",
+        "route": "GET /notes",
+        "outcome": "device_signature_mismatch",
+        "at": "2026-10-13T11:13:04.812456+00:00"
+      },
+      {
+        "seq": 179,
+        "requestId": "b94bf3a2-2fab-40cc-92a3-cabb59d0554c",
+        "method": "GET",
+        "route": "GET /notes/:id",
+        "outcome": "device_signature_required",
+        "at": "2026-10-13T11:13:02.13779+00:00"
+      },
+      {
+        "seq": 178,
+        "requestId": "d55678c1-67a5-4019-8de3-16367f6ddf93",
+        "method": "POST",
+        "route": "POST /restore/notes",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T11:12:58.915277+00:00"
+      },
+      {
+        "seq": 177,
+        "requestId": "26bd593e-f68f-429b-a43f-6bc38d0c282c",
+        "method": "PUT",
+        "route": "PUT /announcements/:id",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T11:12:55.192494+00:00"
+      },
+      {
+        "seq": 174,
+        "requestId": "c8fe17b2-bb14-4d64-8b71-de7dde0ff85f",
+        "method": "GET",
+        "route": "GET /notes/:id",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T11:12:44.731671+00:00"
+      },
+      {
+        "seq": 170,
+        "requestId": "ae785779-a383-466a-8854-4ea18548de2b",
+        "method": "GET",
+        "route": "GET /ops/summary",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T10:59:37.825086+00:00"
+      },
+      {
+        "seq": 169,
+        "requestId": "83ce07c7-b957-489a-9186-537044f4147d",
+        "method": "GET",
+        "route": "GET /ops/summary",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T10:59:29.591175+00:00"
+      },
+      {
+        "seq": 168,
+        "requestId": "906a1338-b8d2-4993-b78e-1c2f476f81ba",
+        "method": "GET",
+        "route": "GET /notes/:id",
+        "outcome": "device_not_approved",
+        "at": "2026-10-13T10:59:26.023155+00:00"
+      },
+      {
+        "seq": 167,
+        "requestId": "932b1771-4278-4206-a909-15d3e691a86c",
+        "method": "PUT",
+        "route": "PUT /notes/:id",
+        "outcome": "device_signature_mismatch",
+        "at": "2026-10-13T10:59:24.060215+00:00"
+      },
+      {
+        "seq": 166,
+        "requestId": "30c15e01-2f05-4fab-b148-363d7900c548",
+        "method": "GET",
+        "route": "GET /notes",
+        "outcome": "device_signature_mismatch",
+        "at": "2026-10-13T10:59:21.564991+00:00"
+      },
+      {
+        "seq": 165,
+        "requestId": "ce95dc66-60f0-4009-9d6a-6e4e5ab2b54b",
+        "method": "GET",
+        "route": "GET /notes/:id",
+        "outcome": "device_signature_required",
+        "at": "2026-10-13T10:59:19.375844+00:00"
+      },
+      {
+        "seq": 164,
+        "requestId": "efb894de-b818-489d-b6cf-2b36b79d8a60",
+        "method": "POST",
+        "route": "POST /restore/notes",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T10:59:16.369484+00:00"
+      },
+      {
+        "seq": 163,
+        "requestId": "96a43105-9b3c-4624-a805-d46f2360fc65",
+        "method": "PUT",
+        "route": "PUT /announcements/:id",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T10:59:12.308042+00:00"
+      },
+      {
+        "seq": 160,
+        "requestId": "22b222a3-20f4-4c79-96ed-fea5d67bcde4",
+        "method": "GET",
+        "route": "GET /notes/:id",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T10:59:01.335163+00:00"
+      },
+      {
+        "seq": 156,
+        "requestId": "989a830f-8fae-4489-8086-ceda35dbb51f",
+        "method": "GET",
+        "route": "GET /ops/summary",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T10:45:43.897946+00:00"
+      },
+      {
+        "seq": 155,
+        "requestId": "db19ac15-49ac-4848-ac0f-a473459e7df6",
+        "method": "GET",
+        "route": "GET /ops/summary",
+        "outcome": "gate_passed",
+        "at": "2026-10-13T10:45:36.614609+00:00"
+      }
+    ],
+    "accessResultsOfLatest20": [
+      {
+        "requestId": "a0be76e8-c755-4010-8157-2d6b823fdfb7",
+        "status": 200,
+        "error": null
+      },
+      {
+        "requestId": "fac9acfd-e5d2-4fb3-b058-a443db403f53",
+        "status": 403,
+        "error": "DEVICE_NOT_APPROVED"
+      },
+      {
+        "requestId": "d02aa863-dbea-4a57-b6ec-d0cefcbd8d3b",
+        "status": 403,
+        "error": "DEVICE_SIGNATURE_MISMATCH"
+      },
+      {
+        "requestId": "6687ed50-ed01-4b6e-8c3d-a5a2a3eb09da",
+        "status": 403,
+        "error": "DEVICE_SIGNATURE_MISMATCH"
+      },
+      {
+        "requestId": "b94bf3a2-2fab-40cc-92a3-cabb59d0554c",
+        "status": 401,
+        "error": "DEVICE_SIGNATURE_REQUIRED"
+      },
+      {
+        "requestId": "d55678c1-67a5-4019-8de3-16367f6ddf93",
+        "status": 403,
+        "error": "FORBIDDEN"
+      },
+      {
+        "requestId": "26bd593e-f68f-429b-a43f-6bc38d0c282c",
+        "status": 403,
+        "error": "INSTRUCTOR_REQUIRED"
+      },
+      {
+        "requestId": "c8fe17b2-bb14-4d64-8b71-de7dde0ff85f",
+        "status": 200,
+        "error": null
+      },
+      {
+        "requestId": "ae785779-a383-466a-8854-4ea18548de2b",
+        "status": 200,
+        "error": null
+      },
+      {
+        "requestId": "83ce07c7-b957-489a-9186-537044f4147d",
+        "status": 200,
+        "error": null
+      },
+      {
+        "requestId": "906a1338-b8d2-4993-b78e-1c2f476f81ba",
+        "status": 403,
+        "error": "DEVICE_NOT_APPROVED"
+      },
+      {
+        "requestId": "932b1771-4278-4206-a909-15d3e691a86c",
+        "status": 403,
+        "error": "DEVICE_SIGNATURE_MISMATCH"
+      },
+      {
+        "requestId": "30c15e01-2f05-4fab-b148-363d7900c548",
+        "status": 403,
+        "error": "DEVICE_SIGNATURE_MISMATCH"
+      },
+      {
+        "requestId": "ce95dc66-60f0-4009-9d6a-6e4e5ab2b54b",
+        "status": 401,
+        "error": "DEVICE_SIGNATURE_REQUIRED"
+      },
+      {
+        "requestId": "efb894de-b818-489d-b6cf-2b36b79d8a60",
+        "status": 403,
+        "error": "FORBIDDEN"
+      },
+      {
+        "requestId": "96a43105-9b3c-4624-a805-d46f2360fc65",
+        "status": 403,
+        "error": "INSTRUCTOR_REQUIRED"
+      },
+      {
+        "requestId": "22b222a3-20f4-4c79-96ed-fea5d67bcde4",
+        "status": 200,
+        "error": null
+      },
+      {
+        "requestId": "989a830f-8fae-4489-8086-ceda35dbb51f",
+        "status": 200,
+        "error": null
+      },
+      {
+        "requestId": "db19ac15-49ac-4848-ac0f-a473459e7df6",
+        "status": 200,
+        "error": null
+      }
+    ],
+    "getEventsLast10Minutes": [
+      {
+        "requestId": "c8fe17b2-bb14-4d64-8b71-de7dde0ff85f",
+        "at": "2026-10-13T11:12:44.731671+00:00"
+      },
+      {
+        "requestId": "b94bf3a2-2fab-40cc-92a3-cabb59d0554c",
+        "at": "2026-10-13T11:13:02.13779+00:00"
+      },
+      {
+        "requestId": "6687ed50-ed01-4b6e-8c3d-a5a2a3eb09da",
+        "at": "2026-10-13T11:13:04.812456+00:00"
+      },
+      {
+        "requestId": "fac9acfd-e5d2-4fb3-b058-a443db403f53",
+        "at": "2026-10-13T11:13:09.494403+00:00"
+      },
+      {
+        "requestId": "a0be76e8-c755-4010-8157-2d6b823fdfb7",
+        "at": "2026-10-13T11:13:13.095561+00:00"
+      },
+      {
+        "requestId": "a6f8128c-c867-459f-bc35-eb522452c49f",
+        "at": "2026-10-13T11:13:20.727371+00:00"
+      }
+    ],
+    "restoreAuditRows": [
+      {
+        "seq": 10,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T07:09:23.278849+00:00"
+      },
+      {
+        "seq": 12,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T07:11:44.885169+00:00"
+      },
+      {
+        "seq": 14,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T07:14:49.271719+00:00"
+      },
+      {
+        "seq": 16,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T07:15:37.68092+00:00"
+      },
+      {
+        "seq": 18,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T07:18:45.189187+00:00"
+      },
+      {
+        "seq": 20,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T07:22:35.989902+00:00"
+      },
+      {
+        "seq": 22,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T07:32:47.201072+00:00"
+      },
+      {
+        "seq": 24,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T07:46:19.450763+00:00"
+      },
+      {
+        "seq": 26,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T07:53:52.864835+00:00"
+      },
+      {
+        "seq": 28,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T08:00:22.660279+00:00"
+      },
+      {
+        "seq": 30,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T08:10:39.419376+00:00"
+      },
+      {
+        "seq": 32,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T10:45:24.20717+00:00"
+      },
+      {
+        "seq": 34,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T10:59:17.244356+00:00"
+      },
+      {
+        "seq": 36,
+        "mode": "refused",
+        "reason": "not_owner",
+        "note": "note_e294dae70b",
+        "at": "2026-10-13T11:13:00.222378+00:00"
+      }
+    ],
+    "deviceStatuses": [
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved",
+      "approved"
+    ],
+    "revocations": [],
+    "backups": [
+      "note_d0b94e1394"
+    ]
+  },
+  "comparison": {
+    "rules": true,
+    "detection.recentGetCount": true,
+    "detection.outcomeCounts": true,
+    "detection.recentEvents": true,
+    "revocation": true,
+    "restore": true
+  },
+  "allMatch": true
+}
