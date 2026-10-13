@@ -72,8 +72,8 @@ const RECORDED = {
   "table": {
     "schema": "aleph.ops.checks.v1",
     "step": 12,
-    "commit": "3a4e724aba7f808a506d43f72855ec965f5ef906",
-    "finishedAt": "2026-10-13T07:53:59.844Z",
+    "commit": "53d3e9bd7bb8b6d13480790ea5e8afe0a94eb3a8",
+    "finishedAt": "2026-10-13T08:00:33.489Z",
     "selfChecks": {
       "checks": 20
     },
@@ -84,7 +84,7 @@ const RECORDED = {
         "expected": "A virtual passkey that signs its own registration, with a recent login, is approved: HTTP 200, device=approved",
         "observed": "HTTP 200 device=approved",
         "requestId": "none",
-        "checkedAt": "2026-10-13T07:53:20.782Z",
+        "checkedAt": "2026-10-13T07:59:46.833Z",
         "verdict": "as_expected"
       },
       {
@@ -93,16 +93,16 @@ const RECORDED = {
         "expected": "A virtual passkey that signs its own registration, with a recent login, is approved: HTTP 200, device=approved",
         "observed": "HTTP 200 device=approved",
         "requestId": "none",
-        "checkedAt": "2026-10-13T07:53:23.347Z",
+        "checkedAt": "2026-10-13T07:59:49.805Z",
         "verdict": "as_expected"
       },
       {
         "attackId": "s10_restore_own_note",
         "request": "B restore",
         "expected": "Account B restores its own note: HTTP 200, mode updated/reinserted/unchanged, and an audit record number",
-        "observed": "HTTP 200 mode=unchanged audit=#25",
-        "requestId": "5bb14529-cfea-4956-9dd6-fbd193355523",
-        "checkedAt": "2026-10-13T07:53:27.979Z",
+        "observed": "HTTP 200 mode=unchanged audit=#27",
+        "requestId": "97034ed1-17a4-4a66-97c3-72febbaf7ade",
+        "checkedAt": "2026-10-13T07:59:55.702Z",
         "verdict": "as_expected"
       },
       {
@@ -110,8 +110,8 @@ const RECORDED = {
         "request": "unsigned update",
         "expected": "After the restore: B unsigned update of its own note is rejected (401 DEVICE_SIGNATURE_REQUIRED), then B signed read of A note is rejected (403)",
         "observed": "HTTP 401 DEVICE_SIGNATURE_REQUIRED",
-        "requestId": "924c09d0-e183-46db-ba8b-29ecd3147681",
-        "checkedAt": "2026-10-13T07:53:30.388Z",
+        "requestId": "30600b0a-a434-4583-932c-3dea4b0e1fbf",
+        "checkedAt": "2026-10-13T07:59:58.026Z",
         "verdict": "as_expected"
       },
       {
@@ -119,8 +119,8 @@ const RECORDED = {
         "request": "out-of-zone read",
         "expected": "After the restore: B unsigned update of its own note is rejected (401 DEVICE_SIGNATURE_REQUIRED), then B signed read of A note is rejected (403)",
         "observed": "HTTP 403 FORBIDDEN",
-        "requestId": "acb0b575-e3cd-47b2-acb5-dc1246acb7ea",
-        "checkedAt": "2026-10-13T07:53:33.564Z",
+        "requestId": "72493b7a-fabd-4e2a-8506-ebd1ba315fcb",
+        "checkedAt": "2026-10-13T08:00:01.143Z",
         "verdict": "as_expected"
       },
       {
@@ -129,7 +129,7 @@ const RECORDED = {
         "expected": "The public page still opens: HTTP 200",
         "observed": "HTTP 200",
         "requestId": "none",
-        "checkedAt": "2026-10-13T07:53:33.789Z",
+        "checkedAt": "2026-10-13T08:00:01.769Z",
         "verdict": "as_expected"
       },
       {
@@ -137,8 +137,8 @@ const RECORDED = {
         "request": "A own read",
         "expected": "Account A reads its own note: HTTP 200",
         "observed": "HTTP 200",
-        "requestId": "c3c3095f-47e1-484b-8e11-0cac09695871",
-        "checkedAt": "2026-10-13T07:53:36.623Z",
+        "requestId": "c9ff3ee2-d65b-4f06-8263-16c091582634",
+        "checkedAt": "2026-10-13T08:00:05.587Z",
         "verdict": "as_expected"
       },
       {
@@ -147,7 +147,7 @@ const RECORDED = {
         "expected": "Back to back: anonymous read of A note is rejected (401), then B signed read of the same A note is rejected (403)",
         "observed": "HTTP 401 UNAUTHORIZED",
         "requestId": "none",
-        "checkedAt": "2026-10-13T07:53:37.039Z",
+        "checkedAt": "2026-10-13T08:00:05.811Z",
         "verdict": "as_expected"
       },
       {
@@ -155,8 +155,8 @@ const RECORDED = {
         "request": "cross read",
         "expected": "Back to back: anonymous read of A note is rejected (401), then B signed read of the same A note is rejected (403)",
         "observed": "HTTP 403 FORBIDDEN",
-        "requestId": "215fe231-45f5-4c45-9fdf-93fb51d8db59",
-        "checkedAt": "2026-10-13T07:53:39.759Z",
+        "requestId": "e5827545-8f37-4775-8239-344512541726",
+        "checkedAt": "2026-10-13T08:00:08.020Z",
         "verdict": "as_expected"
       },
       {
@@ -165,7 +165,7 @@ const RECORDED = {
         "expected": "Anonymous list request is rejected with HTTP 401 or 403",
         "observed": "HTTP 401 UNAUTHORIZED",
         "requestId": "none",
-        "checkedAt": "2026-10-13T07:53:40.061Z",
+        "checkedAt": "2026-10-13T08:00:08.336Z",
         "verdict": "as_expected"
       },
       {
@@ -174,7 +174,7 @@ const RECORDED = {
         "expected": "Anonymous single-note request is rejected with HTTP 401 or 403",
         "observed": "HTTP 401 UNAUTHORIZED",
         "requestId": "none",
-        "checkedAt": "2026-10-13T07:53:40.269Z",
+        "checkedAt": "2026-10-13T08:00:08.549Z",
         "verdict": "as_expected"
       },
       {
@@ -183,7 +183,7 @@ const RECORDED = {
         "expected": "Anonymous announcement update is rejected with HTTP 401 or 403",
         "observed": "HTTP 401 UNAUTHORIZED",
         "requestId": "none",
-        "checkedAt": "2026-10-13T07:53:40.565Z",
+        "checkedAt": "2026-10-13T08:00:08.882Z",
         "verdict": "as_expected"
       },
       {
@@ -192,7 +192,7 @@ const RECORDED = {
         "expected": "Anonymous restore call is rejected with HTTP 401 or 403",
         "observed": "HTTP 401 UNAUTHORIZED",
         "requestId": "none",
-        "checkedAt": "2026-10-13T07:53:40.783Z",
+        "checkedAt": "2026-10-13T08:00:09.112Z",
         "verdict": "as_expected"
       },
       {
@@ -201,7 +201,7 @@ const RECORDED = {
         "expected": "The original table API rejects a request that carries no key: HTTP 401 or 403",
         "observed": "HTTP 401",
         "requestId": "none",
-        "checkedAt": "2026-10-13T07:53:42.106Z",
+        "checkedAt": "2026-10-13T08:00:10.458Z",
         "verdict": "as_expected"
       },
       {
@@ -209,8 +209,8 @@ const RECORDED = {
         "request": "cross read",
         "expected": "Account B reading account A note is rejected with HTTP 403",
         "observed": "HTTP 403 FORBIDDEN",
-        "requestId": "29fa33c5-a53b-41e1-a3d0-1692b1910a1b",
-        "checkedAt": "2026-10-13T07:53:45.122Z",
+        "requestId": "9ce2c5a6-d462-437f-9938-b147f4cee45d",
+        "checkedAt": "2026-10-13T08:00:14.717Z",
         "verdict": "as_expected"
       },
       {
@@ -218,17 +218,17 @@ const RECORDED = {
         "request": "non-instructor write",
         "expected": "A non-instructor announcement update is rejected with HTTP 403",
         "observed": "HTTP 403 INSTRUCTOR_REQUIRED",
-        "requestId": "ddecc12d-4546-4f81-93ac-500e9bee7646",
-        "checkedAt": "2026-10-13T07:53:49.481Z",
+        "requestId": "dadc6990-d146-43bf-a87c-bcdeb8b3e157",
+        "checkedAt": "2026-10-13T08:00:18.632Z",
         "verdict": "as_expected"
       },
       {
         "attackId": "s10_restore_other_users_note",
         "request": "other restore",
         "expected": "Account A restoring account B note is rejected with HTTP 403",
-        "observed": "HTTP 403 FORBIDDEN audit=#26",
-        "requestId": "cb6cfbf2-3cb2-40bd-b332-07f595e9e754",
-        "checkedAt": "2026-10-13T07:53:52.838Z",
+        "observed": "HTTP 403 FORBIDDEN audit=#28",
+        "requestId": "226fc8f2-4927-4e08-b368-151dd78db890",
+        "checkedAt": "2026-10-13T08:00:23.086Z",
         "verdict": "as_expected"
       },
       {
@@ -236,8 +236,8 @@ const RECORDED = {
         "request": "unsigned read",
         "expected": "A logged-in protected request without a device signature is rejected: HTTP 401 DEVICE_SIGNATURE_REQUIRED",
         "observed": "HTTP 401 DEVICE_SIGNATURE_REQUIRED",
-        "requestId": "af23ecee-cadf-4f3a-8173-8f69944a9106",
-        "checkedAt": "2026-10-13T07:53:55.024Z",
+        "requestId": "35496a83-3850-4ea9-b870-8cd299462d50",
+        "checkedAt": "2026-10-13T08:00:25.328Z",
         "verdict": "as_expected"
       },
       {
@@ -245,8 +245,8 @@ const RECORDED = {
         "request": "path changed",
         "expected": "A request signed for one note and sent to another path is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH",
         "observed": "HTTP 403 DEVICE_SIGNATURE_MISMATCH",
-        "requestId": "393b2f32-e61d-4b08-affb-1f4587803925",
-        "checkedAt": "2026-10-13T07:53:56.751Z",
+        "requestId": "3f38e3c2-7b2d-4356-a71d-407c6af763c3",
+        "checkedAt": "2026-10-13T08:00:28.290Z",
         "verdict": "as_expected"
       },
       {
@@ -254,8 +254,8 @@ const RECORDED = {
         "request": "body changed",
         "expected": "An update whose body changed after signing is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH",
         "observed": "HTTP 403 DEVICE_SIGNATURE_MISMATCH",
-        "requestId": "2115c556-e2c8-4201-bc2c-f04bd44b5552",
-        "checkedAt": "2026-10-13T07:53:58.309Z",
+        "requestId": "ffb2bf22-f959-4de2-9606-8d615d9416c2",
+        "checkedAt": "2026-10-13T08:00:30.799Z",
         "verdict": "as_expected"
       },
       {
@@ -263,8 +263,8 @@ const RECORDED = {
         "request": "unregistered device",
         "expected": "A signed request from a never-approved device is rejected (403 DEVICE_NOT_APPROVED); then a revoked identity is rejected (403 IDENTITY_REVOKED)",
         "observed": "HTTP 403 DEVICE_NOT_APPROVED",
-        "requestId": "58d9a8f9-57b0-4803-8956-d7647b032684",
-        "checkedAt": "2026-10-13T07:53:59.835Z",
+        "requestId": "d45fc45c-6ee4-455b-8be7-f4e4cf872c72",
+        "checkedAt": "2026-10-13T08:00:33.482Z",
         "verdict": "as_expected"
       },
       {
@@ -283,7 +283,7 @@ const RECORDED = {
         "expected": "Unregistered device is denied; unusual region, network and hour ask for extra verification (local practice)",
         "observed": "deny device_not_registered; step_up step_up_required",
         "requestId": "local",
-        "checkedAt": "2026-10-13T07:53:59.837Z",
+        "checkedAt": "2026-10-13T08:00:33.485Z",
         "verdict": "local_as_expected"
       },
       {
@@ -292,14 +292,14 @@ const RECORDED = {
         "expected": "121 reads in 10 minutes propose a revocation, 30 are only observed, and the access guard refuses a revoked identity (local practice)",
         "observed": "propose_revocation burst_read; observe; 403 IDENTITY_REVOKED",
         "requestId": "local",
-        "checkedAt": "2026-10-13T07:53:59.843Z",
+        "checkedAt": "2026-10-13T08:00:33.489Z",
         "verdict": "local_as_expected"
       }
     ]
   },
   "snapshot": {
-    "requestId": "22b192ee-32ca-4189-a625-0aeee9e07151",
-    "generatedAt": "2026-10-13T07:54:06.726Z"
+    "requestId": "dfd26d96-815c-4838-902e-43dcbca66da9",
+    "generatedAt": "2026-10-13T08:00:41.296Z"
   }
 };
 // </recorded-checks>
