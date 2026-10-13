@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { createLoginVerifier } from '../src/verify-login.mjs';
 import { ownerKeyOf } from '../src/owner-key.mjs';
 import { saveFirstBackup } from '../src/note-backup.mjs';
+import { auditField, recordNoteEvent } from '../src/note-audit.mjs';
 
 // 로컬 환경 실행 시 .env 자동 로드
 try {
@@ -131,7 +132,13 @@ export default async function handler(req, res) {
         supabaseUrl, serviceKey: supabaseKey, id: noteId, ownerId, title, content: noteBody, createdAt,
       });
 
-      return res.status(201).json({ id: noteId });
+      // 10단계: 생성도 감사 기록에 남깁니다(이미 만들어졌으므로 기록 실패가 생성을 되돌리지는 않습니다).
+      const audit = await recordNoteEvent({
+        supabaseUrl, serviceKey: supabaseKey, noteId, ownerId, mode: 'created',
+        before: null, after: { title, content: noteBody },
+      });
+
+      return res.status(201).json({ id: noteId, audit: auditField(audit) });
     } catch {
       return res.status(502).json({ error: 'DB_NETWORK_ERROR', message: 'DB 통신 오류가 발생했습니다.' });
     }

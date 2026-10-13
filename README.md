@@ -36,7 +36,10 @@ the live app yet, and a passing local test is not a judge result.
    (rows cannot be changed or deleted afterwards) and `secret_notes_restore_log`
    (append only).
    After 004, also run `supabase/migrations/005_restore_log_unchanged.sql` once so that
-   calls which change nothing can be recorded too.
+   calls which change nothing can be recorded too, and then
+   `supabase/migrations/006_note_audit_events.sql` **before deploying** the code that writes
+   create, edit and delete events. 006 keeps every existing audit row and only adds two
+   hash columns and the new event names.
 2. Every note created through `POST /api/notes` now also leaves its first version in the
    private backup automatically (once, never overwritten; a failed backup does not block
    the note). This means a restore returns a note to its **first saved version**, not to
@@ -57,7 +60,7 @@ the live app yet, and a passing local test is not a judge result.
 | Body | `{ "id": "<note UUID>" }` only. No query string, no owner or role in the body |
 | Login | Required. Only the owner of the backed-up note can restore it |
 | Checks | Backup row exists; its stored SHA-256 matches a fresh hash of its title and content; its owner equals the verified caller; an existing row with the same ID must have the same owner |
-| Audit | Before any change the call is written to the append-only `secret_notes_restore_log` (note ID, owner, mode, time). If that cannot be written, nothing is changed and the call fails with 502 `AUDIT_UNAVAILABLE`. A call that changes nothing is recorded as `unchanged`. The response carries `audit.seq` |
+| Audit | Before any change the call is written to the append-only `secret_notes_restore_log` (note ID, owner, mode, time, and the content hash before and after, so the overwritten version is evidenced). If that cannot be written, nothing is changed and the call fails with 502 `AUDIT_UNAVAILABLE`. A call that changes nothing is recorded as `unchanged`. The response carries `audit.seq` |
 | Writes | A tampered note is updated back; a deleted note is inserted again with the same ID and owner; nothing else is touched. The note is re-read and its ID, owner and hash are compared with the backup |
 | Response | ID, `restored`, `mode` (`updated`, `reinserted`, `unchanged`), the hash and `audit` (`recorded`, `seq`). Never the note text |
 | Refusals | 400 bad ID, 401 no login, 403 not your note, 404 no backup, 409 backup failed verification or owner conflict, 502 audit record could not be written |
@@ -85,7 +88,7 @@ places. Nothing below holds note titles, note text, tokens or keys.
 
 | # | Record | Where | What it holds | Written by |
 |---|---|---|---|---|
-| 1 | Database table | `secret_notes_restore_log` in Supabase (created by `supabase/migrations/004` and `005`) | note ID, owner, mode (`updated`, `reinserted`, `unchanged`), time. Append only; update and delete are blocked by a trigger | `src/restore-note.mjs`, before any change |
+| 1 | Database table | `secret_notes_restore_log` in Supabase (created by `supabase/migrations/004`, widened by `005` and `006`). It is the one trail for every change to a note | note ID, owner, event, time, and the SHA-256 of the content before and after (never the text). Events: `created`, `edited`, `deleted` (written by the notes API) and `updated`, `reinserted`, `unchanged` (written by the restore route). Append only; update and delete are blocked by a trigger | `api/notes.js`, `api/notes/[id].js` and `src/restore-note.mjs`, through `src/note-audit.mjs`, before the change (a creation is written right after it) |
 | 2 | Repository file | `audit/restore-audit.log`, one JSON line per event | time, action, policy version and hash, counts, whether anything was written | `scripts/policy-snapshot.mjs`, `policy-restore.mjs`, `backup-notes.mjs`, `backup-verify.mjs` |
 | 3 | Restore response | `audit` (`recorded`, `seq`) in the body of every `POST /api/restore/notes` | the number of the row in record 1 | `src/restore-note.mjs` |
 | 4 | Class engine record | held by the class operator, **not in this repository** | decisions the engine made | the provided ALEPH SDP engine |
@@ -151,7 +154,7 @@ $env:ALEPH_CHECK_NOTE_B  = '<B note UUID>'
 Order: tamper with or delete the B note, then run `npm run bundle` from a clean commit.
 The restore call runs first, then every other check, so the other checks happen after the
 data came back. Also run `npm run policy:diff`, `npm run decider:test`, `npm run detect:test`
-and `npm run test:restore`.
+`npm run test:restore` and `npm run test:audit`.
 
 ## Required database setup
 
@@ -167,6 +170,7 @@ npm run decider:test
 npm run fixture:7
 npm run detect:test
 npm run test:restore
+npm run test:audit
 npm run policy:diff
 npm run backup:verify -- --policy-only
 npm run build -- --local

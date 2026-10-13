@@ -1,4 +1,5 @@
 import { UUID, noteHash } from './note-backup.mjs';
+import { auditField, recordNoteEvent } from './note-audit.mjs';
 
 // 비공개 사본에서 지정한 메모 한 건만 되살립니다. 호출자는 이미 검증된 소유자 키(ownerId)만 넘깁니다.
 // 요청 본문의 소유자·역할은 받지 않고, 사본의 ID·소유자·내용 해시가 모두 맞을 때만 씁니다.
@@ -50,25 +51,16 @@ export async function restoreNote({ fetchImpl = fetch, supabaseUrl, serviceKey, 
     return deny(409, 'OWNER_CONFLICT', '현재 자료의 소유자가 사본과 달라 복구를 중단했습니다.');
   }
   // 감사 기록은 추가만 하는 표에 남기며, 자료를 바꾸기 전에 먼저 씁니다. 번호(seq)를 받으면 기록된 것입니다.
-  async function writeAudit(mode) {
-    try {
-      const log = await fetchImpl(`${supabaseUrl}/rest/v1/secret_notes_restore_log`, {
-        method: 'POST', headers: { ...headers, Prefer: 'return=representation' },
-        body: JSON.stringify({ note_id: id, owner_id: backup.owner_id, mode }),
-      });
-      if (!log.ok) return { recorded: false };
-      const rows = await log.json();
-      const seq = Array.isArray(rows) ? rows[0]?.seq : undefined;
-      return seq === undefined || seq === null ? { recorded: false } : { recorded: true, seq };
-    } catch {
-      return { recorded: false };
-    }
-  }
+  // 덮어쓰기 전(현재 값, 삭제됐으면 없음)과 복구 후(사본 값)의 내용 해시를 함께 남깁니다.
+  const writeAudit = (mode) => recordNoteEvent({
+    fetchImpl, supabaseUrl, serviceKey, noteId: id, ownerId: backup.owner_id, mode,
+    before: current ?? null, after: { title: backup.title, content: backup.content },
+  });
 
   if (current && noteHash(current.title, current.content) === backup.content_sha256.toLowerCase()) {
     // 바꿀 것이 없어도 호출 사실은 남깁니다. 기록에 실패해도 자료는 바뀌지 않았으므로 결과만 알립니다.
     const audit = await writeAudit('unchanged');
-    return { status: 200, body: { id, restored: false, mode: 'unchanged', contentSha256: backup.content_sha256, audit } };
+    return { status: 200, body: { id, restored: false, mode: 'unchanged', contentSha256: backup.content_sha256, audit: auditField(audit) } };
   }
 
   const mode = current ? 'updated' : 'reinserted';
@@ -101,5 +93,5 @@ export async function restoreNote({ fetchImpl = fetch, supabaseUrl, serviceKey, 
     return deny(502, 'DB_NETWORK_ERROR', '복구 중 통신 오류가 났습니다.');
   }
 
-  return { status: 200, body: { id, restored: true, mode, contentSha256: backup.content_sha256, audit } };
+  return { status: 200, body: { id, restored: true, mode, contentSha256: backup.content_sha256, audit: auditField(audit) } };
 }
