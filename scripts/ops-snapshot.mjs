@@ -38,17 +38,24 @@ try {
     return { status: response.status, requestId: response.headers.get('x-aleph-request-id'), data: await response.json().catch(() => ({})) };
   };
 
-  // 로그인: 토큰을 직접 주거나, 시험 계정 이메일·비밀번호로 서버 로그인
-  let token = process.env.ALEPH_CHECK_TOKEN_A;
+  // 로그인: 시험 계정 이메일·비밀번호로 새로 로그인하는 것을 먼저 쓰고, 없을 때만 셸의 토큰을 씁니다(만료됐으면 중단).
+  let token = null;
   let ownerId = null;
-  if (!token) {
-    const email = process.env.ALEPH_CHECK_EMAIL_A;
-    const password = process.env.ALEPH_CHECK_PASSWORD_A;
-    if (!email || !password) fail('셸에 ALEPH_CHECK_EMAIL_A, ALEPH_CHECK_PASSWORD_A(시험 계정 A)를 넣어 주세요.');
+  const email = process.env.ALEPH_CHECK_EMAIL_A;
+  const password = process.env.ALEPH_CHECK_PASSWORD_A;
+  if (email && password) {
     const login = await call('/api/session', { method: 'POST', body: { action: 'login', email, password } });
     if (login.status !== 200 || !login.data.accessToken) fail(`로그인 실패 HTTP ${login.status}`);
     token = login.data.accessToken;
     ownerId = login.data.user?.id ?? null;
+  } else {
+    token = process.env.ALEPH_CHECK_TOKEN_A;
+    if (!token) fail('셸에 ALEPH_CHECK_EMAIL_A, ALEPH_CHECK_PASSWORD_A(시험 계정 A)를 넣어 주세요.');
+    let exp = null;
+    try { exp = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')).exp; } catch { exp = null; }
+    if (Number.isSafeInteger(exp) && exp * 1000 <= Date.now() + 30_000) {
+      fail('ALEPH_CHECK_TOKEN_A 가 만료되었습니다. Remove-Item Env:ALEPH_CHECK_TOKEN_A 로 지우고 이메일·비밀번호를 넣어 주세요.');
+    }
   }
   if (!ownerId) {
     // 직접 받은 토큰이면 그 계정 번호(sub)로 서버 기록을 셉니다. 검증은 API가 이미 합니다.

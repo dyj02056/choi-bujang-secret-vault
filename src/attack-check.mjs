@@ -49,6 +49,15 @@ async function send(app, path, { method = 'GET', token, body, base, device, sign
 
 const describe = (r) => `HTTP ${r.status}${r.error ? ` ${r.error}` : ''}${r.deviceStatus ? ` device=${r.deviceStatus}` : ''}${r.mode ? ` mode=${r.mode}` : ''}${r.audit ? ` audit=${r.audit.recorded ? `#${r.audit.seq}` : 'missing'}` : ''}`;
 const denied = (status) => (r) => r.status === status;
+// Reads only the expiry time of a token from the shell, to avoid sending an expired one. Nothing else is trusted.
+function tokenExpiry(token) {
+  try {
+    const exp = JSON.parse(Buffer.from(String(token).split('.')[1], 'base64url').toString('utf8')).exp;
+    return Number.isSafeInteger(exp) ? exp : null;
+  } catch {
+    return null;
+  }
+}
 const rejected = (r) => r.status === 401 || r.status === 403;
 
 export async function runAttackChecks(config, { details = [] } = {}) {
@@ -105,19 +114,31 @@ export async function runAttackChecks(config, { details = [] } = {}) {
       [{ request: 'local virtual run', observed: parts.join('; '), requestId: 'local', checkedAt: at, verdict: ok ? 'local_as_expected' : 'needs_review' }]);
   };
 
-  // Login: fresh tokens from the shell, or a login through POST /api/session with the test accounts.
+  // Login: a fresh login through POST /api/session with the test accounts comes first; a token from the shell is used
+  // only when no login is given, and only while it has not expired (an expired token is reported, never sent).
   const env = process.env;
+  const tokenProblems = [];
   const loginFor = async (suffix) => {
-    if (env[`ALEPH_CHECK_TOKEN_${suffix}`]) return env[`ALEPH_CHECK_TOKEN_${suffix}`];
     const email = env[`ALEPH_CHECK_EMAIL_${suffix}`];
     const password = env[`ALEPH_CHECK_PASSWORD_${suffix}`];
-    if (!email || !password) return null;
-    try {
-      const r = await send(app, '/api/session', { method: 'POST', body: { action: 'login', email, password } });
-      return r.status === 200 && typeof r.accessToken === 'string' ? r.accessToken : null;
-    } catch {
+    if (email && password) {
+      try {
+        const r = await send(app, '/api/session', { method: 'POST', body: { action: 'login', email, password } });
+        if (r.status === 200 && typeof r.accessToken === 'string') return r.accessToken;
+        tokenProblems.push(`login ${suffix} failed (HTTP ${r.status})`);
+      } catch (error) {
+        tokenProblems.push(`login ${suffix} failed (${error.name})`);
+      }
       return null;
     }
+    const token = env[`ALEPH_CHECK_TOKEN_${suffix}`];
+    if (!token) return null;
+    const exp = tokenExpiry(token);
+    if (exp !== null && exp * 1000 <= Date.now() + 30_000) {
+      tokenProblems.push(`ALEPH_CHECK_TOKEN_${suffix} has expired`);
+      return null;
+    }
+    return token;
   };
   const tokenA = await loginFor('A');
   const tokenB = await loginFor('B');
@@ -125,7 +146,7 @@ export async function runAttackChecks(config, { details = [] } = {}) {
   const noteA = env.ALEPH_CHECK_NOTE_A;
   const noteB = env.ALEPH_CHECK_NOTE_B;
   const loginReady = Boolean(tokenA && tokenB) && UUID.test(noteA ?? '') && UUID.test(noteB ?? '');
-  const missing = 'set ALEPH_CHECK_NOTE_A/B and fresh tokens (ALEPH_CHECK_TOKEN_A/B) or ALEPH_CHECK_EMAIL_/PASSWORD_A/B for the test accounts.';
+  const missing = `${tokenProblems.length ? `${tokenProblems.join(', ')}. ` : ''}set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts.`;
   const restorePath = config.restoreRoute;
   const restoreUsable = typeof restorePath === 'string' && restorePath.startsWith('/api/');
 
