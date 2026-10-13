@@ -14,6 +14,26 @@
 
 학생이 되돌리기를 요청하면 `git status`와 `git diff`로 이번 단계 변경과 다른 변경을 구분하고, 사라질 내용을 먼저 보여 주세요. 다른 변경과 학습 DB 자료는 보존하세요. `git reset --hard`는 쓰지 마세요.
 
+## 감사 기록 위치 (10단계)
+
+10단계에서 메모를 만들고, 수정하고, 지우고, 복구한 기록은 데이터베이스(Supabase)에 쌓이고, 그 내용은 아래 파일에도 그대로 들어 있습니다. 데이터베이스를 직접 열지 않아도 이 파일들로 확인할 수 있습니다. 아래는 실제로 저장소에 있는 경로만 적었습니다.
+
+| 무엇 | 경로 | 내용 |
+|---|---|---|
+| 처음 볼 문서 | `audit/step10/INDEX.md` | 파일 목록과 시간순 사건표, 확인되지 않은 것 |
+| 메모 감사 기록(생성·수정·삭제·복구) | `audit/step10/db-audit-trail.jsonl` | 표 `secret_notes_restore_log`의 모든 줄. 한 줄에 사건 하나: `seq`, `noteId`, `owner`(가명), `mode`(`created`, `edited`, `deleted`, `updated`, `reinserted`, `unchanged`), 바뀌기 전·후 내용 해시, 시각 |
+| 메모 사본 정보 | `audit/step10/db-backups.jsonl` | 표 `secret_notes_backup`의 정보(메모 ID, `owner`, 내용 해시, 만든 시각). 제목과 본문은 없음 |
+| 한 시점의 전체 내보내기 | `audit/step10/export-<UTC 시각>.json` | 위 두 기록과 10단계 저장점 커밋, 그 시점 `bundle`의 직접 점검 15개 결과 |
+| 배포 이력 | `audit/step10/deployments.json` | 10단계 저장점의 Vercel 배포(배포 ID, 시각, 커밋, 상태) |
+| 로컬 절차 기록 | `audit/restore-audit.log` | 정책 사본 검증·복원, 메모 사본 생성·검증, 내보내기를 실행한 기록 |
+| 표를 만드는 SQL | `supabase/migrations/004_secret_notes_backup.sql`, `005_restore_log_unchanged.sql`, `006_note_audit_events.sql` | 사본 표, 감사 표, 추가 전용 트리거, 이벤트 이름과 해시 열 |
+| 기록을 남기는 코드 | `src/note-audit.mjs`, `src/restore-note.mjs`, `api/notes.js`, `api/notes/[id].js`, `api/restore/notes.js` | 생성·수정·삭제·복구 때 기록을 쓰는 곳 |
+
+- 위 `.jsonl` 파일은 `npm run audit:export`가 데이터베이스에서 새로 생긴 줄만 뒤에 이어 씁니다. 이미 있는 줄은 지우거나 고치지 않습니다.
+- 계정은 `owner_` 뒤 10자리 해시로만 적습니다. 메모 제목·본문, 토큰, 키는 어느 파일에도 없습니다.
+- 반 엔진(ALEPH SDP)의 기록은 운영 측이 가지고 있어서 이 저장소에 없습니다.
+- 이 기록이 심판이 확인하는 감사 기록인지는 확인하지 못했습니다. 심판이 이 저장소의 파일을 읽는지, 배포된 앱을 부르는지도 확인하지 못했습니다.
+
 ## 저장점 규칙
 
 저장점 요청을 받으면 README.md에 현재 작동하는 기능과 다시 실행하는 방법을 짧게 갱신하세요. `aleph.config.json`의 단계, 실제 배포 주소, 로그인 발급자 정보, 허용 경로, 5단계부터의 원본 API 주소를 구현과 대조하세요. `src/decider.mjs`의 `RULE_IDS`에는 실제로 구현한 규칙 이름만 남기세요.

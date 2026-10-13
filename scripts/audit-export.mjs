@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { appendAudit } from './audit-lib.mjs';
 
@@ -72,6 +72,22 @@ try {
   result.skipped = skipped;
   mkdirSync(outDir, { recursive: true });
   writeFileSync(outFile, `${JSON.stringify(result, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
+
+  // 이름이 고정된 추가 전용 사본: 이미 있는 줄은 그대로 두고, 새로 생긴 DB 줄만 뒤에 이어 씁니다.
+  const appendNew = (file, rows, idOf) => {
+    const path = resolve(outDir, file);
+    const known = new Set(existsSync(path)
+      ? readFileSync(path, 'utf8').split(/\r?\n/u).filter(Boolean).map((line) => String(idOf(JSON.parse(line)))) : []);
+    const fresh = rows.filter((row) => !known.has(String(idOf(row))));
+    if (fresh.length) appendFileSync(path, `${fresh.map((row) => JSON.stringify(row)).join('\n')}\n`, { encoding: 'utf8', flag: 'a' });
+    return { total: known.size + fresh.length, added: fresh.length };
+  };
+  if (result.sections.db) {
+    result.appended = {
+      auditTrail: appendNew('db-audit-trail.jsonl', result.sections.db.auditTrail, (row) => row.seq),
+      backups: appendNew('db-backups.jsonl', result.sections.db.backups, (row) => row.noteId),
+    };
+  }
   appendAudit('audit_exported', {
     result: skipped.length ? 'partial' : 'ok',
     created: result.sections.db?.auditTrail.length ?? 0,
@@ -80,6 +96,10 @@ try {
   process.stdout.write(`내보냄: audit/step10/${name}\n`
     + `  DB 감사 기록 ${result.sections.db?.auditTrail.length ?? '미실행'}줄 · 사본 정보 ${result.sections.db?.backups.length ?? '미실행'}건`
     + ` · 저장점 커밋 ${result.sections.git.length}건 · 직접 점검 ${result.sections.attackResults?.attempts.length ?? '미실행'}개\n`);
+  if (result.appended) {
+    process.stdout.write(`  db-audit-trail.jsonl: 모두 ${result.appended.auditTrail.total}줄 (이번에 추가 ${result.appended.auditTrail.added})`
+      + ` · db-backups.jsonl: 모두 ${result.appended.backups.total}줄 (이번에 추가 ${result.appended.backups.added})\n`);
+  }
   if (skipped.length) process.stdout.write(`  건너뜀: ${skipped.join(', ')}\n`);
 } catch (error) {
   process.stderr.write(`내보내기 첫 오류: ${error.message}\n`);

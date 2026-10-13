@@ -7,6 +7,8 @@
 
 | 파일 | 내용 | 만든 방법 |
 |---|---|---|
+| `db-audit-trail.jsonl` | DB 감사 기록의 모든 줄. 한 줄에 사건 하나이며, 새로 생긴 줄만 뒤에 이어 씀 (고정 이름) | `npm run audit:export` |
+| `db-backups.jsonl` | DB 메모 사본의 정보(메모 ID, 가명 소유자, 내용 해시, 시각). 제목·내용 없음. 새 줄만 이어 씀 (고정 이름) | `npm run audit:export` |
 | `export-<UTC 시각>.json` | DB 감사 기록 전체 줄(`db.auditTrail`), 메모 사본의 정보(`db.backups`), 10단계 저장점 커밋(`git`), 그 시점의 직접 점검 15개 결과(`attackResults`) | `npm run audit:export`가 DB와 깃과 `artifacts/submission.json`을 읽어서 만든 것 |
 | `deployments.json` | 10단계 저장점 6건의 Vercel 배포 이력(배포 ID, 시각, 커밋, 상태) | Vercel `list_deployments` 응답에서 옮겨 적은 것 |
 | `../restore-audit.log` | 로컬 절차(정책 사본 검증·복원 시험, 메모 사본 생성·검증, 내보내기)의 한 줄 기록 | 각 스크립트가 실행될 때 추가 |

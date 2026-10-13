@@ -101,6 +101,7 @@ time-ordered table of the events, and says what is not known.
 
 | File | What it is |
 |---|---|
+| `audit/step10/db-audit-trail.jsonl`, `audit/step10/db-backups.jsonl` | the database audit trail and the backup rows as append-only files with fixed names: one JSON line per event, only new lines are added by `npm run audit:export` |
 | `audit/step10/export-<UTC time>.json` | the whole database audit trail (record 1), the backup rows without any note text, the step 10 save-point commits and the 15 checks of the last `npm run bundle`. Made by `npm run audit:export` |
 | `audit/step10/deployments.json` | the Vercel deployments of the step 10 save points, copied as the Vercel API returned them |
 | `audit/restore-audit.log` | the one-line log of the local procedures |
