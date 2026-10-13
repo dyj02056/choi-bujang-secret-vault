@@ -543,6 +543,7 @@
       fillLines(opsDetect, [
         [data.detection.recentGetCount, `건: 최근 ${data.detection.windowMinutes}분 GET (회수 기준 ${data.detection.limit}건 초과)`],
         `최근 사건 최종 결과(HTTP 기준): ${counts(data.detection.outcomeCounts)}`,
+        'not_recorded = 서버에 결과 줄이 없는 사건(응답 뒤에 기록되는 이 요약 요청 자신 포함). 허용이나 다른 결과로 채우지 않습니다.',
       ]);
       fillLines(opsRevoke, [
         [data.revocation.revoked ? '회수됨' : '회수 안 됨', data.revocation.revoked ? `(${data.revocation.reason}, ${data.revocation.revokedAt})` : ''],

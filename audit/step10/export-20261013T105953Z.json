@@ -1,0 +1,416 @@
+{
+  "schema": "aleph.audit.export.v1",
+  "exportedAt": "2026-10-13T10:59:53.330Z",
+  "sections": {
+    "db": {
+      "auditTrail": [
+        {
+          "seq": 1,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "updated",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T04:32:36.443634+00:00"
+        },
+        {
+          "seq": 2,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "reinserted",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T04:33:23.230898+00:00"
+        },
+        {
+          "seq": 3,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T04:45:49.011555+00:00"
+        },
+        {
+          "seq": 4,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T04:56:29.636956+00:00"
+        },
+        {
+          "seq": 5,
+          "noteId": "bc0beb99-230e-4ef8-8f5b-a6787cb944d4",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "created",
+          "beforeSha256": null,
+          "afterSha256": "4911109bf61297490b173dc3ad536723a2fd8721ebf9172c5b9f9b2cdb3cabba",
+          "at": "2026-10-13T05:08:13.861614+00:00"
+        },
+        {
+          "seq": 6,
+          "noteId": "bc0beb99-230e-4ef8-8f5b-a6787cb944d4",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "edited",
+          "beforeSha256": "4911109bf61297490b173dc3ad536723a2fd8721ebf9172c5b9f9b2cdb3cabba",
+          "afterSha256": "d9d8d62784ecdb19186a6b4233bb335b05c6098c06c1ade487ceb7b9aefbdb21",
+          "at": "2026-10-13T05:08:22.180923+00:00"
+        },
+        {
+          "seq": 7,
+          "noteId": "bc0beb99-230e-4ef8-8f5b-a6787cb944d4",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "deleted",
+          "beforeSha256": "d9d8d62784ecdb19186a6b4233bb335b05c6098c06c1ade487ceb7b9aefbdb21",
+          "afterSha256": null,
+          "at": "2026-10-13T05:08:29.615985+00:00"
+        },
+        {
+          "seq": 8,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T05:09:07.927456+00:00"
+        },
+        {
+          "seq": 9,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:09:07.177188+00:00"
+        },
+        {
+          "seq": 10,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:09:23.278849+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 11,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:11:27.123178+00:00"
+        },
+        {
+          "seq": 12,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:11:44.885169+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 13,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:14:29.788968+00:00"
+        },
+        {
+          "seq": 14,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:14:49.271719+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 15,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:15:20.331823+00:00"
+        },
+        {
+          "seq": 16,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:15:37.68092+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 17,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:18:28.349641+00:00"
+        },
+        {
+          "seq": 18,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:18:45.189187+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 19,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:22:18.007302+00:00"
+        },
+        {
+          "seq": 20,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:22:35.989902+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 21,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:32:26.856396+00:00"
+        },
+        {
+          "seq": 22,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:32:47.201072+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 23,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:45:51.773914+00:00"
+        },
+        {
+          "seq": 24,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:46:19.450763+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 25,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:53:27.560518+00:00"
+        },
+        {
+          "seq": 26,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:53:52.864835+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 27,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:59:55.287918+00:00"
+        },
+        {
+          "seq": 28,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T08:00:22.660279+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 29,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T08:10:14.059599+00:00"
+        },
+        {
+          "seq": 30,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T08:10:39.419376+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 31,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T10:44:55.720155+00:00"
+        },
+        {
+          "seq": 32,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T10:45:24.20717+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 33,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T10:58:53.131843+00:00"
+        },
+        {
+          "seq": 34,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T10:59:17.244356+00:00",
+          "reason": "not_owner"
+        }
+      ],
+      "backups": [
+        {
+          "noteId": "1eb28129-6f8f-4bd6-ad83-54152be6101a",
+          "owner": "owner_49c3b2ec3c",
+          "contentSha256": "97e1f16487c1b42bc9a4fe9e46394e7b9ec6d0fa1de7ee116c895291c1196e53",
+          "createdAt": null,
+          "backedUpAt": "2026-10-13T04:20:12.010751+00:00"
+        },
+        {
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "contentSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "createdAt": null,
+          "backedUpAt": "2026-10-13T04:22:54.801909+00:00"
+        },
+        {
+          "noteId": "bc0beb99-230e-4ef8-8f5b-a6787cb944d4",
+          "owner": "owner_8fc8b4a44f",
+          "contentSha256": "4911109bf61297490b173dc3ad536723a2fd8721ebf9172c5b9f9b2cdb3cabba",
+          "createdAt": "2026-10-13T05:08:13.334+00:00",
+          "backedUpAt": "2026-10-13T05:08:13.685846+00:00"
+        }
+      ],
+      "summary": {
+        "auditRows": 34,
+        "byMode": {
+          "updated": 1,
+          "reinserted": 1,
+          "unchanged": 16,
+          "created": 1,
+          "edited": 1,
+          "deleted": 1,
+          "refused": 13
+        },
+        "seqIncreasing": true,
+        "backupRows": 3
+      }
+    },
+    "git": [
+      {
+        "commit": "fe8bb341b395ca426354e97c045b57f1b2ce5a36",
+        "at": "2026-10-13T14:37:59+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "60c9f7fed7aa574c4b7c812b4134a18c4b91dd6c",
+        "at": "2026-10-13T14:26:00+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "6e9248178b765c497f76576063a506284571bb4a",
+        "at": "2026-10-13T14:17:11+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "ca0498439c791d4e72c5109c9bf1317890e3674b",
+        "at": "2026-10-13T14:06:07+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "a5742b3d7da2cce9921fa4d1b152d3651da04ad0",
+        "at": "2026-10-13T13:55:16+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "edefe47d9357fc86ca639c28307517d404dd81c7",
+        "at": "2026-10-13T13:44:55+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "6e4e151c16c4ba9523186d1468fa08c3eb5f88a8",
+        "at": "2026-10-13T13:37:02+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "399280bf2c2e40d5ecfa0e0316f85ddab8881627",
+        "at": "2026-10-13T13:19:02+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "cd488c3915ce9052205cc7925b3d7f5604efd3a1",
+        "at": "2026-10-13T13:13:41+09:00",
+        "subject": "「10단계 저장점」"
+      }
+    ]
+  },
+  "skipped": [
+    "attackResults (12단계부터는 audit/step12/ 점검표가 원본)"
+  ]
+}

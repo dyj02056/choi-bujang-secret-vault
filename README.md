@@ -71,7 +71,8 @@ The event's `outcome` is only the gate's decision (`gate_passed` means the gate 
 answered 200). The handler can still refuse (for example 403 `FORBIDDEN` for another user's note), so just before
 the response is sent the server writes the final HTTP status to `access_results` (migration `010`). The operations
 room shows that final result (`allowed` only for 2xx/3xx, otherwise the error code); an event without a result row is
-shown as `not_recorded`, never as allowed, and the summary request itself as `this_request`.
+shown as `not_recorded`, never as allowed. The summary request itself has no result row yet when it answers, so it is
+`not_recorded` too; no other label is computed for it.
 
 | Sequence | Result |
 |---|---|
@@ -93,10 +94,10 @@ reason. The operator's 41 judge tests are **not run** by this procedure and are 
 
 | 기록 | 파일 | 결과 |
 |---|---|---|
-| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `989a830f-8fae-4489-8086-ceda35dbb51f`, 서버 시각 2026-10-13T10:45:44.198Z |
-| 같은 시점의 가린 서버 원본 줄 | `audit/step12/ops-snapshot-20261013T104558Z.json` (`maskedRecords`) | 계정 `owner_49c3b2ec3c`: 접근 사건 20줄, 그 사건의 최종 결과 19줄(`access_results`, 요약 요청 자신은 응답 뒤 기록이라 제외), 10분 GET 6줄, 감사 기록 12줄, 기기 23줄, 사본 1줄. 최종 결과: allowed 6, forbidden 2, instructor_required 2, device_signature_mismatch 4, device_signature_required 2, device_not_approved 3, 요약 요청 자신 1(this_request). 결과 줄이 없는 사건은 허용으로 채우지 않고 not_recorded 로 둡니다(이번 20줄에는 없음). 대조 6항목 모두 일치 |
+| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `ae785779-a383-466a-8854-4ea18548de2b`, 서버 시각 2026-10-13T10:59:38.632Z |
+| 같은 시점의 가린 서버 원본 줄 | `audit/step12/ops-snapshot-20261013T105953Z.json` (`maskedRecords`) | 계정 `owner_49c3b2ec3c`: 접근 사건 20줄, 그 사건의 최종 결과 19줄(`access_results`, 요약 요청 자신은 응답 뒤 기록이라 아직 없음), 10분 GET 6줄, 감사 기록 13줄, 기기 25줄, 사본 1줄. 최종 결과: allowed 7, forbidden 2, instructor_required 2, device_signature_mismatch 4, device_signature_required 2, device_not_approved 2, not_recorded 1(결과 줄이 없는 요약 요청 자신, 허용이나 다른 이름으로 채우지 않음). 대조 6항목 모두 일치 |
 | 전체 계정의 가린 감사 기록 | `audit/step10/db-audit-trail.jsonl` | 같은 시점까지 이어 씀 (위 계정 줄은 `owner` 가 `owner_49c3b2ec3c` 인 줄) |
-| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T104551Z.md` | 학생 자기 점검 20건 / 요청 24행: as_expected 22, not_run 2(회수된 시험 계정 C 요청은 보내지 않음, 6·7·9단계 규칙은 로컬 연습뿐이라 요청 없음). 익명 401 에도 요청 ID 가 붙음. `s12_ops_room_live_summary`: 작전실 API 가 이 실행에서 A 가 보낸 요청 7건을 모두 같은 HTTP 상태로 보여 줌. 검사한 커밋 `a15cce6`, 작업 트리 변경 있음(앞선 10:37 실행 `checks-20261013T103709Z`가 남긴 커밋 전 파일; 그 실행은 시험 계정 값이 없어 not_run 14) |
+| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T105944Z.md` | 학생 자기 점검 20건 / 요청 24행: as_expected 22, not_run 2(회수된 시험 계정 C 요청은 보내지 않음, 6·7·9단계 규칙은 로컬 연습뿐이라 요청 없음). 익명 401 에도 요청 ID 가 붙음. `s12_ops_room_live_summary`: 작전실 API 가 이 실행에서 A 가 보낸 요청 7건을 모두 같은 HTTP 상태로 보여 줌. 검사한 커밋 `ea2bf6b`, 깨끗한 작업 트리 |
 | 운영 심판 41종 시험 | — | **미실행** (이 저장소에서 실행하지 않음, 통과로 표시하지 않음) |
 
 작전실 화면의 "화면 값과 가린 서버 기록 대조" 표는 위 두 기록의 같은 항목 값을 그대로 나란히 보여 줍니다.
