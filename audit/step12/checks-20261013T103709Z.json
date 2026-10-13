@@ -1,0 +1,270 @@
+{
+  "schema": "aleph.ops.checks.v1",
+  "commit": "5c4bada7354350b99b04d711420c3d315c92b4e5",
+  "workingTreeClean": false,
+  "step": 12,
+  "app": "https://choi-bujang-secret-vault-tau.vercel.app/",
+  "startedAt": "2026-10-13T10:37:03.782Z",
+  "finishedAt": "2026-10-13T10:37:09.254Z",
+  "selfChecks": {
+    "checks": 20,
+    "requests": 21,
+    "verdicts": {
+      "not_run": 14,
+      "as_expected": 7
+    }
+  },
+  "judgeTests": {
+    "total": 41,
+    "run": 0,
+    "status": "not_run",
+    "note": "운영 심판의 41종 시험은 이 절차에서 실행하지 않았습니다. 결과가 없으므로 통과로 표시하지 않습니다."
+  },
+  "rows": [
+    {
+      "attackId": "s11_device_approval",
+      "step": "11",
+      "kind": "normal",
+      "request": "-",
+      "expected": "A virtual passkey that signs its own registration, with a recent login, is approved: HTTP 200, device=approved",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s10_restore_own_note",
+      "step": "10",
+      "kind": "normal",
+      "request": "-",
+      "expected": "Account B restores its own note: HTTP 200, mode updated/reinserted/unchanged, and an audit record number",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s12_after_restore_unsigned_write_and_out_of_zone",
+      "step": "12 (10+11+8)",
+      "kind": "forbidden",
+      "request": "-",
+      "expected": "After the restore: B unsigned update of its own note is rejected (401 DEVICE_SIGNATURE_REQUIRED), then B signed read of A note is rejected (403)",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s1_public_page_normal",
+      "step": "1",
+      "kind": "normal",
+      "request": "public page",
+      "expected": "The public page still opens: HTTP 200",
+      "observed": "HTTP 200",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T10:37:04.443Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s8_own_note_read_after_restore",
+      "step": "8",
+      "kind": "normal",
+      "request": "-",
+      "expected": "Account A reads its own note: HTTP 200",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s12_anonymous_then_cross_read",
+      "step": "12 (1-4+8)",
+      "kind": "forbidden",
+      "request": "anonymous read",
+      "expected": "Back to back: anonymous read of A note is rejected (401), then B signed read of the same A note is rejected (403)",
+      "observed": "HTTP 401 UNAUTHORIZED",
+      "requestId": "a27ec771-7225-47bc-94ef-3051e9b32ecf",
+      "checkedAt": "2026-10-13T10:37:05.292Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s12_anonymous_then_cross_read",
+      "step": "12 (1-4+8)",
+      "kind": "forbidden",
+      "request": "cross read",
+      "expected": "Back to back: anonymous read of A note is rejected (401), then B signed read of the same A note is rejected (403)",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s1_anonymous_notes_list",
+      "step": "1",
+      "kind": "forbidden",
+      "request": "anonymous list",
+      "expected": "Anonymous list request is rejected with HTTP 401 or 403",
+      "observed": "HTTP 401 UNAUTHORIZED",
+      "requestId": "7ac9f346-b4e7-4d21-8f2a-e07766179276",
+      "checkedAt": "2026-10-13T10:37:06.633Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s2_4_anonymous_note_by_id",
+      "step": "2-4",
+      "kind": "forbidden",
+      "request": "anonymous note",
+      "expected": "Anonymous single-note request is rejected with HTTP 401 or 403",
+      "observed": "HTTP 401 UNAUTHORIZED",
+      "requestId": "ad6f9a36-8172-4d66-a1bd-82722b2f1a21",
+      "checkedAt": "2026-10-13T10:37:07.083Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s8_anonymous_announcement_write",
+      "step": "8",
+      "kind": "forbidden",
+      "request": "anonymous announcement write",
+      "expected": "Anonymous announcement update is rejected with HTTP 401 or 403",
+      "observed": "HTTP 401 UNAUTHORIZED",
+      "requestId": "f30baa6f-0762-42a7-a456-1bf229405272",
+      "checkedAt": "2026-10-13T10:37:07.979Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s10_anonymous_restore_call",
+      "step": "10",
+      "kind": "forbidden",
+      "request": "anonymous restore",
+      "expected": "Anonymous restore call is rejected with HTTP 401 or 403",
+      "observed": "HTTP 401 UNAUTHORIZED",
+      "requestId": "920f1ecd-067c-4235-82b7-c1407a271564",
+      "checkedAt": "2026-10-13T10:37:08.953Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s5_original_api_without_key",
+      "step": "5",
+      "kind": "forbidden",
+      "request": "original API",
+      "expected": "The original table API rejects a request that carries no key: HTTP 401 or 403",
+      "observed": "HTTP 401",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T10:37:09.254Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s8_cross_zone_note_read",
+      "step": "8",
+      "kind": "forbidden",
+      "request": "-",
+      "expected": "Account B reading account A note is rejected with HTTP 403",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s8_announcement_write_non_instructor",
+      "step": "8",
+      "kind": "forbidden",
+      "request": "-",
+      "expected": "A non-instructor announcement update is rejected with HTTP 403",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s10_restore_other_users_note",
+      "step": "10",
+      "kind": "forbidden",
+      "request": "-",
+      "expected": "Account A restoring account B note is rejected with HTTP 403",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s11_unsigned_protected_request",
+      "step": "11",
+      "kind": "forbidden",
+      "request": "-",
+      "expected": "A logged-in protected request without a device signature is rejected: HTTP 401 DEVICE_SIGNATURE_REQUIRED",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s11_signed_path_changed",
+      "step": "11",
+      "kind": "forbidden",
+      "request": "-",
+      "expected": "A request signed for one note and sent to another path is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s11_signed_body_changed",
+      "step": "11",
+      "kind": "forbidden",
+      "request": "-",
+      "expected": "An update whose body changed after signing is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s12_unregistered_device_then_revoked_identity",
+      "step": "12 (6+9+11)",
+      "kind": "forbidden",
+      "request": "-",
+      "expected": "A signed request from a never-approved device is rejected (403 DEVICE_NOT_APPROVED); then a revoked identity is rejected (403 IDENTITY_REVOKED)",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s12_ops_room_live_summary",
+      "step": "12",
+      "kind": "normal",
+      "request": "-",
+      "expected": "The operations room API answers 200 to approved device A and shows each of A's requests from this run with the same final HTTP status",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts."
+    },
+    {
+      "attackId": "s6_s9_rules_local_practice",
+      "step": "6-7, 9",
+      "kind": "forbidden",
+      "request": "-",
+      "expected": "Decider (unregistered device, step-up) and detector (burst read) rules on virtual requests",
+      "observed": "not run",
+      "requestId": "none",
+      "checkedAt": null,
+      "verdict": "not_run",
+      "notRunReason": "no HTTP request is sent for this check in npm run bundle; local practice only (npm run decider:test, npm run detect:test), not an API result"
+    }
+  ]
+}

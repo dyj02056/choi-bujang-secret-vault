@@ -81,8 +81,8 @@ shown as `not_recorded`, never as allowed, and the summary request itself as `th
 
 ### The 1–11 check table
 
-`npm run ops:record` runs `ops:checks` and then `ops:snapshot`. `npm run ops:checks` sends the normal and forbidden requests of steps 1–11 (the same 20 checks as
-`npm run bundle`) and writes one row per request: step, normal/forbidden, expected result, observed API result,
+`npm run ops:record` runs `ops:checks` and then `ops:snapshot`. `npm run ops:checks` sends the normal and forbidden requests of steps 1–11 (the same 20 check IDs as
+`npm run bundle`, including the write requests that `npm run bundle` never sends) and writes one row per request: step, normal/forbidden, expected result, observed API result,
 server request ID and check time. Output: `audit/step12/checks-<UTC>.json` and `.md` (never overwritten) and
 `public/ops-checks.json`, which the operations room shows. A check that could not be sent is `not_run` with its
 reason. The operator's 41 judge tests are **not run** by this procedure and are shown as not run, never as passed.
@@ -93,10 +93,10 @@ reason. The operator's 41 judge tests are **not run** by this procedure and are 
 
 | 기록 | 파일 | 결과 |
 |---|---|---|
-| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `d9947fbb-c97e-4f13-84b3-a85492b6dfe6`, 서버 시각 2026-10-13T08:10:59.274Z |
-| 같은 시점의 가린 서버 원본 줄 | `audit/step12/ops-snapshot-20261013T081101Z.json` (`maskedRecords`) | 계정 `owner_49c3b2ec3c`: 접근 사건 20줄, 그 사건의 최종 결과 19줄(`access_results`, 요약 요청 자신은 응답 뒤 기록이라 제외), 10분 GET 6줄, 감사 기록 11줄, 기기 21줄, 사본 1줄. 최종 결과: allowed 5, forbidden 2, instructor_required 2, device_signature_mismatch 5, device_signature_required 2, device_not_approved 3, 요약 요청 자신 1(this_request). 결과 줄이 없는 사건은 허용으로 채우지 않고 not_recorded 로 둡니다(이번 20줄에는 없음). 대조 6항목 모두 일치 |
+| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `989a830f-8fae-4489-8086-ceda35dbb51f`, 서버 시각 2026-10-13T10:45:44.198Z |
+| 같은 시점의 가린 서버 원본 줄 | `audit/step12/ops-snapshot-20261013T104558Z.json` (`maskedRecords`) | 계정 `owner_49c3b2ec3c`: 접근 사건 20줄, 그 사건의 최종 결과 19줄(`access_results`, 요약 요청 자신은 응답 뒤 기록이라 제외), 10분 GET 6줄, 감사 기록 12줄, 기기 23줄, 사본 1줄. 최종 결과: allowed 6, forbidden 2, instructor_required 2, device_signature_mismatch 4, device_signature_required 2, device_not_approved 3, 요약 요청 자신 1(this_request). 결과 줄이 없는 사건은 허용으로 채우지 않고 not_recorded 로 둡니다(이번 20줄에는 없음). 대조 6항목 모두 일치 |
 | 전체 계정의 가린 감사 기록 | `audit/step10/db-audit-trail.jsonl` | 같은 시점까지 이어 씀 (위 계정 줄은 `owner` 가 `owner_49c3b2ec3c` 인 줄) |
-| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T081053Z.md` | 학생 자기 점검 20건 / 요청 24행: as_expected 22, not_run 2(회수된 시험 계정 C 요청은 보내지 않음, 6·7·9단계 규칙은 로컬 연습뿐이라 요청 없음). 익명 401 에도 요청 ID 가 붙음. `s12_ops_room_live_summary`: 작전실 API 가 이 실행에서 A 가 보낸 요청 7건을 모두 같은 HTTP 상태로 보여 줌. 검사한 커밋 `4b1a215`, 깨끗한 작업 트리 |
+| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T104551Z.md` | 학생 자기 점검 20건 / 요청 24행: as_expected 22, not_run 2(회수된 시험 계정 C 요청은 보내지 않음, 6·7·9단계 규칙은 로컬 연습뿐이라 요청 없음). 익명 401 에도 요청 ID 가 붙음. `s12_ops_room_live_summary`: 작전실 API 가 이 실행에서 A 가 보낸 요청 7건을 모두 같은 HTTP 상태로 보여 줌. 검사한 커밋 `a15cce6`, 작업 트리 변경 있음(앞선 10:37 실행 `checks-20261013T103709Z`가 남긴 커밋 전 파일; 그 실행은 시험 계정 값이 없어 not_run 14) |
 | 운영 심판 41종 시험 | — | **미실행** (이 저장소에서 실행하지 않음, 통과로 표시하지 않음) |
 
 작전실 화면의 "화면 값과 가린 서버 기록 대조" 표는 위 두 기록의 같은 항목 값을 그대로 나란히 보여 줍니다.
@@ -109,6 +109,10 @@ reason. The operator's 41 judge tests are **not run** by this procedure and are 
 순서: `npm run ops:record`가 점검표 요청을 먼저 보내고 바로 이어 작전실 실측을 받습니다. 그 기록을 커밋한 뒤 심판을 돌립니다.
 `npm run bundle`(심판도 자기 실행기에서 다시 돌림)은 **그 실행에서 실제로 요청을 보내고** 그 결과만 적습니다. 그 실행에서 보내지 않은 점검은
 예전 실측이 있어도 결과로 옮기지 않고 `not_run: <이유>`로 적습니다(예: 시험 계정 로그인이 없는 환경에서는 로그인이 필요한 점검이 모두 `not_run`).
+제출 묶음은 **읽기 요청(GET·HEAD)만** 보냅니다. 로그인(`POST /api/session`), 기기 승인(`POST /api/devices`), 복구, 메모·공지 수정처럼 쓰기 요청이 필요한 점검과
+기기 승인이 있어야 하는 서명 요청 점검은 시험 계정 값이 있어도 보내지 않고 `not_run`으로 적습니다. 쓰기 점검은 로컬 점검표(`npm run ops:checks`,
+`runAttackChecks(config, { allowWrites: true })`)에서만 보냅니다. 셸에 아직 만료되지 않은 `ALEPH_CHECK_TOKEN_A`와 `ALEPH_CHECK_NOTE_A`가 있으면
+서명 없는 GET 점검(`s11_unsigned_protected_request`) 하나는 제출 묶음에서도 보냅니다.
 요청마다 머리글 `x-aleph-attack-id`에 점검 ID를 붙이고, API 는 로그인 전 거절(401)에도 요청 ID(`x-aleph-request-id`)를 돌려줍니다.
 로그인이 있으면 마지막 점검 `s12_ops_room_live_summary`가 작전실 API 를 실제로 불러, 그 실행에서 A 가 보낸 요청이 같은 HTTP 상태로 화면에 보이는지 대조합니다.
 로그인 없는 요청(익명 401)은 계정이 없어 작전실 기록에 들어가지 않으므로, 로그인 없이 돌린 제출 묶음은 커밋된 작전실 실측의 서버 기록을 바꾸지 않습니다.
@@ -293,7 +297,8 @@ records are not touched.
 
 ### Run after a restore (steps 1 to 9)
 
-This README does not contain results. `npm run bundle` runs `src/attack-check.mjs`, which first gets one
+This README does not contain results. `npm run bundle` sends only GET/HEAD requests: every row below that needs a write request
+or an approved device is written as `not_run` there. `npm run ops:checks` runs `src/attack-check.mjs` with writes allowed, which first gets one
 virtual passkey authenticator approved per test account (`s11_device_approval`; its key exists only in that process), signs every
 login request with it, and sends the requests below after the restore and writes only what really happened into the
 submission (`attackAttempts`: expected, observed with HTTP status and time). A request
@@ -338,7 +343,7 @@ $env:ALEPH_CHECK_EMAIL_A = '<test account A email>'; $env:ALEPH_CHECK_PASSWORD_A
 $env:ALEPH_CHECK_EMAIL_B = '<test account B email>'; $env:ALEPH_CHECK_PASSWORD_B = '<test account B password>'
 ```
 
-Order: tamper with or delete the B note, then run `npm run bundle` from a clean commit.
+Order: tamper with or delete the B note, run `npm run ops:record`, commit its records, then run `npm run bundle` from that clean commit.
 The restore call runs first, then every other check, so the other checks happen after the
 data came back. Also run `npm run policy:diff`, `npm run decider:test`, `npm run detect:test`
 `npm run test:restore` and `npm run test:audit`.
