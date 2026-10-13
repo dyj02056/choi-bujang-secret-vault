@@ -14,7 +14,7 @@ export function createVirtualDevice({ origin }) {
 
   // 등록 요청 본문: 공개키(SPKI)와 자격 ID. 개인키는 담지 않습니다.
   const registration = () => ({
-    credentialId, publicKey: publicKey.export({ format: 'der', type: 'spki' }).toString('base64url'),
+    credentialId, spki: publicKey.export({ format: 'der', type: 'spki' }).toString('base64url'),
   });
 
   // body 는 보낼 값(객체) 그대로 받습니다. 서명할 본문 문자열은 JSON.stringify(body) 입니다.

@@ -31,6 +31,11 @@ The page is now an installable app, **BYTE BACK 접속 앱** (`public/manifest.w
 Offline, the app shows a notice and never shows or stores notes; the service worker caches only the offline page,
 icon and manifest, never `/api/` responses.
 
+The screen keeps no key values and uses no browser storage: login and sign-up go through `POST /api/session`
+on the server, which returns only a short-lived access token that the page keeps in memory (no refresh token, no
+Supabase URL or key, no supabase-js in the page). `/api/auth-config` no longer returns any key. A reload therefore
+asks for login again.
+
 After login the app shows the **device approval** screen first. Notes stay hidden until the server approves
 this device:
 

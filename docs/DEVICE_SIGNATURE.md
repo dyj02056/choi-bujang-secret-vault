@@ -67,7 +67,7 @@ clientData 의 `type`이 `webauthn.get`, `challenge`가 다시 만든 값, `orig
 ## 기기 승인 (`POST /api/devices`, `src/device-approval.mjs`)
 
 - 앱이 `navigator.credentials.create`로 이 기기에 패스키를 만들고, 본문
-  `{ "credentialId": <base64url>, "publicKey": <SPKI 공개키 base64url>, "label"?: 문자열 }`을 보냅니다.
+  `{ "credentialId": <base64url>, "spki": <SPKI 공개키 base64url>, "label"?: 문자열 }`을 보냅니다.
   P-256 공개키가 아니면 400.
 - 이 등록 요청 자체를 **그 패스키로** 위 방식대로 서명해야 합니다. 다른 패스키의 서명이면 403 `DEVICE_SIGNATURE_MISMATCH`.
 - 서버는 로그인 토큰의 실제 로그인 시각이 **최근 10분 안**일 때만 `approved`로 정합니다

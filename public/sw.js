@@ -1,5 +1,5 @@
 // BYTE BACK 접속 앱 서비스 워커. 앱 껍데기(오프라인 안내, 아이콘, 앱 정보)만 저장합니다.
-// /api/ 요청과 자료(메모·공지)는 가로채지도 저장하지도 않습니다. 기기 키도 다루지 않습니다.
+// /api/ 요청과 자료(메모·공지), 로그인 정보는 가로채지도 저장하지도 않습니다.
 const CACHE = 'byteback-shell-v1';
 const SHELL = ['/offline.html', '/manifest.webmanifest', '/icon.svg'];
 

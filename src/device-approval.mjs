@@ -59,7 +59,7 @@ export async function handleDevices({ req, verified, fetchImpl = fetch, supabase
   if (req.method !== 'POST') return { status: 405, body: { error: 'METHOD_NOT_ALLOWED', message: '지원하지 않는 메서드입니다.' } };
 
   const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
-  const publicKey = publicJwkFromSpki(body.publicKey);
+  const publicKey = publicJwkFromSpki(body.spki);
   const deviceId = deviceIdOfCredential(body.credentialId);
   const label = typeof body.label === 'string' ? body.label.trim().slice(0, 40) || null : null;
   if (!publicKey || !deviceId) {

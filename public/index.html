@@ -47,7 +47,6 @@
     .status-row code { color: #ecf4ff; }
     [hidden] { display: none !important; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <main>
@@ -95,7 +94,8 @@
       </div>
       <p style="font-size:14px; margin:0 0 12px;">
         보호 요청은 이 기기의 패스키(Windows Hello, Touch ID, 휴대폰 화면 잠금 등)로 서명합니다.
-        서명 키는 운영체제 인증기 안에만 있고, 이 화면·브라우저 저장소·서버에는 없습니다.
+        서명은 운영체제 인증기가 만들고, 이 화면은 그 결과만 요청에 붙입니다. 로그인 정보도 브라우저 저장소에 남기지 않으므로
+        새로고침하면 다시 로그인합니다.
         승인은 서버가 <strong>최근 10분 안의 실제 로그인</strong>과 그 패스키의 서명을 확인한 뒤에만 정하며,
         승인 전에는 자료를 받지도 표시하지도 않습니다. 요청할 때마다 인증기 확인 창이 뜹니다.
       </p>
@@ -137,7 +137,8 @@
   </main>
 
   <script type="module">
-    let supabase = null;
+    // 로그인 상태는 이 화면의 메모리에만 둡니다(브라우저 저장소를 쓰지 않음). 새로고침하면 다시 로그인합니다.
+    const auth = { token: null, email: null, userId: null };
 
     // DOM 요소
     const loginForm = document.getElementById('login-form');
@@ -188,10 +189,9 @@
       installCard.hidden = true;
     });
 
-    // ── 기기 서명: 이 기기의 운영체제 인증기(패스키)가 서명합니다. ──
-    // 이 화면은 기기 키를 만들거나 받거나 저장하지 않습니다. 인증기가 돌려준 서명 결과만 요청에 붙여 보냅니다.
+    // ── 기기 서명: 이 기기의 운영체제 인증기(패스키)가 서명하고, 화면은 서명 결과만 요청에 붙입니다. ──
     const passkeySupported = Boolean(window.PublicKeyCredential && navigator.credentials);
-    const session = { approved: false, passkeyId: null, registration: null }; // passkeyId: 어떤 패스키를 쓸지 고르는 식별자(키 아님)
+    const session = { approved: false, credential: null, registration: null }; // credential: 어떤 패스키로 서명할지 고르는 자격 ID
     const encoder = new TextEncoder();
     const hex = (buffer) => [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
     const sha256Hex = async (data) => hex(await crypto.subtle.digest('SHA-256', typeof data === 'string' ? encoder.encode(data) : data));
@@ -207,7 +207,7 @@
     }
 
     function forgetDevice() {
-      session.passkeyId = null;
+      session.credential = null;
       session.registration = null;
       setApproved(false, '확인 전');
     }
@@ -232,11 +232,11 @@
           rpId: location.hostname,
           userVerification: 'preferred',
           timeout: 60000,
-          allowCredentials: session.passkeyId ? [{ type: 'public-key', id: session.passkeyId }] : [],
+          allowCredentials: session.credential ? [{ type: 'public-key', id: session.credential }] : [],
         },
       });
       if (!assertion) throw new Error('기기 서명이 취소되었습니다.');
-      session.passkeyId = assertion.rawId;
+      session.credential = assertion.rawId;
       const headers = {
         'x-aleph-device': (await sha256Hex(assertion.rawId)).slice(0, 16),
         'x-aleph-timestamp': timestamp,
@@ -280,8 +280,7 @@
       if (!passkeySupported) return showResult('warn', '이 브라우저는 패스키를 지원하지 않아 기기를 승인할 수 없습니다.');
       if (!navigator.onLine) return showResult('warn', '오프라인에서는 승인을 요청할 수 없습니다.');
       try {
-        const { data: { session: auth } } = await supabase.auth.getSession();
-        const name = auth?.user?.email || 'BYTE BACK';
+        const name = auth.email || 'BYTE BACK';
         setApproved(false, '요청 중');
         const created = await navigator.credentials.create({
           publicKey: {
@@ -296,8 +295,8 @@
         });
         const spki = created?.response?.getPublicKey?.();
         if (!spki || created.response.getPublicKeyAlgorithm?.() !== -7) throw new Error('이 인증기는 지원하는 서명 방식(ES256)을 쓰지 않습니다.');
-        session.passkeyId = created.rawId;
-        session.registration = { credentialId: base64url(created.rawId), publicKey: base64url(spki), label: '접속 앱' };
+        session.credential = created.rawId;
+        session.registration = { credentialId: base64url(created.rawId), spki: base64url(spki), label: '접속 앱' };
         await sendRegistration();
       } catch (err) {
         setApproved(false, '확인 실패');
@@ -313,13 +312,12 @@
     });
 
     btnReauth.addEventListener('click', async () => {
-      const { data: { session: auth } } = await supabase.auth.getSession();
-      const email = auth?.user?.email;
       const password = reauthPassword.value;
       reauthPassword.value = '';
-      if (!email || !password) return showResult('warn', '비밀번호를 입력해 주세요.');
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return showResult('warn', `다시 로그인 실패: ${error.message}`);
+      if (!auth.email || !password) return showResult('warn', '비밀번호를 입력해 주세요.');
+      const login = await serverSession('login', auth.email, password);
+      if (!login.ok) return showResult('warn', `다시 로그인 실패: ${login.message}`);
+      auth.token = login.data.accessToken;
       if (!session.registration) return showResult('warn', '먼저 이 기기 등록·승인 요청을 눌러 주세요.');
       try {
         await sendRegistration();
@@ -336,47 +334,39 @@
     window.addEventListener('offline', updateOnline);
     updateOnline();
 
-    // Supabase 설정 불러오기 및 초기화
-    try {
-      const cfgRes = await fetch('/api/auth-config');
-      if (cfgRes.ok) {
-        const { supabaseUrl, supabaseAnonKey } = await cfgRes.json();
-        if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('placeholder')) {
-          supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-          supabase.auth.onAuthStateChange((_event, session) => {
-            updateAuthState(session);
-          });
-        } else {
-          authError.textContent = '환경변수(SUPABASE_URL, SUPABASE_ANON_KEY) 설정이 필요합니다.';
-        }
+    // 로그인·회원가입은 서버(/api/session)가 처리합니다. 화면은 Supabase 접속 정보를 받지 않습니다.
+    async function serverSession(action, email, password) {
+      try {
+        const res = await fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, email, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, data, message: data.message || `HTTP ${res.status}` };
+      } catch (err) {
+        return { ok: false, data: {}, message: err.message };
       }
-    } catch (err) {
-      authError.textContent = '인증 설정을 불러오지 못했습니다.';
     }
 
-    // 현재 세션의 Access Token 가져오기
     async function getAccessToken() {
-      if (!supabase) return null;
-      const { data: { session } } = await supabase.auth.getSession();
-      return session?.access_token || null;
+      return auth.token;
     }
 
     // UI 상태 갱신: 로그인만으로는 자료실을 열지 않고, 기기 승인 화면을 먼저 보여 줍니다.
-    let lastUserId = null;
-    async function updateAuthState(auth) {
-      if (auth && auth.user) {
+    function updateAuthState(user) {
+      if (user) {
         loginForm.style.display = 'none';
         userInfo.style.display = 'block';
-        userEmailSpan.textContent = auth.user.email;
+        userEmailSpan.textContent = user.email;
         deviceSection.hidden = false;
         authError.textContent = '';
-        if (lastUserId !== auth.user.id) {
-          forgetDevice();
-          lastUserId = auth.user.id;
-        }
+        forgetDevice();
         if (!passkeySupported) showResult('warn', '이 브라우저는 패스키를 지원하지 않아 기기를 승인할 수 없습니다.');
       } else {
-        lastUserId = null;
+        auth.token = null;
+        auth.email = null;
+        auth.userId = null;
         loginForm.style.display = 'block';
         userInfo.style.display = 'none';
         deviceSection.hidden = true;
@@ -395,12 +385,16 @@
         authError.textContent = '이메일과 비밀번호를 모두 입력해 주세요.';
         return;
       }
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        authError.textContent = `로그인 실패: ${error.message}`;
-      } else {
-        await updateAuthState(data.session);
+      const login = await serverSession('login', email, password);
+      passwordInput.value = '';
+      if (!login.ok) {
+        authError.textContent = `로그인 실패: ${login.message}`;
+        return;
       }
+      auth.token = login.data.accessToken;
+      auth.email = login.data.user?.email || email;
+      auth.userId = login.data.user?.id || null;
+      updateAuthState({ email: auth.email });
     });
 
     // 회원가입 처리
@@ -412,19 +406,19 @@
         authError.textContent = '이메일과 비밀번호를 모두 입력해 주세요.';
         return;
       }
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        authError.textContent = `가입 실패: ${error.message}`;
+      const signup = await serverSession('signup', email, password);
+      if (!signup.ok) {
+        authError.textContent = `가입 실패: ${signup.message}`;
       } else {
         authError.style.color = '#8ad8df';
         authError.textContent = '회원가입이 완료되었습니다. 로그인을 진행해 주세요.';
       }
     });
 
-    // 로그아웃 처리
-    btnLogout.addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      await updateAuthState(null);
+    // 로그아웃 처리: 메모리의 로그인 정보와 자료를 지웁니다.
+    btnLogout.addEventListener('click', () => {
+      currentNotes = [];
+      updateAuthState(null);
     });
 
     // 메모는 서명 요청 한 번으로 받아 화면 메모리에만 두고, 저장소에는 넣지 않습니다.

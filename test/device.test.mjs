@@ -53,7 +53,7 @@ function makeDb() {
 // 받은 요청을 흉내 냅니다. Vercel 처럼 JSON 본문은 해석된 값으로 들어옵니다.
 const incoming = ({ method = 'GET', url, headers = {}, body }) => ({ method, url, headers: { host: HOST, ...headers }, body });
 const publicJwkOf = (device) => {
-  const jwk = createPublicKey({ key: Buffer.from(device.registration().publicKey, 'base64url'), format: 'der', type: 'spki' }).export({ format: 'jwk' });
+  const jwk = createPublicKey({ key: Buffer.from(device.registration().spki, 'base64url'), format: 'der', type: 'spki' }).export({ format: 'jwk' });
   return { crv: 'P-256', kty: 'EC', x: jwk.x, y: jwk.y };
 };
 const approvedDevice = (db, owner = OWNER_A) => {
@@ -147,7 +147,7 @@ test('최근에 로그인한 토큰과 그 키의 서명이 있어야 기기가 
   assert.equal(result.status, 200);
   assert.equal(result.body.device.status, 'approved');
   assert.equal(result.body.device.deviceId, device.id);
-  assert.equal(JSON.stringify(result.body).includes(device.registration().publicKey), false, '공개키도 응답에 다시 싣지 않습니다');
+  assert.equal(JSON.stringify(result.body).includes(device.registration().spki), false, '공개키도 응답에 다시 싣지 않습니다');
 });
 
 test('오래된 로그인으로는 대기 상태로만 남고, 다시 로그인한 뒤 승인된다', async () => {
@@ -175,7 +175,7 @@ test('다른 패스키로 서명했거나 서명이 없거나 P-256 공개키가
   const unsigned = await register(db, fresh, device, body, {});
   assert.equal(unsigned.body.error, 'DEVICE_SIGNATURE_REQUIRED');
   const rsa = generateKeyPairSync('rsa', { modulusLength: 2048 }).publicKey.export({ format: 'der', type: 'spki' }).toString('base64url');
-  for (const bad of [{ ...body, publicKey: rsa }, { ...body, publicKey: 'not-a-key' }, { publicKey: body.publicKey }, { ...body, credentialId: 'short' }]) {
+  for (const bad of [{ ...body, spki: rsa }, { ...body, spki: 'not-a-key' }, { spki: body.spki }, { ...body, credentialId: 'short' }]) {
     assert.equal((await register(db, fresh, device, bad)).body.error, 'INVALID_DEVICE_KEY');
   }
   assert.equal(db.devices.length, 0);
