@@ -70,8 +70,8 @@ function bindNoteOwner(request) {
   NOTE_OWNERS.set(key, request.subjectId);
 }
 
-// The instructor role is not in the contract either, so every announcement write needs
-// a fresh step-up; ordinary students cannot pass it at the API's instructor check.
+// The instructor role is not in the contract, and a step-up proves nothing about role,
+// so the policy never allows an announcement write.
 function isAnnouncementWrite(request) {
   return request.service === 'announcements' && request.method !== 'GET';
 }
@@ -107,13 +107,13 @@ export async function decide(request) {
     };
   }
 
-  if (isAnnouncementWrite(request) && request.stepUp?.verified !== true) {
+  if (isAnnouncementWrite(request)) {
     return {
       schema: 'aleph.decision.v1',
       requestId: request.requestId,
-      decision: 'step_up',
-      reasonCode: 'step_up_required',
-      ruleIds: [RULE_IDS[1], RULE_IDS[2]],
+      decision: 'deny',
+      reasonCode: 'resource_route_denied',
+      ruleIds: [RULE_IDS[2]],
     };
   }
 
@@ -133,7 +133,7 @@ export async function decide(request) {
     requestId: request.requestId,
     decision: 'allow',
     reasonCode: 'resource_route_allowed',
-    ruleIds: requiresStepUp(request) || isAnnouncementWrite(request)
+    ruleIds: requiresStepUp(request)
       ? [RULE_IDS[0], RULE_IDS[1], RULE_IDS[2]]
       : [RULE_IDS[0], RULE_IDS[2]],
   };
