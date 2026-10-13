@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createLoginVerifier } from '../src/verify-login.mjs';
 import { ownerKeyOf } from '../src/owner-key.mjs';
+import { saveFirstBackup } from '../src/note-backup.mjs';
 
 // 로컬 환경 실행 시 .env 자동 로드
 try {
@@ -121,6 +122,11 @@ export default async function handler(req, res) {
       if (!response.ok) {
         return res.status(502).json({ error: 'DB_INSERT_FAILED', message: '메모 저장에 실패했습니다.' });
       }
+
+      // 10단계: 만들어진 첫 버전을 비공개 사본에 한 번만 남깁니다(실패해도 생성은 유지).
+      await saveFirstBackup({
+        supabaseUrl, serviceKey: supabaseKey, id: noteId, ownerId, title, content: noteBody,
+      });
 
       return res.status(201).json({ id: noteId });
     } catch {

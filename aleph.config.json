@@ -1,5 +1,5 @@
 {
-  "step": 9,
+  "step": 10,
   "repoUrl": "https://github.com/dyj02056/choi-bujang-secret-vault",
   "publicAppUrl": "https://choi-bujang-secret-vault-tau.vercel.app/",
   "sampleMarker": "SAMPLE_NOTE_1",
@@ -12,8 +12,9 @@
   "allowedRoutes": [
     "/api/notes",
     "/api/notes/:id",
-    "/api/announcements/:id"
+    "/api/announcements/:id",
+    "/api/restore/notes"
   ],
   "originalApiUrl": "https://cfdrbcslfvdtlgcwhzvi.supabase.co/rest/v1/secret_notes",
-  "restoreRoute": null
+  "restoreRoute": "/api/restore/notes"
 }

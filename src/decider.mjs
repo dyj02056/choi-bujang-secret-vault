@@ -11,10 +11,15 @@ export const RULE_IDS = Object.freeze([
 // policy never allows a write to class announcements (POST, PUT, PATCH, DELETE are all
 // denied for everyone) and never opens a list route. Whether a single note belongs to
 // the caller is compared by the API handlers, not here.
-const RESOURCE_METHODS = Object.freeze({
+export const RESOURCE_METHODS = Object.freeze({
   notes: Object.freeze(['GET', 'PUT', 'DELETE']),
   announcements: Object.freeze(['GET']),
 });
+
+// 10단계: 비공개 사본에서 메모 한 건을 되살리는 POST 경로 하나. 자료 ID는 본문에 있고
+// 소유자·사본 해시 대조는 API가 합니다. 쿼리로 기능을 고르지 않으며 :id 옆에 두지 않습니다.
+export const ACTION_ROUTES = Object.freeze(['POST /restore/notes']);
+const RESTORE_PATH = /^\/(?:api\/)?restore\/notes$/u;
 
 // "/notes/<id>" or "/api/notes/<id>" only: one segment. The API handlers validate the
 // real UUID, so the policy accepts any plain ID token but never dots, escapes or slashes.
@@ -28,6 +33,10 @@ function isKnownResourceRoute(request) {
       || typeof request.service !== 'string' || typeof request.method !== 'string'
       || typeof request.path !== 'string' || typeof request.route !== 'string') {
     return false;
+  }
+  if (request.service === 'restore') {
+    return request.method === 'POST' && request.route === 'POST /restore/notes'
+      && RESTORE_PATH.test(request.path);
   }
   if (!Object.hasOwn(RESOURCE_METHODS, request.service)
       || !RESOURCE_METHODS[request.service].includes(request.method)) return false;

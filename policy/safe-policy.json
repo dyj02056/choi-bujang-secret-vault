@@ -1,0 +1,32 @@
+{
+  "schema": "aleph.policy.safe.v1",
+  "version": 1,
+  "policy": {
+    "ruleIds": [
+      "device_registered",
+      "step_up_required",
+      "resource_zone_route"
+    ],
+    "resourceMethods": {
+      "notes": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "announcements": [
+        "GET"
+      ]
+    },
+    "actionRoutes": [
+      "POST /restore/notes"
+    ],
+    "allowedRoutes": [
+      "/api/notes",
+      "/api/notes/:id",
+      "/api/announcements/:id",
+      "/api/restore/notes"
+    ],
+    "restoreRoute": "/api/restore/notes"
+  },
+  "sha256": "f17cc40258c729fa8181991c5e0528b38eeabc0df9caa78f75b4124b369407f2"
+}
