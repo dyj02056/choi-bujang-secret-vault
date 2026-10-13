@@ -62,7 +62,7 @@ export default async function handler(req, res) {
   // DB에서 메모 한 건 조회하는 내부 헬퍼 (owner_id 포함)
   async function fetchNote(noteId) {
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/secret_notes?id=eq.${noteId}&owner_id=eq.${verified.userId}&select=id,title,content,owner_id`,
+      `${supabaseUrl}/rest/v1/secret_notes?id=eq.${noteId}&select=id,title,content,owner_id`,
       {
         headers: {
           apikey: supabaseKey,
@@ -71,9 +71,20 @@ export default async function handler(req, res) {
         },
       }
     );
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const error = new Error('DB_FETCH_FAILED');
+      error.code = 'DB_FETCH_FAILED';
+      throw error;
+    }
     const rows = await response.json();
     return rows[0] ?? null;
+  }
+
+  function readFailure(err) {
+    if (err?.code === 'DB_FETCH_FAILED') {
+      return res.status(502).json({ error: 'DB_FETCH_FAILED', message: '메모를 확인할 수 없습니다.' });
+    }
+    return res.status(502).json({ error: 'DB_NETWORK_ERROR', message: 'DB 통신 오류' });
   }
 
   // 2. GET /:id — 본인 소유 메모만 반환
@@ -88,8 +99,8 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 조회할 수 있습니다.' });
       }
       return res.status(200).json({ id: note.id, title: note.title, body: note.content });
-    } catch {
-      return res.status(502).json({ error: 'DB_NETWORK_ERROR', message: 'DB 통신 오류' });
+    } catch (err) {
+      return readFailure(err);
     }
   }
 
@@ -106,7 +117,8 @@ export default async function handler(req, res) {
       if (!existing) {
         return res.status(404).json({ error: 'NOT_FOUND', message: '메모를 찾을 수 없습니다.' });
       }
-      if (existing.owner_id !== verified.userId) {
+      if (typeof existing.owner_id !== 'string'
+          || existing.owner_id.toLowerCase() !== verified.userId.toLowerCase()) {
         return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 수정할 수 있습니다.' });
       }
 
@@ -140,8 +152,8 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ id: rows[0].id, title: rows[0].title, body: rows[0].content });
-    } catch {
-      return res.status(502).json({ error: 'DB_NETWORK_ERROR', message: 'DB 통신 오류' });
+    } catch (err) {
+      return readFailure(err);
     }
   }
 
@@ -153,7 +165,8 @@ export default async function handler(req, res) {
       if (!existing) {
         return res.status(404).json({ error: 'NOT_FOUND', message: '메모를 찾을 수 없습니다.' });
       }
-      if (existing.owner_id !== verified.userId) {
+      if (typeof existing.owner_id !== 'string'
+          || existing.owner_id.toLowerCase() !== verified.userId.toLowerCase()) {
         return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 삭제할 수 있습니다.' });
       }
 
@@ -174,8 +187,8 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ success: true, id });
-    } catch {
-      return res.status(502).json({ error: 'DB_NETWORK_ERROR', message: 'DB 통신 오류' });
+    } catch (err) {
+      return readFailure(err);
     }
   }
 
