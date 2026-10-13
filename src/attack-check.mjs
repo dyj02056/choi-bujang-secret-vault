@@ -119,19 +119,20 @@ export async function runAttackChecks(config) {
     : entry('s10_restore_other_users_note', otherRestoreExpected, loginReady ? noRestoreRoute : missing));
 
   // 5) Local practice with virtual events (the decider and detector run in this process; not a judge result).
-  const local = async (id, expected, run) => {
+  const local = async (id, expected, wanted, run) => {
     try {
-      return entry(id, expected, `Local virtual run: ${await run()}`);
+      const got = await run();
+      return entry(id, expected, `${got === wanted ? 'As expected' : 'Needs review'} (local virtual run): ${got}`);
     } catch (error) {
       return entry(id, expected, `Could not be checked (${error.name})`);
     }
   };
   const { normal, suspicious } = fixtureRequests();
-  results.push(await local('s6_unregistered_device_denied', 'Unregistered device is denied (local practice)', async () => {
+  results.push(await local('s6_unregistered_device_denied', 'Unregistered device is denied (local practice)', 'deny device_not_registered', async () => {
     const r = await decide({ ...normal, requestId: randomUUID(), deviceRegistered: false });
     return `${r.decision} ${r.reasonCode}`;
   }));
-  results.push(await local('s7_unusual_access_step_up', 'Unusual region, network and hour together ask for extra verification (local practice)', async () => {
+  results.push(await local('s7_unusual_access_step_up', 'Unusual region, network and hour together ask for extra verification (local practice)', 'step_up step_up_required', async () => {
     const r = await decide({ ...suspicious, requestId: randomUUID() });
     return `${r.decision} ${r.reasonCode}`;
   }));
@@ -139,11 +140,11 @@ export async function runAttackChecks(config) {
   const reads = (count) => Array.from({ length: count }, (_, i) => ({
     at: new Date(start + i * 2000).toISOString(), method: 'GET', identity: { sub: 'learner_fixture' },
   }));
-  results.push(await local('s9_burst_read_proposes_revocation', '121 reads in 10 minutes propose a revocation (local practice)', async () => {
+  results.push(await local('s9_burst_read_proposes_revocation', '121 reads in 10 minutes propose a revocation (local practice)', 'propose_revocation burst_read', async () => {
     const r = detect(reads(121));
     return `${r.action}${r.reasonCode ? ` ${r.reasonCode}` : ''}`;
   }));
-  results.push(await local('s9_normal_reads_observed', '30 normal reads are only observed (local practice)', async () => detect(reads(30)).action));
+  results.push(await local('s9_normal_reads_observed', '30 normal reads are only observed (local practice)', 'observe', async () => detect(reads(30)).action));
 
   return results;
 }
