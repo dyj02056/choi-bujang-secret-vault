@@ -373,3 +373,26 @@ Expected normal result: an allowed note route or announcement route on a
 registered device. Expected rejection: an unknown route, another user's note
 request at the API, and a non-instructor announcement update. These commands
 are local practice or build checks only; they are not live judge results.
+
+## XDR bonus modules (student work)
+
+`xdr/<moduleKey>/decide.mjs` answers each practice Wazuh-shaped alert in `xdr/fixtures/<moduleKey>.json` with
+`{ action: block | alert | record, confidence, reason }`. Done: `brute-force`, `web-injection`, `known-cve`.
+`decide.mjs` has no `import`, reads and writes no file and asks nothing outside; `respond.mjs` writes `xdr/alerts.log`
+(append only) and builds deny-rule candidates with an expiry time and the evidence alert IDs. The decider contract
+(`docs/DECIDER_REQUEST.md`) has no source address, so those rules are candidates for the front relay; `src/decider.mjs`
+is not changed by them.
+
+`known-cve` (CVE-2021-44228 style requests, MITRE ATT&CK T1190): a complete `${jndi:<protocol>://…}` lookup in a
+header or URL argument is `block` (confidence 0.9–0.99), a T1190 alert without that lookup is `alert` (0.6), anything
+else is `record` (0). Patterns and their one-line evidence: `xdr/known-cve/patterns.json`.
+
+```powershell
+node xdr/known-cve/read-alerts.mjs
+npm run xdr:run -- known-cve
+node xdr/known-cve/respond.mjs
+```
+
+Expected: `경보 24건 · 뽑은 줄 24줄 · 일치`; `xdr/known-cve/result.json` counts block 8 · alert 8 · record 8 with no
+normal event (kc-17–24) blocked; replay shows `정상 이벤트 막힘 0건`. `respond.mjs` appends 16 lines to `xdr/alerts.log`
+on every run. These are local practice results, not judge results.

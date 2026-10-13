@@ -51,3 +51,35 @@
 [2026-10-08T02:41:12.328Z] [ALERT] alertId=wi-15 ip=192.0.2.42 user=none reason=suspicious-query-probe confidence=0.65
 [2026-10-08T02:41:12.329Z] [ALERT] alertId=wi-16 ip=198.51.100.42 user=none reason=suspicious-query-probe confidence=0.65
 [2026-10-08T02:41:12.329Z] [ALERT] alertId=wi-17 ip=203.0.113.43 user=none reason=suspicious-query-probe confidence=0.65
+[2026-10-13T11:29:32.123Z] [BLOCK] module=known-cve alertId=kc-01 ip=203.0.113.10 user=none reason=jndi-lookup-in-header confidence=0.9
+[2026-10-13T11:29:32.123Z] [BLOCK] module=known-cve alertId=kc-02 ip=203.0.113.10 user=none reason=jndi-lookup-in-url confidence=0.9
+[2026-10-13T11:29:32.123Z] [BLOCK] module=known-cve alertId=kc-03 ip=198.51.100.16 user=none reason=jndi-lookup-in-url, repeated-jndi-lookup confidence=0.95
+[2026-10-13T11:29:32.123Z] [BLOCK] module=known-cve alertId=kc-04 ip=192.0.2.16 user=none reason=jndi-lookup-in-header, repeated-jndi-lookup confidence=0.95
+[2026-10-13T11:29:32.123Z] [BLOCK] module=known-cve alertId=kc-05 ip=203.0.113.24 user=none reason=jndi-lookup-in-url, cve-scanner-trace confidence=0.93
+[2026-10-13T11:29:32.123Z] [BLOCK] module=known-cve alertId=kc-06 ip=198.51.100.24 user=none reason=jndi-lookup-in-url, repeated-jndi-lookup confidence=0.95
+[2026-10-13T11:29:32.123Z] [BLOCK] module=known-cve alertId=kc-07 ip=192.0.2.24 user=none reason=jndi-lookup-in-header confidence=0.9
+[2026-10-13T11:29:32.123Z] [BLOCK] module=known-cve alertId=kc-08 ip=203.0.113.31 user=none reason=jndi-lookup-in-header, jndi-lookup-in-url, repeated-jndi-lookup confidence=0.95
+[2026-10-13T11:29:32.123Z] [ALERT] module=known-cve alertId=kc-09 ip=192.0.2.45 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:29:32.123Z] [ALERT] module=known-cve alertId=kc-10 ip=198.51.100.45 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:29:32.123Z] [ALERT] module=known-cve alertId=kc-11 ip=203.0.113.45 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:29:32.123Z] [ALERT] module=known-cve alertId=kc-12 ip=192.0.2.46 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:29:32.123Z] [ALERT] module=known-cve alertId=kc-13 ip=198.51.100.46 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:29:32.123Z] [ALERT] module=known-cve alertId=kc-14 ip=203.0.113.46 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:29:32.123Z] [ALERT] module=known-cve alertId=kc-15 ip=192.0.2.47 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:29:32.123Z] [ALERT] module=known-cve alertId=kc-16 ip=198.51.100.47 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:30:46.383Z] [BLOCK] module=known-cve alertId=kc-01 ip=203.0.113.10 user=none reason=jndi-lookup-in-header confidence=0.9
+[2026-10-13T11:30:46.383Z] [BLOCK] module=known-cve alertId=kc-02 ip=203.0.113.10 user=none reason=jndi-lookup-in-url confidence=0.9
+[2026-10-13T11:30:46.383Z] [BLOCK] module=known-cve alertId=kc-03 ip=198.51.100.16 user=none reason=jndi-lookup-in-url, repeated-jndi-lookup confidence=0.95
+[2026-10-13T11:30:46.383Z] [BLOCK] module=known-cve alertId=kc-04 ip=192.0.2.16 user=none reason=jndi-lookup-in-header, repeated-jndi-lookup confidence=0.95
+[2026-10-13T11:30:46.383Z] [BLOCK] module=known-cve alertId=kc-05 ip=203.0.113.24 user=none reason=jndi-lookup-in-url, cve-scanner-trace confidence=0.93
+[2026-10-13T11:30:46.383Z] [BLOCK] module=known-cve alertId=kc-06 ip=198.51.100.24 user=none reason=jndi-lookup-in-url, repeated-jndi-lookup confidence=0.95
+[2026-10-13T11:30:46.383Z] [BLOCK] module=known-cve alertId=kc-07 ip=192.0.2.24 user=none reason=jndi-lookup-in-header confidence=0.9
+[2026-10-13T11:30:46.383Z] [BLOCK] module=known-cve alertId=kc-08 ip=203.0.113.31 user=none reason=jndi-lookup-in-header, jndi-lookup-in-url, repeated-jndi-lookup confidence=0.95
+[2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-09 ip=192.0.2.45 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-10 ip=198.51.100.45 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-11 ip=203.0.113.45 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-12 ip=192.0.2.46 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-13 ip=198.51.100.46 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-14 ip=203.0.113.46 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-15 ip=192.0.2.47 user=none reason=cve-keyword-probe confidence=0.6
+[2026-10-13T11:30:46.383Z] [ALERT] module=known-cve alertId=kc-16 ip=198.51.100.47 user=none reason=cve-keyword-probe confidence=0.6

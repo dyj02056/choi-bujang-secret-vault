@@ -1,0 +1,42 @@
+[
+  {
+    "name": "jndi-lookup-in-header",
+    "signal": "요청 머리글 안의 원격 조회 구문",
+    "condition": "요청 머리글(useragent)에 완전한 원격 조회 구문 ${jndi:<프로토콜>://…} 이 있음",
+    "match": { "fields": ["useragent"], "regex": "\\$\\{jndi:(?:ldap|ldaps|rmi|dns|iiop|corba|nds|nis|http|https)://[^}\\s]+\\}", "flags": "i" },
+    "confidence": { "base": 0.9 },
+    "rationale": "CVE-2021-44228: 로그에 남는 머리글 값 안의 ${jndi:…} 조회 구문이 원격 클래스 불러오기로 이어지는 취약점입니다 (MITRE ATT&CK T1190)."
+  },
+  {
+    "name": "jndi-lookup-in-url",
+    "signal": "요청 인자 안의 원격 조회 구문",
+    "condition": "요청 주소·인자(url)에 완전한 원격 조회 구문 ${jndi:<프로토콜>://…} 이 있음",
+    "match": { "fields": ["url"], "regex": "\\$\\{jndi:(?:ldap|ldaps|rmi|dns|iiop|corba|nds|nis|http|https)://[^}\\s]+\\}", "flags": "i" },
+    "confidence": { "base": 0.9 },
+    "rationale": "CVE-2021-44228: 로그에 남는 요청 인자 안의 ${jndi:…} 조회 구문도 머리글과 같은 원격 조회를 일으킵니다 (MITRE ATT&CK T1190)."
+  },
+  {
+    "name": "repeated-jndi-lookup",
+    "signal": "원격 조회 구문의 반복",
+    "condition": "위 조회 구문이 있고, 같은 경보의 반복 횟수(count)가 2 이상이거나 머리글과 인자 두 곳에 함께 있음",
+    "match": { "requires": ["jndi-lookup-in-header", "jndi-lookup-in-url"], "countAtLeast": 2, "orBothFields": true },
+    "confidence": { "add": 0.05 },
+    "rationale": "MITRE ATT&CK T1190: 공개 앱의 알려진 취약점(CVE-2021-44228)을 노린 악용은 같은 구문을 여러 번·여러 위치에 보내는 자동 시도로 나타납니다."
+  },
+  {
+    "name": "cve-scanner-trace",
+    "signal": "알려진 취약점 점검 도구의 흔적",
+    "condition": "위 조회 구문이 있고, 경보 설명에 알려진 취약점 점검 흔적이 있거나 인자 이름이 점검용(probe)임",
+    "match": { "requires": ["jndi-lookup-in-header", "jndi-lookup-in-url"], "descriptionIncludes": ["점검 흔적"], "urlParamNames": ["probe"] },
+    "confidence": { "add": 0.03 },
+    "rationale": "MITRE ATT&CK T1190: 공개 앱을 대상으로 CVE-2021-44228 같은 알려진 취약점을 찾는 점검 도구가 악용 구문을 함께 보냅니다."
+  },
+  {
+    "name": "cve-keyword-probe",
+    "signal": "완전한 구문이 없는 취약점 관련 시도",
+    "condition": "경보에 MITRE T1190 표시가 있고 규칙 수준이 5 이상이지만, 완전한 원격 조회 구문은 없음(취약점 이름 검색, jndi 단어, 잘린 조회 조각, 점검 도구와 비슷한 이름 등)",
+    "match": { "mitre": "T1190", "levelAtLeast": 5, "withoutPatterns": ["jndi-lookup-in-header", "jndi-lookup-in-url"] },
+    "confidence": { "base": 0.6 },
+    "rationale": "CVE-2021-44228 은 완전한 ${jndi:…} 구문이 있어야 악용되므로, T1190 표시만 있고 구문이 없는 요청은 막지 않고 알림으로만 남깁니다."
+  }
+]
