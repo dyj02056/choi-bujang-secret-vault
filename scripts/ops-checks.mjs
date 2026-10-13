@@ -18,7 +18,8 @@ try {
   const dirty = execFileSync('git', ['-C', ROOT, 'status', '--porcelain'], { encoding: 'utf8', windowsHide: true }).trim();
   const details = [];
   const startedAt = new Date().toISOString();
-  const results = await runAttackChecks(config, { details });
+  // 로컬 점검표만 쓰기 점검(로그인·기기 승인·복구·수정)을 보냅니다. npm run bundle은 읽기(GET·HEAD)만 보냅니다.
+  const results = await runAttackChecks(config, { details, allowWrites: true });
   const counts = details.reduce((acc, row) => ({ ...acc, [row.verdict]: (acc[row.verdict] ?? 0) + 1 }), {});
   const table = {
     schema: 'aleph.ops.checks.v1',

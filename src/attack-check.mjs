@@ -14,6 +14,11 @@
 //
 // runAttackChecks(config, { details }) also pushes one structured row per check into `details`
 // (step, normal/forbidden, expected, observed HTTP result, server request ID, check time) for the step 12 table.
+//
+// Read-only by default: `npm run bundle` (and the judge's runner, which calls runAttackChecks(config)) sends only
+// GET/HEAD requests. Checks that need a write request (login, device approval, restore, update) and the signed
+// checks that depend on device approval are written as "not_run: <reason>". Only the local table
+// (`npm run ops:checks`) passes { allowWrites: true } and sends them.
 import { randomUUID } from 'node:crypto';
 // The only static import is node:crypto: the judge's runner imports this module by itself. The device client is loaded
 // only when signed requests are really sent (test logins present).
@@ -23,9 +28,13 @@ const cut = (text) => (text.length > 290 ? `${text.slice(0, 287)}...` : text);
 const entry = (attackId, expected, observed) => ({ attackId, expected: cut(expected), observed: cut(observed) });
 const notRun = (reason) => `not_run: ${reason}`;
 let currentAttack = null;
+let writesAllowed = false;
+const READ_ONLY_WRITE = 'npm run bundle sends only GET/HEAD requests; this check needs a write request (POST/PUT), so it was not sent';
+const READ_ONLY_SIGNED = 'npm run bundle sends only GET/HEAD requests; signed requests need device approval (POST /api/devices), so this was not sent';
 
 // device signs the request; signAs lets a check sign one path/body and then send another (tampering).
 async function send(app, path, { method = 'GET', token, body, base, device, signAs } = {}) {
+  if (!writesAllowed && method !== 'GET' && method !== 'HEAD') throw new Error(`read-only run refused ${method}`);
   const url = base ?? new URL(path, app);
   const headers = currentAttack ? { 'x-aleph-attack-id': currentAttack } : {};
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -61,7 +70,16 @@ const rejected = (r) => r.status === 401 || r.status === 403;
 // Step 12: `npm run bundle` sends every check live. The judge compares each attackId with the requests really sent
 // in that run, so a check whose request was not sent in this run is written as "not_run: <reason>" (never as a result),
 // even if an earlier `npm run ops:checks` run sent it. Each request carries its attackId (header x-aleph-attack-id).
-export async function runAttackChecks(config, { details = [] } = {}) {
+export async function runAttackChecks(config, { details = [], allowWrites = false } = {}) {
+  writesAllowed = allowWrites === true;
+  try {
+    return await runChecks(config, details);
+  } finally {
+    writesAllowed = false;
+  }
+}
+
+async function runChecks(config, details) {
   if (config.step !== 12) throw new Error('Current step requires updating src/attack-check.mjs.');
   let app;
   try {
@@ -117,7 +135,10 @@ export async function runAttackChecks(config, { details = [] } = {}) {
   const loginFor = async (suffix) => {
     const email = env[`ALEPH_CHECK_EMAIL_${suffix}`];
     const password = env[`ALEPH_CHECK_PASSWORD_${suffix}`];
-    if (email && password) {
+    if (email && password && !writesAllowed) {
+      // Login is a POST: not sent in a read-only run. A fresh token from the shell is still used below.
+      tokenProblems.push(`login ${suffix} not sent (POST /api/session is not allowed in npm run bundle)`);
+    } else if (email && password) {
       try {
         const r = await send(app, '/api/session', { method: 'POST', body: { action: 'login', email, password } });
         if (r.status === 200 && typeof r.accessToken === 'string') return r.accessToken;
@@ -145,68 +166,72 @@ export async function runAttackChecks(config, { details = [] } = {}) {
   const missing = `${tokenProblems.length ? `${tokenProblems.join(', ')}. ` : ''}set ALEPH_CHECK_NOTE_A/B and ALEPH_CHECK_EMAIL_/PASSWORD_A/B (or fresh ALEPH_CHECK_TOKEN_A/B) for the test accounts.`;
   const restorePath = config.restoreRoute;
   const restoreUsable = typeof restorePath === 'string' && restorePath.startsWith('/api/');
+  // Signed requests need an approved device, and approval is a POST: only when writes are allowed.
+  const signedReady = loginReady && writesAllowed;
+  const signedMissing = writesAllowed ? missing : READ_ONLY_SIGNED;
+  const writeMissing = writesAllowed ? missing : READ_ONLY_WRITE;
 
-  // The device client is loaded only when the test logins are there, i.e. when signed requests will really be sent.
-  const { createVirtualDevice } = loginReady ? await import('./device-client.mjs') : { createVirtualDevice: null };
+  // The device client is loaded only when signed requests will really be sent.
+  const { createVirtualDevice } = signedReady ? await import('./device-client.mjs') : { createVirtualDevice: null };
 
   // 0) Step 11: each test account gets one virtual device, approved by the server (recent login required).
-  const deviceA = loginReady ? createVirtualDevice({ origin: app.origin }) : null;
-  const deviceB = loginReady ? createVirtualDevice({ origin: app.origin }) : null;
+  const deviceA = signedReady ? createVirtualDevice({ origin: app.origin }) : null;
+  const deviceB = signedReady ? createVirtualDevice({ origin: app.origin }) : null;
   const approval = (device, token) => send(app, '/api/devices', {
     method: 'POST', token, device, body: { ...device.registration(), label: 'bundle self-check' },
   });
   const approvalMeta = { id: 's11_device_approval', step: '11', kind: 'normal' };
   const approvalExpected = 'A virtual passkey that signs its own registration, with a recent login, is approved: HTTP 200, device=approved';
-  if (loginReady) {
+  if (signedReady) {
     await live(approvalMeta, approvalExpected, [
       { label: 'A approval', run: () => approval(deviceA, tokenA), accept: (r) => r.status === 200 && r.deviceStatus === 'approved' },
       { label: 'B approval', run: () => approval(deviceB, tokenB), accept: (r) => r.status === 200 && r.deviceStatus === 'approved' },
     ]);
-  } else skip(approvalMeta, approvalExpected, missing);
+  } else skip(approvalMeta, approvalExpected, writeMissing);
 
   // 1) Restore first, so every check below runs after the data came back.
   const restoreMeta = { id: 's10_restore_own_note', step: '10', kind: 'normal' };
   const restoreExpected = 'Account B restores its own note: HTTP 200, mode updated/reinserted/unchanged, and an audit record number';
-  if (loginReady && restoreUsable) {
+  if (signedReady && restoreUsable) {
     await live(restoreMeta, restoreExpected, [{
       label: 'B restore', run: () => send(app, restorePath, { method: 'POST', token: tokenB, device: deviceB, body: { id: noteB } }),
       accept: (r) => r.status === 200 && ['updated', 'reinserted', 'unchanged'].includes(r.mode) && r.audit?.recorded === true,
     }]);
-  } else skip(restoreMeta, restoreExpected, loginReady ? 'restoreRoute is not set in aleph.config.json.' : missing);
+  } else skip(restoreMeta, restoreExpected, signedReady ? 'restoreRoute is not set in aleph.config.json.' : writeMissing);
 
   // 2) Step 12 focus: right after the restore, an unsigned change request and an out-of-zone read.
   const afterMeta = { id: 's12_after_restore_unsigned_write_and_out_of_zone', step: '12 (10+11+8)', kind: 'forbidden' };
   const afterExpected = 'After the restore: B unsigned update of its own note is rejected (401 DEVICE_SIGNATURE_REQUIRED), then B signed read of A note is rejected (403)';
-  if (loginReady) {
+  if (signedReady) {
     await live(afterMeta, afterExpected, [
       { label: 'unsigned update', run: () => send(app, `/api/notes/${noteB}`, { method: 'PUT', token: tokenB, body: { title: 'unsigned change' } }),
         accept: (r) => r.status === 401 && r.error === 'DEVICE_SIGNATURE_REQUIRED' },
       { label: 'out-of-zone read', run: () => send(app, `/api/notes/${noteA}`, { token: tokenB, device: deviceB }), accept: denied(403) },
     ]);
-  } else skip(afterMeta, afterExpected, missing);
+  } else skip(afterMeta, afterExpected, writeMissing);
 
   // 3) Normal requests after the restore.
   await live({ id: 's1_public_page_normal', step: '1', kind: 'normal' }, 'The public page still opens: HTTP 200',
     [{ label: 'public page', run: () => send(app, '/'), accept: (r) => r.status === 200 }]);
   const ownMeta = { id: 's8_own_note_read_after_restore', step: '8', kind: 'normal' };
-  if (loginReady) {
+  if (signedReady) {
     await live(ownMeta, 'Account A reads its own note: HTTP 200',
       [{ label: 'A own read', who: 'A', run: () => send(app, `/api/notes/${noteA}`, { token: tokenA, device: deviceA }), accept: (r) => r.status === 200 }]);
-  } else skip(ownMeta, 'Account A reads its own note: HTTP 200', missing);
+  } else skip(ownMeta, 'Account A reads its own note: HTTP 200', signedMissing);
 
   // 4) Step 12 focus: an anonymous read and another user's note read sent back to back in the same run.
   const pairMeta = { id: 's12_anonymous_then_cross_read', step: '12 (1-4+8)', kind: 'forbidden' };
   const pairExpected = 'Back to back: anonymous read of A note is rejected (401), then B signed read of the same A note is rejected (403)';
-  if (loginReady) {
+  if (signedReady) {
     await live(pairMeta, pairExpected, [
       { label: 'anonymous read', run: () => send(app, `/api/notes/${noteA}`), accept: denied(401) },
       { label: 'cross read', run: () => send(app, `/api/notes/${noteA}`, { token: tokenB, device: deviceB }), accept: denied(403) },
     ]);
   } else {
-    // Without the test logins only the anonymous half can be sent; the cross read is written as not_run.
+    // Without signed requests only the anonymous half can be sent; the cross read is written as not_run.
     await live(pairMeta, pairExpected, [
       { label: 'anonymous read', run: () => send(app, `/api/notes/${UUID.test(noteA ?? '') ? noteA : randomUUID()}`), accept: denied(401) },
-    ], [{ label: 'cross read', reason: missing }]);
+    ], [{ label: 'cross read', reason: signedMissing }]);
   }
 
   // 5) Forbidden requests that need no login at all.
@@ -214,10 +239,14 @@ export async function runAttackChecks(config, { details = [] } = {}) {
     [{ label: 'anonymous list', run: () => send(app, '/api/notes'), accept: rejected }]);
   await live({ id: 's2_4_anonymous_note_by_id', step: '2-4', kind: 'forbidden' }, 'Anonymous single-note request is rejected with HTTP 401 or 403',
     [{ label: 'anonymous note', run: () => send(app, `/api/notes/${randomUUID()}`), accept: rejected }]);
-  await live({ id: 's8_anonymous_announcement_write', step: '8', kind: 'forbidden' }, 'Anonymous announcement update is rejected with HTTP 401 or 403',
-    [{ label: 'anonymous announcement write', run: () => send(app, `/api/announcements/${randomUUID()}`, { method: 'PUT', body: { title: 'x' } }), accept: rejected }]);
+  const anonWriteMeta = { id: 's8_anonymous_announcement_write', step: '8', kind: 'forbidden' };
+  if (writesAllowed) {
+    await live(anonWriteMeta, 'Anonymous announcement update is rejected with HTTP 401 or 403',
+      [{ label: 'anonymous announcement write', run: () => send(app, `/api/announcements/${randomUUID()}`, { method: 'PUT', body: { title: 'x' } }), accept: rejected }]);
+  } else skip(anonWriteMeta, 'Anonymous announcement update is rejected with HTTP 401 or 403', READ_ONLY_WRITE);
   const anonRestoreMeta = { id: 's10_anonymous_restore_call', step: '10', kind: 'forbidden' };
-  if (restoreUsable) {
+  if (!writesAllowed) skip(anonRestoreMeta, 'Anonymous restore call is rejected with HTTP 401 or 403', READ_ONLY_WRITE);
+  else if (restoreUsable) {
     await live(anonRestoreMeta, 'Anonymous restore call is rejected with HTTP 401 or 403',
       [{ label: 'anonymous restore', run: () => send(app, restorePath, { method: 'POST', body: { id: randomUUID() } }), accept: rejected }]);
   } else skip(anonRestoreMeta, 'Anonymous restore call is rejected with HTTP 401 or 403', 'restoreRoute is not set in aleph.config.json.');
@@ -244,15 +273,23 @@ export async function runAttackChecks(config, { details = [] } = {}) {
     [{ id: 's11_signed_body_changed', step: '11', kind: 'forbidden' }, 'An update whose body changed after signing is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH',
       { label: 'body changed', who: 'A', run: () => send(app, `/api/notes/${randomUUID()}`, { method: 'PUT', token: tokenA, device: deviceA, body: { title: 'changed after signing' }, signAs: { body: { title: 'signed title' } } }), accept: (r) => r.status === 403 && r.error === 'DEVICE_SIGNATURE_MISMATCH' }],
   ];
+  // What each check needs in a read-only run: a write request, a signed request, or only a fresh token from the shell.
+  const needs = { s8_announcement_write_non_instructor: 'write', s10_restore_other_users_note: 'write', s11_signed_body_changed: 'write', s11_unsigned_protected_request: 'token' };
+  const tokenOnlyReady = Boolean(tokenA) && UUID.test(noteA ?? '');
   for (const [meta, expected, step] of login2) {
-    if (!loginReady || (meta.id === 's10_restore_other_users_note' && !restoreUsable)) skip(meta, expected, loginReady ? 'restoreRoute is not set in aleph.config.json.' : missing);
-    else await live(meta, expected, [step]);
+    const need = needs[meta.id] ?? 'signed';
+    if (writesAllowed) {
+      if (!loginReady || (meta.id === 's10_restore_other_users_note' && !restoreUsable)) skip(meta, expected, loginReady ? 'restoreRoute is not set in aleph.config.json.' : missing);
+      else await live(meta, expected, [step]);
+    } else if (need === 'token' && tokenOnlyReady) await live(meta, expected, [step]);
+    else if (need === 'token') skip(meta, expected, `${tokenProblems.length ? `${tokenProblems.join(', ')}. ` : ''}set a fresh ALEPH_CHECK_TOKEN_A and ALEPH_CHECK_NOTE_A to send this GET (login is a POST and is not sent in npm run bundle).`);
+    else skip(meta, expected, need === 'write' ? READ_ONLY_WRITE : READ_ONLY_SIGNED);
   }
 
   // 7) Step 12 focus: a request from an unregistered device, then a request from a revoked identity.
   const revokedMeta = { id: 's12_unregistered_device_then_revoked_identity', step: '12 (6+9+11)', kind: 'forbidden' };
   const revokedExpected = 'A signed request from a never-approved device is rejected (403 DEVICE_NOT_APPROVED); then a revoked identity is rejected (403 IDENTITY_REVOKED)';
-  if (loginReady) {
+  if (signedReady) {
     const stranger = createVirtualDevice({ origin: app.origin });
     const steps = [{ label: 'unregistered device', who: 'A', run: () => send(app, `/api/notes/${noteA}`, { token: tokenA, device: stranger }), accept: (r) => r.status === 403 && r.error === 'DEVICE_NOT_APPROVED' }];
     if (tokenC) {
@@ -263,14 +300,14 @@ export async function runAttackChecks(config, { details = [] } = {}) {
     } else {
       await live(revokedMeta, revokedExpected, steps, [{ label: 'revoked identity', reason: 'no revoked test account C (ALEPH_CHECK_EMAIL_C/PASSWORD_C), so this request was not sent' }]);
     }
-  } else skip(revokedMeta, revokedExpected, missing);
+  } else skip(revokedMeta, revokedExpected, signedMissing);
 
   // 8) Step 12 operations room, live: A reads GET /api/ops/summary right after the checks above and the check compares
   // each of A's requests from this run (request ID and HTTP status it received) with what the screen API shows.
   // Anonymous requests are not in it (no account). Nothing is computed into the screen; this only compares.
   const opsMeta = { id: 's12_ops_room_live_summary', step: '12', kind: 'normal' };
   const opsExpected = "The operations room API answers 200 to approved device A and shows each of A's requests from this run with the same final HTTP status";
-  if (loginReady) {
+  if (signedReady) {
     await live(opsMeta, opsExpected, [{ label: 'ops summary', run: async () => {
       const r = await send(app, '/api/ops/summary', { token: tokenA, device: deviceA });
       const events = Array.isArray(r.data?.detection?.recentEvents) ? r.data.detection.recentEvents : [];
@@ -280,7 +317,7 @@ export async function runAttackChecks(config, { details = [] } = {}) {
       r.matched = r.status === 200 && mine.length > 0 && same.length === mine.length;
       return r;
     }, accept: (r) => r.matched }]);
-  } else skip(opsMeta, opsExpected, missing);
+  } else skip(opsMeta, opsExpected, signedMissing);
 
   // 9) Steps 6-7 and 9 rules have no request of their own here: they are practised locally (npm run decider:test,
   // npm run detect:test) and on the server through the checks above. No result is written for them.
