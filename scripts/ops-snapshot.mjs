@@ -1,13 +1,16 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createVirtualDevice } from '../src/device-client.mjs';
-import { buildOpsSummary } from '../src/ops-summary.mjs';
+import { createHash } from 'node:crypto';
+import { ACTION_ROUTES, RESOURCE_METHODS, RULE_IDS } from '../src/decider.mjs';
 
 // 12단계: 작전실 화면 수치와 가린 서버 기록을 같은 시점에 맞춰 남깁니다.
 //   npm run ops:snapshot
 // 1) 시험 계정 A로 로그인해(POST /api/session, 또는 ALEPH_CHECK_TOKEN_A) 가상 패스키 기기를 승인받고
 // 2) 서명한 GET /api/ops/summary 를 실제로 보내 응답(요청 ID 포함)을 받은 뒤, 다른 요청 없이 바로
-// 3) 서버 키로 같은 계정의 가린 서버 기록을 같은 기준 시각(응답의 generatedAt)으로 다시 셉니다.
+// 3) 서버 키로 같은 계정의 서버 원본 줄(접근 사건, 감사 기록, 기기, 회수, 사본)을 가린 채로 직접 읽고,
+//    화면 API 와 다른 코드로 같은 기준 시각(응답의 generatedAt)에서 다시 셉니다. 원본 줄도 함께 남겨 누구나 다시 셀 수 있게 합니다.
+//    계정은 owner_ + SHA-256 앞 10자리(audit/step10 과 같은 가명), 메모 ID 는 note_ + SHA-256 앞 10자리로 가립니다.
 // 둘을 항목별로 대조해 audit/step12/ops-snapshot-<UTC>.json(덮어쓰지 않음)에 남기고,
 // 화면이 보여 줄 실측 응답을 public/ops-summary.json 에 둡니다. 응답이 없으면 아무 수치도 만들지 않습니다.
 // 비밀번호·토큰·서버 키·계정 ID 원문·메모 본문은 파일에 쓰지 않습니다.
@@ -70,7 +73,65 @@ try {
   // 실제 API 응답. 이 뒤로는 서버 기록을 바꾸는 요청을 보내지 않습니다.
   const api = await call('/api/ops/summary', { token, device });
   if (api.status !== 200) fail(`작전실 요약 실패 HTTP ${api.status} ${api.data.error ?? ''} (요청 ID ${api.requestId ?? '없음'})`);
-  const server = await buildOpsSummary({ supabaseUrl, serviceKey, ownerId, now: Date.parse(api.data.generatedAt) });
+  const reference = Date.parse(api.data.generatedAt);
+  const hash10 = (value) => createHash('sha256').update(String(value).toLowerCase()).digest('hex').slice(0, 10);
+  const owner = `owner_${hash10(ownerId)}`;
+  const note = (id) => (id ? `note_${hash10(id)}` : null);
+  const read = async (path) => {
+    const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(15000) });
+    if (!response.ok) fail(`${path.split('?')[0]} 을(를) 읽지 못했습니다 (HTTP ${response.status}).`);
+    return response.json();
+  };
+  const since = new Date(reference - 10 * 60 * 1000).toISOString();
+  const until = new Date(reference).toISOString();
+  const [recentRows, windowRows, auditRows, deviceRows, revocationRows, backupRows] = await Promise.all([
+    read(`access_events?owner_id=eq.${ownerId}&at=lte.${until}&select=seq,request_id,method,route,outcome,at&order=seq.desc&limit=20`),
+    read(`access_events?owner_id=eq.${ownerId}&method=eq.GET&at=gte.${since}&at=lte.${until}&select=request_id,at&order=seq.asc&limit=500`),
+    read(`secret_notes_restore_log?owner_id=eq.${ownerId}&select=seq,note_id,mode,reason,restored_at&order=seq.asc`),
+    read(`device_keys?owner_id=eq.${ownerId}&select=status&order=created_at.asc`),
+    read(`identity_revocations?owner_id=eq.${ownerId}&select=reason,revoked_at`),
+    read(`secret_notes_backup?owner_id=eq.${ownerId}&select=id&order=id.asc`),
+  ]);
+  const maskedRecords = {
+    owner,
+    referenceTime: api.data.generatedAt,
+    accessEventsLatest20: recentRows.map((row) => ({ seq: row.seq, requestId: row.request_id, method: row.method, route: row.route, outcome: row.outcome, at: row.at })),
+    getEventsLast10Minutes: windowRows.map((row) => ({ requestId: row.request_id, at: row.at })),
+    restoreAuditRows: auditRows.map((row) => ({ seq: row.seq, mode: row.mode, reason: row.reason ?? null, note: note(row.note_id), at: row.restored_at })),
+    deviceStatuses: deviceRows.map((row) => row.status),
+    revocations: revocationRows.map((row) => ({ reason: row.reason, revokedAt: row.revoked_at })),
+    backups: backupRows.map((row) => note(row.id)),
+  };
+  // 원본 줄에서 다시 센 값(화면 API 와 다른 코드)
+  const tally = (values) => values.reduce((acc, value) => ({ ...acc, [value]: (acc[value] ?? 0) + 1 }), {});
+  const restores = maskedRecords.restoreAuditRows.filter((row) => ['updated', 'reinserted', 'unchanged', 'refused'].includes(row.mode));
+  const latest = restores.length ? restores[restores.length - 1] : null;
+  const server = {
+    rules: {
+      source: api.data.rules.source,
+      ruleIds: [...RULE_IDS],
+      resourceMethods: Object.fromEntries(Object.entries(RESOURCE_METHODS).map(([zone, methods]) => [zone, [...methods]])),
+      actionRoutes: [...ACTION_ROUTES],
+    },
+    detection: {
+      source: api.data.detection.source, windowMinutes: 10, limit: 120,
+      recentGetCount: maskedRecords.getEventsLast10Minutes.length,
+      recentEvents: maskedRecords.accessEventsLatest20.map(({ requestId, route, outcome, at }) => ({ requestId, route, outcome, at })),
+      outcomeCounts: tally(maskedRecords.accessEventsLatest20.map((row) => row.outcome)),
+    },
+    revocation: {
+      revoked: maskedRecords.revocations.length > 0,
+      reason: maskedRecords.revocations[0]?.reason ?? null,
+      revokedAt: maskedRecords.revocations[0]?.revokedAt ?? null,
+      devices: { approved: 0, pending: 0, revoked: 0, ...tally(maskedRecords.deviceStatuses) },
+    },
+    restore: {
+      auditRows: maskedRecords.restoreAuditRows.length,
+      byMode: tally(maskedRecords.restoreAuditRows.map((row) => row.mode)),
+      backups: maskedRecords.backups.length,
+      latest: latest ? { seq: latest.seq, mode: latest.mode, reason: latest.reason, note: latest.note, at: latest.at } : null,
+    },
+  };
 
   const fields = {
     'rules': [api.data.rules, server.rules],
@@ -88,7 +149,8 @@ try {
     app: app.origin,
     account: 'test account A (owner masked)',
     api: { route: 'GET /api/ops/summary', status: api.status, requestId: api.requestId ?? bodyRequestId, receivedAt: new Date().toISOString(), body: shown },
-    serverRecord: { source: 'buildOpsSummary over the masked server tables, same account, same reference time', body: { ...server, source: undefined } },
+    serverRecord: { source: 'masked raw server rows of the same account (maskedRecords), recounted by scripts/ops-snapshot.mjs at the same reference time', body: server },
+    maskedRecords,
     comparison, allMatch,
   };
   const text = JSON.stringify(snapshot);
@@ -102,6 +164,8 @@ try {
     serverRecordFile: `audit/step12/ops-snapshot-${stamp}.json`,
     // 화면이 API 응답 값 옆에 같은 시점의 가린 서버 기록 값을 나란히 보여 줄 수 있게 함께 둡니다.
     serverRecord: snapshot.serverRecord.body,
+    // 다시 센 값의 근거가 된 가린 원본 줄(같은 계정, 같은 기준 시각)
+    maskedRecords,
   }, null, 2)}\n`, 'utf8');
   process.stdout.write(`작전실 실측: 요청 ID ${snapshot.api.requestId} · 서버 기록 대조 ${allMatch ? '모두 일치' : '불일치 있음'}\n`
     + Object.entries(comparison).map(([name, ok]) => `  ${ok ? '일치' : '불일치'} ${name}`).join('\n')

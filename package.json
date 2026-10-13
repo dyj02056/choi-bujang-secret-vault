@@ -25,7 +25,7 @@
     "ops:revoke": "node scripts/revoke-identity.mjs",
     "test:access": "node --test test/access.test.mjs",
     "ops:snapshot": "node scripts/ops-snapshot.mjs",
-    "ops:record": "node scripts/ops-checks.mjs && node scripts/ops-snapshot.mjs"
+    "ops:record": "node scripts/ops-checks.mjs && node scripts/ops-snapshot.mjs && node scripts/audit-export.mjs"
   },
   "engines": {
     "node": ">=22"

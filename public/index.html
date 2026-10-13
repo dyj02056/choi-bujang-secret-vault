@@ -486,8 +486,11 @@
         ['detection.recentEvents', '최근 사건(요청 ID·경로·결과·시각)'], ['revocation.revoked', '회수 여부'], ['revocation.devices', '기기 상태별 수'],
         ['restore.auditRows', '감사 기록 수'], ['restore.byMode', '감사 기록 종류별 수'], ['restore.backups', '사본 수'], ['restore.latest', '마지막 복구'],
       ];
-      opsCompareMeta.textContent = `대조 기준: 실제 API 응답 요청 ID ${snap.api.requestId} · 가린 서버 기록 ${snap.serverRecordFile} · 실측 스크립트의 항목 대조 결과: ${snap.allMatch ? '모두 일치' : '불일치 있음'}`;
-      fillTable(opsCompare, ['항목', '화면 값 (API 응답)', '가린 서버 기록 값', '같음'],
+      const raw = snap.maskedRecords;
+      opsCompareMeta.textContent = `대조 기준: 실제 API 응답 요청 ID ${snap.api.requestId} · 가린 서버 원본 줄(${snap.serverRecordFile}`
+        + (raw ? `, 계정 ${raw.owner}, 접근 사건 ${raw.accessEventsLatest20.length}줄·10분 GET ${raw.getEventsLast10Minutes.length}줄·감사 기록 ${raw.restoreAuditRows.length}줄·기기 ${raw.deviceStatuses.length}줄·사본 ${raw.backups.length}줄` : '')
+        + `)에서 다시 센 값과 비교 · 항목 대조 결과: ${snap.allMatch ? '모두 일치' : '불일치 있음'}`;
+      fillTable(opsCompare, ['항목', '화면 값 (API 응답)', '가린 서버 원본 줄에서 다시 센 값', '같음'],
         fields.map(([path, label]) => {
           const a = JSON.stringify(pick(shown, path));
           const b = JSON.stringify(pick(recorded, path));

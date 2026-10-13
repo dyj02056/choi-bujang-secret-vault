@@ -1,0 +1,406 @@
+{
+  "schema": "aleph.audit.export.v1",
+  "exportedAt": "2026-10-13T07:33:01.676Z",
+  "sections": {
+    "db": {
+      "auditTrail": [
+        {
+          "seq": 1,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "updated",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T04:32:36.443634+00:00"
+        },
+        {
+          "seq": 2,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "reinserted",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T04:33:23.230898+00:00"
+        },
+        {
+          "seq": 3,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T04:45:49.011555+00:00"
+        },
+        {
+          "seq": 4,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T04:56:29.636956+00:00"
+        },
+        {
+          "seq": 5,
+          "noteId": "bc0beb99-230e-4ef8-8f5b-a6787cb944d4",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "created",
+          "beforeSha256": null,
+          "afterSha256": "4911109bf61297490b173dc3ad536723a2fd8721ebf9172c5b9f9b2cdb3cabba",
+          "at": "2026-10-13T05:08:13.861614+00:00"
+        },
+        {
+          "seq": 6,
+          "noteId": "bc0beb99-230e-4ef8-8f5b-a6787cb944d4",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "edited",
+          "beforeSha256": "4911109bf61297490b173dc3ad536723a2fd8721ebf9172c5b9f9b2cdb3cabba",
+          "afterSha256": "d9d8d62784ecdb19186a6b4233bb335b05c6098c06c1ade487ceb7b9aefbdb21",
+          "at": "2026-10-13T05:08:22.180923+00:00"
+        },
+        {
+          "seq": 7,
+          "noteId": "bc0beb99-230e-4ef8-8f5b-a6787cb944d4",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "deleted",
+          "beforeSha256": "d9d8d62784ecdb19186a6b4233bb335b05c6098c06c1ade487ceb7b9aefbdb21",
+          "afterSha256": null,
+          "at": "2026-10-13T05:08:29.615985+00:00"
+        },
+        {
+          "seq": 8,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T05:09:07.927456+00:00"
+        },
+        {
+          "seq": 9,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:09:07.177188+00:00"
+        },
+        {
+          "seq": 10,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:09:23.278849+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 11,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:11:27.123178+00:00"
+        },
+        {
+          "seq": 12,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:11:44.885169+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 13,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:14:29.788968+00:00"
+        },
+        {
+          "seq": 14,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:14:49.271719+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 15,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:15:20.331823+00:00"
+        },
+        {
+          "seq": 16,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:15:37.68092+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 17,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:18:28.349641+00:00"
+        },
+        {
+          "seq": 18,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:18:45.189187+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 19,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:22:18.007302+00:00"
+        },
+        {
+          "seq": 20,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:22:35.989902+00:00",
+          "reason": "not_owner"
+        },
+        {
+          "seq": 21,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "mode": "unchanged",
+          "beforeSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "afterSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "at": "2026-10-13T07:32:26.856396+00:00"
+        },
+        {
+          "seq": 22,
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_49c3b2ec3c",
+          "mode": "refused",
+          "beforeSha256": null,
+          "afterSha256": null,
+          "at": "2026-10-13T07:32:47.201072+00:00",
+          "reason": "not_owner"
+        }
+      ],
+      "backups": [
+        {
+          "noteId": "1eb28129-6f8f-4bd6-ad83-54152be6101a",
+          "owner": "owner_49c3b2ec3c",
+          "contentSha256": "97e1f16487c1b42bc9a4fe9e46394e7b9ec6d0fa1de7ee116c895291c1196e53",
+          "createdAt": null,
+          "backedUpAt": "2026-10-13T04:20:12.010751+00:00"
+        },
+        {
+          "noteId": "c4e5fd73-5912-455d-8b92-9bea85745fc1",
+          "owner": "owner_8fc8b4a44f",
+          "contentSha256": "1d1e177b17ccfcefbd1164ce97718bdf367d1fcbacbb8746763f6c690fe69fac",
+          "createdAt": null,
+          "backedUpAt": "2026-10-13T04:22:54.801909+00:00"
+        },
+        {
+          "noteId": "bc0beb99-230e-4ef8-8f5b-a6787cb944d4",
+          "owner": "owner_8fc8b4a44f",
+          "contentSha256": "4911109bf61297490b173dc3ad536723a2fd8721ebf9172c5b9f9b2cdb3cabba",
+          "createdAt": "2026-10-13T05:08:13.334+00:00",
+          "backedUpAt": "2026-10-13T05:08:13.685846+00:00"
+        }
+      ],
+      "summary": {
+        "auditRows": 22,
+        "byMode": {
+          "updated": 1,
+          "reinserted": 1,
+          "unchanged": 10,
+          "created": 1,
+          "edited": 1,
+          "deleted": 1,
+          "refused": 7
+        },
+        "seqIncreasing": true,
+        "backupRows": 3
+      }
+    },
+    "git": [
+      {
+        "commit": "fe8bb341b395ca426354e97c045b57f1b2ce5a36",
+        "at": "2026-10-13T14:37:59+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "60c9f7fed7aa574c4b7c812b4134a18c4b91dd6c",
+        "at": "2026-10-13T14:26:00+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "6e9248178b765c497f76576063a506284571bb4a",
+        "at": "2026-10-13T14:17:11+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "ca0498439c791d4e72c5109c9bf1317890e3674b",
+        "at": "2026-10-13T14:06:07+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "a5742b3d7da2cce9921fa4d1b152d3651da04ad0",
+        "at": "2026-10-13T13:55:16+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "edefe47d9357fc86ca639c28307517d404dd81c7",
+        "at": "2026-10-13T13:44:55+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "6e4e151c16c4ba9523186d1468fa08c3eb5f88a8",
+        "at": "2026-10-13T13:37:02+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "399280bf2c2e40d5ecfa0e0316f85ddab8881627",
+        "at": "2026-10-13T13:19:02+09:00",
+        "subject": "「10단계 저장점」"
+      },
+      {
+        "commit": "cd488c3915ce9052205cc7925b3d7f5604efd3a1",
+        "at": "2026-10-13T13:13:41+09:00",
+        "subject": "「10단계 저장점」"
+      }
+    ],
+    "attackResults": {
+      "commit": "721bac982074555e5e58a543b8f6dd03b11b5bee",
+      "step": 12,
+      "attempts": [
+        {
+          "attackId": "s11_device_approval",
+          "expected": "A virtual passkey that signs its own registration, with a recent login, is approved: HTTP 200, device=approved",
+          "observed": "As expected: A approval: HTTP 200 device=approved req=none; B approval: HTTP 200 device=approved req=none at 2026-10-13T07:22:15.528Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s10_restore_own_note",
+          "expected": "Account B restores its own note: HTTP 200, mode updated/reinserted/unchanged, and an audit record number",
+          "observed": "As expected: HTTP 200 mode=unchanged audit=#19 req=0dc35ae2-efaa-4e2f-b27b-c9414038909f at 2026-10-13T07:22:17.772Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s12_after_restore_unsigned_write_and_out_of_zone",
+          "expected": "After the restore: B unsigned update of its own note is rejected (401 DEVICE_SIGNATURE_REQUIRED), then B signed read of A note is rejected (403)",
+          "observed": "As expected: unsigned update: HTTP 401 DEVICE_SIGNATURE_REQUIRED req=6199e8f3-f077-4f2c-967f-0b9a432c5986; out-of-zone read: HTTP 403 FORBIDDEN req=39b77242-b31c-414e-a2cb-eb7c7c966f8b at 2026-10-13T07:22:21.159Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapsh..."
+        },
+        {
+          "attackId": "s1_public_page_normal",
+          "expected": "The public page still opens: HTTP 200",
+          "observed": "As expected: HTTP 200 req=none at 2026-10-13T07:22:21.190Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s8_own_note_read_after_restore",
+          "expected": "Account A reads its own note: HTTP 200",
+          "observed": "As expected: HTTP 200 req=6de1189e-8ea4-4bc0-93d6-082665eaf349 at 2026-10-13T07:22:23.821Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s12_anonymous_then_cross_read",
+          "expected": "Back to back: anonymous read of A note is rejected (401), then B signed read of the same A note is rejected (403)",
+          "observed": "As expected: anonymous read: HTTP 401 UNAUTHORIZED req=none; cross read: HTTP 403 FORBIDDEN req=c89a73f1-8024-4ba1-a981-20042498451b at 2026-10-13T07:22:26.323Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s1_anonymous_notes_list",
+          "expected": "Anonymous list request is rejected with HTTP 401 or 403",
+          "observed": "As expected: HTTP 401 UNAUTHORIZED req=none at 2026-10-13T07:22:26.555Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s2_4_anonymous_note_by_id",
+          "expected": "Anonymous single-note request is rejected with HTTP 401 or 403",
+          "observed": "As expected: HTTP 401 UNAUTHORIZED req=none at 2026-10-13T07:22:26.782Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s8_anonymous_announcement_write",
+          "expected": "Anonymous announcement update is rejected with HTTP 401 or 403",
+          "observed": "As expected: HTTP 401 UNAUTHORIZED req=none at 2026-10-13T07:22:27.051Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s10_anonymous_restore_call",
+          "expected": "Anonymous restore call is rejected with HTTP 401 or 403",
+          "observed": "As expected: HTTP 401 UNAUTHORIZED req=none at 2026-10-13T07:22:27.266Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s5_original_api_without_key",
+          "expected": "The original table API rejects a request that carries no key: HTTP 401 or 403",
+          "observed": "As expected: HTTP 401 req=none at 2026-10-13T07:22:27.635Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s8_cross_zone_note_read",
+          "expected": "Account B reading account A note is rejected with HTTP 403",
+          "observed": "As expected: HTTP 403 FORBIDDEN req=a6edb818-3b39-40af-9a30-0aded9ae0560 at 2026-10-13T07:22:29.535Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s8_announcement_write_non_instructor",
+          "expected": "A non-instructor announcement update is rejected with HTTP 403",
+          "observed": "As expected: HTTP 403 INSTRUCTOR_REQUIRED req=74bcad5a-fcff-4d87-a090-7d59e58107f2 at 2026-10-13T07:22:32.550Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s10_restore_other_users_note",
+          "expected": "Account A restoring account B note is rejected with HTTP 403",
+          "observed": "As expected: HTTP 403 FORBIDDEN audit=#20 req=0be7c16c-8295-4728-8b4f-8ccd6539a959 at 2026-10-13T07:22:35.750Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s11_unsigned_protected_request",
+          "expected": "A logged-in protected request without a device signature is rejected: HTTP 401 DEVICE_SIGNATURE_REQUIRED",
+          "observed": "As expected: HTTP 401 DEVICE_SIGNATURE_REQUIRED req=63854047-c279-402f-88f0-95072170b5f0 at 2026-10-13T07:22:36.839Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s11_signed_path_changed",
+          "expected": "A request signed for one note and sent to another path is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH",
+          "observed": "As expected: HTTP 403 DEVICE_SIGNATURE_MISMATCH req=095fe4ff-e46b-42bd-8871-3c5810312400 at 2026-10-13T07:22:37.683Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s11_signed_body_changed",
+          "expected": "An update whose body changed after signing is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH",
+          "observed": "As expected: HTTP 403 DEVICE_SIGNATURE_MISMATCH req=878931ef-9482-4ae4-8536-53f564678007 at 2026-10-13T07:22:39.327Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s12_unregistered_device_then_revoked_identity",
+          "expected": "A signed request from a never-approved device is rejected (403 DEVICE_NOT_APPROVED); then a revoked identity is rejected (403 IDENTITY_REVOKED). Revoked part not run live: no revoked test account C",
+          "observed": "As expected: HTTP 403 DEVICE_NOT_APPROVED req=dce5bd9d-a440-4959-a3c9-d0fbf0af0204 at 2026-10-13T07:22:41.032Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s6_s7_decider_local",
+          "expected": "Unregistered device is denied; unusual region, network and hour ask for extra verification (local practice)",
+          "observed": "As expected (local virtual run): deny device_not_registered; step_up step_up_required at 2026-10-13T07:22:41.033Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        },
+        {
+          "attackId": "s9_s12_detector_and_revocation_local",
+          "expected": "121 reads in 10 minutes propose a revocation, 30 are only observed, and the access guard refuses a revoked identity (local practice)",
+          "observed": "As expected (local virtual run): propose_revocation burst_read; observe; 403 IDENTITY_REVOKED at 2026-10-13T07:22:41.036Z [recorded by npm run ops:checks at 2026-10-13T07:22:41.036Z; screen snapshot req=e5668869-cedc-4a9d-a41c-dd76173456b2]"
+        }
+      ]
+    }
+  },
+  "skipped": []
+}

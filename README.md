@@ -87,12 +87,18 @@ reason. The operator's 41 judge tests are **not run** by this procedure and are 
 
 | 기록 | 파일 | 결과 |
 |---|---|---|
-| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `e5668869-cedc-4a9d-a41c-dd76173456b2`, 서버 시각 2026-10-13T07:22:46.912Z |
-| 같은 시점의 가린 서버 기록 | `audit/step12/ops-snapshot-20261013T072247Z.json` | 항목 대조: rules 일치, detection.recentGetCount 일치, detection.outcomeCounts 일치, detection.recentEvents 일치, revocation 일치, restore 일치 |
-| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T072241Z.md` | 학생 자기 점검 20건 / 요청 23행: as_expected 21, local_as_expected 2 (검사한 커밋 `c2011fc`, 그 커밋 위의 작업 트리) |
+| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `ec94432c-b253-4246-995b-637b26376b2b`, 서버 시각 2026-10-13T07:33:01.078Z |
+| 같은 시점의 가린 서버 원본 줄 | `audit/step12/ops-snapshot-20261013T073301Z.json` (`maskedRecords`) | 계정 `owner_49c3b2ec3c`: 접근 사건 20줄, 10분 GET 5줄, 감사 기록 7줄, 기기 13줄, 사본 1줄. 다시 센 값과 화면 값 대조: rules 일치, detection.recentGetCount 일치, detection.outcomeCounts 일치, detection.recentEvents 일치, revocation 일치, restore 일치 |
+| 전체 계정의 가린 감사 기록 | `audit/step10/db-audit-trail.jsonl` | 같은 시점까지 이어 씀 (위 계정 줄은 `owner` 가 `owner_49c3b2ec3c` 인 줄) |
+| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T073253Z.md` | 학생 자기 점검 20건 / 요청 23행: as_expected 21, local_as_expected 2 (검사한 커밋 `721bac9`, 그 커밋 위의 작업 트리) |
 | 운영 심판 41종 시험 | — | **미실행** (이 저장소에서 실행하지 않음, 통과로 표시하지 않음) |
 
 작전실 화면의 "화면 값과 가린 서버 기록 대조" 표는 위 두 기록의 같은 항목 값을 그대로 나란히 보여 줍니다.
+
+"가린 서버 기록"은 요약이 아니라 **원본 줄**입니다. 실측 파일의 `maskedRecords`에 같은 계정(`owner_` 가명, `audit/step10`과 같은 방식)의
+접근 사건 최근 20줄, 최근 10분 GET 줄, 복구 감사 기록 줄(메모는 `note_` 가명), 기기 상태, 회수 줄, 사본 목록이 그대로 있고,
+`scripts/ops-snapshot.mjs`가 화면 API와 다른 코드로 이 줄들을 다시 세어 화면 값과 비교합니다. 누구나 같은 줄로 다시 셀 수 있습니다.
+실측 끝에 `npm run audit:export`도 실행되어 `audit/step10/db-audit-trail.jsonl`(전체 계정의 가린 감사 기록)이 같은 시점까지 이어 쓰입니다.
 
 순서: `npm run ops:record`가 점검표 요청을 먼저 보내고 바로 이어 작전실 실측을 받습니다. 그 뒤 이 기록을 커밋하고
 `npm run bundle`을 실행하면, 제출 묶음은 **요청을 다시 보내지 않고** 커밋된 점검표(`public/ops-checks.json`)의 실제 결과를

@@ -62,12 +62,16 @@ try {
   }).filter((entry) => entry.subject.includes('10단계 저장점'));
 
   // 3) 직접 점검 결과 (제출 묶음에서 점검 항목만 복사)
+  // 10~11단계만 제출 묶음의 점검 결과를 옮깁니다. 12단계부터 점검 결과의 원본은 audit/step12/ 점검표이며,
+  // 제출 묶음은 그 표를 옮긴 것이라 여기서 다시 옮기면 이전 시점의 결과가 지금 기록처럼 섞일 수 있습니다.
   const submission = resolve(ROOT, 'artifacts', 'submission.json');
-  if (existsSync(submission)) {
-    const bundle = JSON.parse(readFileSync(submission, 'utf8'));
+  const bundle = existsSync(submission) ? JSON.parse(readFileSync(submission, 'utf8')) : null;
+  if (bundle && bundle.step >= 12) {
+    skipped.push('attackResults (12단계부터는 audit/step12/ 점검표가 원본)');
+  } else if (bundle && bundle.commit === git('rev-parse', 'HEAD')) {
     result.sections.attackResults = { commit: bundle.commit, step: bundle.step, attempts: bundle.attackAttempts };
   } else {
-    skipped.push('attackResults (artifacts/submission.json 없음)');
+    skipped.push(bundle ? 'attackResults (제출 묶음이 지금 커밋 것이 아님)' : 'attackResults (artifacts/submission.json 없음)');
   }
 
   result.skipped = skipped;
