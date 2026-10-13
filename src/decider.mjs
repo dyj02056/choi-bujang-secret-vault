@@ -7,25 +7,33 @@ export const RULE_IDS = Object.freeze([
   'resource_zone_route',
 ]);
 
-const RESOURCE_ROUTES = Object.freeze([
-  // Resource IDs are validated as UUIDs by their API handlers. The policy checks
-  // the exact one-segment route shape so ordinary verified reads are not tied to
-  // a particular fixture's ID representation.
-  { service: 'notes', method: 'GET', route: 'GET /notes/:id', path: /^\/(?:api\/)?notes\/[^/?#]+$/u },
-  { service: 'notes', method: 'PUT', route: 'PUT /notes/:id', path: /^\/(?:api\/)?notes\/[^/?#]+$/u },
-  { service: 'notes', method: 'DELETE', route: 'DELETE /notes/:id', path: /^\/(?:api\/)?notes\/[^/?#]+$/u },
-  { service: 'announcements', method: 'GET', route: 'GET /announcements/:id', path: /^\/(?:api\/)?announcements\/[^/?#]+$/u },
-  { service: 'announcements', method: 'PUT', route: 'PUT /announcements/:id', path: /^\/(?:api\/)?announcements\/[^/?#]+$/u },
-]);
+// Exact (service, method) pairs. Ownership and the instructor role are not in the
+// decision contract, so the API handlers stay the last gate for those checks.
+const RESOURCE_METHODS = Object.freeze({
+  notes: Object.freeze(['GET', 'PUT', 'DELETE']),
+  announcements: Object.freeze(['GET', 'PUT']),
+});
+
+// "/notes/<uuid>" or "/api/notes/<uuid>" only: one segment, a UUID, no encoding tricks.
+const RESOURCE_PATH = /^\/(?:api\/)?(notes|announcements)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
 function isKnownResourceRoute(request) {
-  return request.schema === 'aleph.decision.v1'
-    && typeof request.subjectId === 'string' && request.subjectId.length > 0
-    && typeof request.deviceId === 'string' && /^[0-9a-f]{16}$/u.test(request.deviceId)
-    && request.queryLength === 0
-    && RESOURCE_ROUTES.some((entry) => entry.service === request.service
-      && entry.method === request.method && entry.route === request.route
-      && entry.path.test(request.path));
+  if (request.schema !== 'aleph.decision.v1'
+      || typeof request.subjectId !== 'string' || request.subjectId.length === 0
+      || typeof request.deviceId !== 'string' || !/^[0-9a-f]{16}$/u.test(request.deviceId)
+      || request.queryLength !== 0
+      || typeof request.service !== 'string' || typeof request.method !== 'string'
+      || typeof request.path !== 'string' || typeof request.route !== 'string') {
+    return false;
+  }
+  if (!Object.hasOwn(RESOURCE_METHODS, request.service)
+      || !RESOURCE_METHODS[request.service].includes(request.method)) return false;
+  const match = RESOURCE_PATH.exec(request.path);
+  // The path zone must equal the service zone, and the route must be the exact
+  // shape for that service and method (no cross-zone or nested routes).
+  return match !== null
+    && match[1] === request.service
+    && request.route === `${request.method} /${request.service}/:id`;
 }
 
 function requiresStepUp(request) {
