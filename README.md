@@ -1,4 +1,4 @@
-# BYTE BACK — secret-note vault (step 11)
+# BYTE BACK — secret-note vault (step 12)
 
 Private notes and instructor announcements are separate resource zones.
 Private-note access continues to use verified login plus `owner_id` checks.
@@ -23,6 +23,69 @@ otherwise it returns `observe`. Exactly 120 events is not flagged, other
 subjects are never added together, and the result keeps the same shape if the
 subject keeps trying after a proposal. This code only proposes. Delivering real
 events to the class engine and revoking access are not connected or tested here.
+
+## Step 12: the operations room (탈환 작전실)
+
+### What is whose
+
+| Part | Source | Where |
+|---|---|---|
+| Class engine: identity, device and route checks before the decider, event delivery, revocation in the relay | **ALEPH SDP engine** (provided by the course operator, not in this repository; contract in `docs/DECIDER_REQUEST.md`, `docs/DETECT_EVENTS.md`) | operator |
+| Decider rules | student | `src/decider.mjs` |
+| Burst-read detection rule | student | `src/detect.mjs`, applied to server records by `src/access-guard.mjs` |
+| Access app (installable page, passkey device approval, signed requests) | student | `public/`, `api/devices.js`, `api/session.js`, `src/device-*.mjs` |
+| Vault APIs, backup/restore, audit, access guard, operations summary | student | `api/`, `src/`, `supabase/migrations/001`–`009` |
+
+### Operations room
+
+After a device is approved the app shows **탈환 작전실**. "서버 기록으로 요약 불러오기" sends a signed
+`GET /api/ops/summary` and shows, for the logged-in account only: the decider rule names and zones, access
+events of the last 10 minutes (request ID, route shape, outcome), revocation state and device counts, and the
+restore audit summary (row counts per event, backups, last restore with a masked note reference). Every value
+comes from that API response, whose request ID and server time are shown; until it is requested every box says
+미실행. No note title or text is ever sent or shown. The same numbers can be recounted on the server with
+`npm run ops:summary -- --owner <owner UUID>` (new requests are recorded after the screen was loaded, so the
+event count can only grow).
+
+### Access guard (every protected API)
+
+`src/access-guard.mjs` runs after login on `/api/notes`, `/api/notes/:id`, `/api/announcements/:id`,
+`/api/restore/notes` and `/api/ops/summary`. It gives each request an ID (response header `x-aleph-request-id`),
+refuses a revoked identity (403 `IDENTITY_REVOKED`, even with a valid device signature), applies the step 11
+device signature check, records an access event (route shape only, table `access_events`), and on a `GET`
+applies the step 9 rule to those records: the 121st read within 10 minutes revokes the identity
+(`identity_revocations`, reason `burst_read`) and all its devices. A revoked identity cannot approve a new device.
+If the records cannot be read or written the request is refused (502).
+
+| Sequence | Result |
+|---|---|
+| Anonymous read, then another user's note read, back to back | 401, then 403 |
+| Request from a device that was never approved, then from a revoked identity | 403 `DEVICE_NOT_APPROVED`, then 403 `IDENTITY_REVOKED` |
+| After a restore: unsigned change request, then out-of-zone read | 401 `DEVICE_SIGNATURE_REQUIRED`, then 403 |
+
+### The 1–11 check table
+
+`npm run ops:checks` sends the normal and forbidden requests of steps 1–11 (the same 20 checks as
+`npm run bundle`) and writes one row per request: step, normal/forbidden, expected result, observed API result,
+server request ID and check time. Output: `audit/step12/checks-<UTC>.json` and `.md` (never overwritten) and
+`public/ops-checks.json`, which the operations room shows. A check that could not be sent is `not_run` with its
+reason. The operator's 41 judge tests are **not run** by this procedure and are shown as not run, never as passed.
+
+### Install, run, stop, restore (from the checked commit)
+
+| Part | Install | Run | Stop | Restore |
+|---|---|---|---|---|
+| Database | run `supabase/migrations/001`–`009` in order in the official Supabase SQL Editor | — | — | notes: `POST /api/restore/notes`; the audit, backup, event and revocation tables are append-only |
+| Vault + access app | Vercel project from this repository; set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` only in the Vercel environment screen | push to `main` (Vercel builds with `npm run build`) | roll back or pause the deployment in Vercel | redeploy a trusted commit; `npm run policy:diff` / `policy:restore` for routes |
+| Student decider | `src/decider.mjs` | the ALEPH SDP engine calls `decide(request)`; practice: `npm run decider:test` | revert the commit | `npm run policy:diff` shows rule differences from `policy/safe-policy.json` |
+| Detection rule | `src/detect.mjs` | the access guard on every `GET`; practice: `npm run detect:test` | — | a revocation cannot be undone by the app; use a new test account |
+| Self-check table | `npm install` | `npm run ops:checks`, then `npm run bundle` | — | — |
+
+To check the revoked-identity path live, revoke a third test account C once with
+`npm run ops:revoke -- --owner <C owner UUID>` (permanent) and give its login as `ALEPH_CHECK_EMAIL_C` /
+`ALEPH_CHECK_PASSWORD_C` (or `ALEPH_CHECK_TOKEN_C`). Without it that half is reported as not run live.
+
+No password, token, server key, device key or note text is part of this repository or the submission.
 
 ## Step 11: the access app and device approval
 
@@ -219,14 +282,17 @@ says `Needs review`; it is never turned into a pass.
 The rows marked local practice run the decider and detector in this process with virtual
 requests; they are not judge results. The rows that need two test logins are sent only when
 you set these four values in your own shell (never in a file, chat or Git). Use the two test
-accounts, a note owned by each, and tokens from a login **within the last 10 minutes** (device approval needs a
-recent login):
+accounts and a note owned by each. Either give their logins (the check logs in through `/api/session` itself, so the
+token is always fresh) or tokens from a login **within the last 10 minutes** (device approval needs a recent login):
 
 ```powershell
 $env:ALEPH_CHECK_TOKEN_A = '<test account A token>'
 $env:ALEPH_CHECK_TOKEN_B = '<test account B token>'
 $env:ALEPH_CHECK_NOTE_A  = '<A note UUID>'
 $env:ALEPH_CHECK_NOTE_B  = '<B note UUID>'
+# or, instead of the two tokens:
+$env:ALEPH_CHECK_EMAIL_A = '<test account A email>'; $env:ALEPH_CHECK_PASSWORD_A = '<test account A password>'
+$env:ALEPH_CHECK_EMAIL_B = '<test account B email>'; $env:ALEPH_CHECK_PASSWORD_B = '<test account B password>'
 ```
 
 Order: tamper with or delete the B note, then run `npm run bundle` from a clean commit.
@@ -250,6 +316,7 @@ npm run detect:test
 npm run test:restore
 npm run test:audit
 npm run test:device
+npm run test:access
 npm run policy:diff
 npm run backup:verify -- --policy-only
 npm run build -- --local

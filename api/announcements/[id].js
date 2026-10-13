@@ -1,8 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createLoginVerifier } from '../../src/verify-login.mjs';
-import { ownerKeyOf } from '../../src/owner-key.mjs';
-import { requireSignedDevice } from '../../src/device-signature.mjs';
+import { guardRequest } from '../../src/access-guard.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
@@ -52,9 +51,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'VERIFIER_ERROR' });
   }
   if (!verified?.userId) return res.status(401).json({ error: 'UNAUTHORIZED' });
-  const ownerId = ownerKeyOf(verified);
-  // 11단계: 로그인과 별개로, 승인된 기기가 이 요청(메서드·경로·본문)에 서명했는지 확인합니다.
-  if (!(await requireSignedDevice(req, res, { ownerId, supabaseUrl, serviceKey: supabaseKey }))) return;
+  // 12단계: 회수된 신원 거부, 승인된 기기의 서명 확인(11단계), 접근 사건 기록과 과다 조회 회수(9단계 규칙)를 한 관문에서 합니다.
+  if (!(await guardRequest(req, res, { verified, supabaseUrl, serviceKey: supabaseKey }))) return;
 
   const { id } = req.query;
   if (typeof id !== 'string' || !UUID.test(id)) {

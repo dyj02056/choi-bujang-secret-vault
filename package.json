@@ -19,7 +19,11 @@
     "backup:verify": "node scripts/backup-verify.mjs",
     "test:audit": "node --test test/audit.test.mjs",
     "audit:export": "node scripts/audit-export.mjs",
-    "test:device": "node --test test/device.test.mjs"
+    "test:device": "node --test test/device.test.mjs",
+    "ops:checks": "node scripts/ops-checks.mjs",
+    "ops:summary": "node scripts/ops-summary.mjs",
+    "ops:revoke": "node scripts/revoke-identity.mjs",
+    "test:access": "node --test test/access.test.mjs"
   },
   "engines": {
     "node": ">=22"

@@ -3,6 +3,7 @@
 // 승인은 서버가 정합니다: 그 패스키로 이 등록 요청에 서명했고, 최근 10분 안에 실제로 로그인한 토큰일 때만 'approved'.
 // 아니면 'pending' 으로 남기고 다시 로그인하라고 알립니다. 브라우저의 승인 버튼이나 본문 값만으로는 승인되지 않습니다.
 import { ownerKeyOf } from './owner-key.mjs';
+import { readRevocation } from './access-guard.mjs';
 import {
   deviceIdOfCredential, publicJwkFromSpki, readDevice, readSignedRequest, useNonce, verifyAssertion,
 } from './device-signature.mjs';
@@ -46,6 +47,15 @@ export async function handleDevices({ req, verified, fetchImpl = fetch, supabase
     apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', ...extra,
   });
   const url = (path) => `${supabaseUrl}/rest/v1/${path}`;
+
+  // 12단계: 회수된 신원은 기기 목록을 보거나 새 기기를 승인받을 수 없습니다.
+  try {
+    if (await readRevocation({ fetchImpl, supabaseUrl, serviceKey, ownerId })) {
+      return { status: 403, body: { error: 'IDENTITY_REVOKED', message: '회수된 신원입니다. 새 기기를 승인받을 수 없습니다.' } };
+    }
+  } catch {
+    return { status: 502, body: { error: 'ACCESS_CHECK_UNAVAILABLE', message: '회수 상태를 확인할 수 없습니다.' } };
+  }
 
   if (req.method === 'GET') {
     try {

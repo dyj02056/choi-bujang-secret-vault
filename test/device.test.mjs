@@ -15,13 +15,16 @@ const ORIGIN = `https://${HOST}`;
 const newDevice = () => createVirtualDevice({ origin: ORIGIN });
 
 function makeDb() {
-  const db = { devices: [], nonces: [] };
+  const db = { devices: [], nonces: [], revocations: [] };
   db.fetch = async (url, options = {}) => {
     const parsed = new URL(url);
     const table = parsed.pathname.split('/').pop();
     const method = options.method ?? 'GET';
     const reply = (status, body) => ({ ok: status < 300, status, json: async () => body });
     const eq = (name) => parsed.searchParams.get(name)?.replace('eq.', '');
+    if (table === 'identity_revocations' && method === 'GET') {
+      return reply(200, db.revocations.filter((row) => row.owner_id === eq('owner_id')));
+    }
     if (table === 'device_nonces' && method === 'POST') {
       const body = JSON.parse(options.body);
       if (db.nonces.some((row) => row.device_id === body.device_id && row.nonce === body.nonce)) return reply(409, {});
@@ -208,4 +211,13 @@ test('등록 본문과 서명 머리글 어디에도 개인키 값이 없다', (
   const device = newDevice();
   const sent = JSON.stringify({ body: device.registration(), headers: device.signHeaders({ path: '/api/notes' }) });
   assert.equal(/"d"s*:|PRIVATE KEY/u.test(sent), false);
+});
+
+test('회수된 신원은 새 기기를 승인받을 수 없다', async () => {
+  const db = makeDb();
+  db.revocations.push({ owner_id: OWNER_A, reason: 'burst_read' });
+  const result = await register(db, fresh, newDevice());
+  assert.equal(result.status, 403);
+  assert.equal(result.body.error, 'IDENTITY_REVOKED');
+  assert.equal(db.devices.length, 0);
 });

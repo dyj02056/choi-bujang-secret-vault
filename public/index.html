@@ -46,6 +46,16 @@
     .status-row { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; color: #bfd0e5; margin: 8px 0 14px; }
     .status-row code { color: #ecf4ff; }
     [hidden] { display: none !important; }
+    .ops-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+    .ops-grid .card { margin: 0; }
+    .ops-grid h4 { margin: 0 0 8px; font-size: 15px; color: #8ad8df; }
+    .ops-grid p, .ops-meta { font-size: 13px; line-height: 1.6; margin: 4px 0; }
+    .big { font-size: 26px; font-weight: 800; color: #ffffff; }
+    .table-wrap { overflow-x: auto; margin-top: 10px; }
+    table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    th, td { border-bottom: 1px solid #33475c; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { color: #8ad8df; white-space: nowrap; }
+    .v-ok { color: #a8f0d4; } .v-bad { color: #ff8b9e; } .v-skip { color: #ffd9a0; }
   </style>
 </head>
 <body>
@@ -111,7 +121,26 @@
       <div id="device-result" class="notice info" hidden></div>
     </div>
 
-    <!-- 3. 메모 작성 및 목록 영역 (로그인 + 서버 승인 기기에서만 노출) -->
+    <!-- 3. 탈환 작전실 (로그인 + 서버 승인 기기에서만 노출, 메모 본문은 표시하지 않음) -->
+    <div id="ops-section" class="card" hidden>
+      <h3 style="margin-top:0;">탈환 작전실</h3>
+      <p class="ops-meta">아래 수치는 <strong>실제 API 응답</strong>(GET /api/ops/summary)으로 받은 이 계정의 가린 서버 기록입니다.
+        요청하지 않은 값은 "미실행"으로 둡니다. 메모 제목·본문은 받지도 표시하지도 않습니다.</p>
+      <button id="btn-ops-refresh">서버 기록으로 요약 불러오기</button>
+      <div id="ops-source" class="ops-meta">요약: 미실행 (아직 요청하지 않음)</div>
+      <div class="ops-grid">
+        <div class="card"><h4>판정기 규칙</h4><div id="ops-rules" class="ops-meta">미실행</div></div>
+        <div class="card"><h4>탐지 사건 (10분)</h4><div id="ops-detect" class="ops-meta">미실행</div></div>
+        <div class="card"><h4>회수 상태</h4><div id="ops-revoke" class="ops-meta">미실행</div></div>
+        <div class="card"><h4>복구 버전</h4><div id="ops-restore" class="ops-meta">미실행</div></div>
+      </div>
+      <div class="table-wrap"><table id="ops-events"></table></div>
+      <h4 style="margin:18px 0 6px; color:#8ad8df;">1~11단계 점검표 (npm run ops:checks 실측)</h4>
+      <div id="ops-checks-meta" class="ops-meta">점검표를 불러오지 않았습니다.</div>
+      <div class="table-wrap"><table id="ops-checks"></table></div>
+    </div>
+
+    <!-- 4. 메모 작성 및 목록 영역 (로그인 + 서버 승인 기기에서만 노출) -->
     <div id="notes-section" hidden>
       <!-- 메모 추가 폼 -->
       <div class="card">
@@ -147,6 +176,7 @@
     const authError = document.getElementById('auth-error');
     const notesSection = document.getElementById('notes-section');
     const notesList = document.getElementById('notes-list');
+    const opsSection = document.getElementById('ops-section');
 
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -203,6 +233,7 @@
       session.approved = approved && navigator.onLine;
       deviceStatusText.textContent = label;
       notesSection.hidden = !session.approved;
+      opsSection.hidden = !session.approved;
       if (!session.approved) notesList.innerHTML = '';
     }
 
@@ -264,6 +295,7 @@
         setApproved(true, '승인됨');
         showResult('ok', '서버가 이 기기를 승인했습니다. 자료실을 엽니다.');
         await loadNotes();
+        loadChecks();
       } else if (data.error === 'REAUTH_REQUIRED') {
         setApproved(false, '대기(다시 로그인 필요)');
         reauthForm.hidden = false;
@@ -421,6 +453,108 @@
       updateAuthState(null);
     });
 
+    // ── 탈환 작전실: 서버 기록 요약(실제 API 응답)과 점검표(npm run ops:checks 결과 파일) ──
+    // 서버가 보낸 값은 textContent 로만 넣습니다. 메모 제목·본문은 요약에 없고 표시하지도 않습니다.
+    const opsSource = document.getElementById('ops-source');
+    const opsRules = document.getElementById('ops-rules');
+    const opsDetect = document.getElementById('ops-detect');
+    const opsRevoke = document.getElementById('ops-revoke');
+    const opsRestore = document.getElementById('ops-restore');
+    const opsEvents = document.getElementById('ops-events');
+    const opsChecksMeta = document.getElementById('ops-checks-meta');
+    const opsChecks = document.getElementById('ops-checks');
+
+    function fillLines(target, lines) {
+      target.textContent = '';
+      for (const line of lines) {
+        const p = document.createElement('p');
+        if (Array.isArray(line)) {
+          const big = document.createElement('span');
+          big.className = 'big';
+          big.textContent = line[0];
+          p.append(big, document.createTextNode(` ${line[1]}`));
+        } else {
+          p.textContent = line;
+        }
+        target.appendChild(p);
+      }
+    }
+
+    function fillTable(table, headers, rows, classOf = () => '') {
+      table.textContent = '';
+      const head = table.insertRow();
+      for (const name of headers) {
+        const th = document.createElement('th');
+        th.textContent = name;
+        head.appendChild(th);
+      }
+      for (const row of rows) {
+        const tr = table.insertRow();
+        tr.className = classOf(row);
+        for (const value of row.cells) tr.insertCell().textContent = value ?? '-';
+      }
+    }
+
+    const counts = (object) => Object.entries(object || {}).map(([key, value]) => `${key} ${value}`).join(', ') || '없음';
+
+    document.getElementById('btn-ops-refresh').addEventListener('click', async () => {
+      opsSource.textContent = '요약: 요청 중';
+      try {
+        const res = await signedFetch('/api/ops/summary');
+        const data = await res.json().catch(() => ({}));
+        const requestId = res.headers.get('x-aleph-request-id') || data.requestId || '없음';
+        if (!res.ok) {
+          opsSource.textContent = `요약: 실패 HTTP ${res.status} ${data.error || ''} (요청 ID ${requestId}) — 아래 값은 미실행`;
+          return;
+        }
+        opsSource.textContent = `요약: 실제 API 응답 · 요청 ID ${requestId} · 서버 시각 ${data.generatedAt}`;
+        fillLines(opsRules, [
+          [data.rules.ruleIds.length, '개 규칙'],
+          data.rules.ruleIds.join(', '),
+          `자원 구역: ${Object.entries(data.rules.resourceMethods).map(([zone, methods]) => `${zone} ${methods.join('/')}`).join(' · ')}`,
+          `동작 경로: ${data.rules.actionRoutes.join(', ')}`,
+        ]);
+        fillLines(opsDetect, [
+          [`${data.detection.recentGetCount} / ${data.detection.limit}`, `GET (최근 ${data.detection.windowMinutes}분, 초과 시 회수)`],
+          `최근 사건 ${data.detection.recentEvents.length}건: ${counts(data.detection.outcomeCounts)}`,
+        ]);
+        fillLines(opsRevoke, [
+          [data.revocation.revoked ? '회수됨' : '정상', data.revocation.revoked ? `(${data.revocation.reason}, ${data.revocation.revokedAt})` : ''],
+          `기기: 승인 ${data.revocation.devices.approved} · 대기 ${data.revocation.devices.pending} · 회수 ${data.revocation.devices.revoked}`,
+        ]);
+        const latest = data.restore.latest;
+        fillLines(opsRestore, [
+          [data.restore.auditRows, '개 감사 기록'],
+          `사본 ${data.restore.backups}개 · ${counts(data.restore.byMode)}`,
+          latest ? `마지막 복구 #${latest.seq} ${latest.mode}${latest.reason ? `(${latest.reason})` : ''} ${latest.note} ${latest.at}` : '복구 기록 없음',
+        ]);
+        fillTable(opsEvents, ['요청 ID', '경로 모양', '결과', '시각'],
+          data.detection.recentEvents.map((event) => ({ cells: [event.requestId, event.route, event.outcome, event.at], outcome: event.outcome })),
+          (row) => (row.outcome === 'allowed' ? 'v-ok' : 'v-bad'));
+      } catch (err) {
+        opsSource.textContent = `요약: 실패 (${err.message}) — 아래 값은 미실행`;
+      }
+    });
+
+    async function loadChecks() {
+      try {
+        const res = await fetch('/ops-checks.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const table = await res.json();
+        opsChecksMeta.textContent = `검사한 커밋 ${String(table.commit).slice(0, 12)} · ${table.finishedAt} · 학생 자기 점검 ${table.selfChecks.checks}건 / 요청 ${table.selfChecks.requests}행 (${counts(table.selfChecks.verdicts)}) · 운영 심판 ${table.judgeTests.total}종: 미실행`;
+        fillTable(opsChecks, ['단계', '정상/금지', '점검 ID', '요청', '기대 결과', '실제 API 결과', '요청 ID', '확인 시각', '판정'],
+          table.rows.map((row) => ({
+            verdict: row.verdict,
+            cells: [row.step, row.kind === 'normal' ? '정상' : '금지', row.attackId, row.request, row.expected,
+              row.verdict === 'not_run' ? `미실행: ${row.notRunReason || ''}` : row.observed, row.requestId, row.checkedAt, row.verdict],
+          })),
+          (row) => ({ as_expected: 'v-ok', local_as_expected: 'v-ok', not_run: 'v-skip' }[row.verdict] || 'v-bad'));
+      } catch (err) {
+        opsChecksMeta.textContent = `점검표 없음 (${err.message}): npm run ops:checks 를 아직 실행하지 않았습니다. 모든 점검은 미실행입니다.`;
+        opsChecks.textContent = '';
+      }
+    }
+
     // 메모는 서명 요청 한 번으로 받아 화면 메모리에만 두고, 저장소에는 넣지 않습니다.
     let currentNotes = [];
 
@@ -477,6 +611,7 @@
         if (probe) {
           setApproved(true, '승인됨');
           showResult('ok', '서버가 이 기기의 서명과 승인 상태를 확인했습니다.');
+          loadChecks();
         }
         currentNotes = Array.isArray(data) ? data : [];
         renderNotes();
