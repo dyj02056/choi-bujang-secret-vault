@@ -11,11 +11,11 @@ const RESOURCE_ROUTES = Object.freeze([
   // Resource IDs are validated as UUIDs by their API handlers. The policy checks
   // the exact one-segment route shape so ordinary verified reads are not tied to
   // a particular fixture's ID representation.
-  { service: 'notes', method: 'GET', route: 'GET /notes/:id', path: /^\/notes\/[^/?#]+$/u },
-  { service: 'notes', method: 'PUT', route: 'PUT /notes/:id', path: /^\/notes\/[^/?#]+$/u },
-  { service: 'notes', method: 'DELETE', route: 'DELETE /notes/:id', path: /^\/notes\/[^/?#]+$/u },
-  { service: 'announcements', method: 'GET', route: 'GET /announcements/:id', path: /^\/announcements\/[^/?#]+$/u },
-  { service: 'announcements', method: 'PUT', route: 'PUT /announcements/:id', path: /^\/announcements\/[^/?#]+$/u },
+  { service: 'notes', method: 'GET', route: 'GET /notes/:id', path: /^\/(?:api\/)?notes\/[^/?#]+$/u },
+  { service: 'notes', method: 'PUT', route: 'PUT /notes/:id', path: /^\/(?:api\/)?notes\/[^/?#]+$/u },
+  { service: 'notes', method: 'DELETE', route: 'DELETE /notes/:id', path: /^\/(?:api\/)?notes\/[^/?#]+$/u },
+  { service: 'announcements', method: 'GET', route: 'GET /announcements/:id', path: /^\/(?:api\/)?announcements\/[^/?#]+$/u },
+  { service: 'announcements', method: 'PUT', route: 'PUT /announcements/:id', path: /^\/(?:api\/)?announcements\/[^/?#]+$/u },
 ]);
 
 function isKnownResourceRoute(request) {

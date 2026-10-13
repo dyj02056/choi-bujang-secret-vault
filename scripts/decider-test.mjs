@@ -41,7 +41,7 @@ export async function checkDecider({ decide, ruleIds }) {
   if (ruleIds.includes('resource_zone_route')) {
     checks.push(
       { name: 'owned private-note read route', request: { ...normal,
-        requestId: randomUUID(), service: 'notes', path: '/notes/00000000-0000-4000-8000-000000000001',
+        requestId: randomUUID(), service: 'notes', path: '/api/notes/00000000-0000-4000-8000-000000000001',
         route: 'GET /notes/:id' }, decision: 'allow' },
       { name: 'instructor announcement update route', request: { ...normal,
         requestId: randomUUID(), service: 'announcements', method: 'PUT',
