@@ -1,6 +1,6 @@
-// Student self-check: retain API-access checks in stage 8.
+// Student self-check: retain API-access checks in stage 9.
 export async function runAttackChecks(config) {
-  if (config.step !== 8) throw new Error('Current step requires updating src/attack-check.mjs.');
+  if (config.step !== 9) throw new Error('Current step requires updating src/attack-check.mjs.');
   let app;
   try {
     app = new URL(config.publicAppUrl);

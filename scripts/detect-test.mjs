@@ -24,6 +24,27 @@ const cases = [
   expected: { action: 'observe' } },
   { name: '10분 밖으로 흩어진 조회 200건', events: reads(200,
     { intervalSeconds: 7 }), expected: { action: 'observe' } },
+  // 회수 제안 뒤에도 같은 신원이 계속 시도하는 경우: 제안이 사라지지 않아야 합니다.
+  { name: '회수 제안 뒤 같은 신원 재시도', events: [...reads(121),
+    ...reads(30, { start: START + 20 * 60 * 1000 })], expected: {
+    action: 'propose_revocation', reasonCode: 'burst_read', subject } },
+  // 정상 사용자 사건 속에 섞인 도플갱어만 대상이 되어야 합니다.
+  { name: '정상 사용자 사이의 도플갱어', events: [...reads(100, { owner: 'other_fixture' }),
+    ...reads(150)].sort((a, b) => a.at.localeCompare(b.at)), expected: {
+    action: 'propose_revocation', reasonCode: 'burst_read', subject } },
+  // 구간이 두 번으로 나뉘어 각각 120건 이하이면 합쳐서 세지 않습니다.
+  { name: '나뉜 두 구간 각 120건', events: [...reads(120),
+    ...reads(120, { start: START + 60 * 60 * 1000 })], expected: { action: 'observe' } },
+  { name: 'GET이 아닌 사건 200건', events: reads(200).map((event) => ({
+    ...event, method: 'POST' })), expected: { action: 'observe' } },
+  { name: '잘못된 시각·신원 사건 200건', events: [...reads(200).map((event) => ({
+    ...event, at: 'not-a-time' })), ...reads(200).map((event) => ({
+    ...event, identity: { sub: 42 } })), ...reads(200).map((event) => ({
+    at: event.at, method: event.method }))], expected: { action: 'observe' } },
+  // 사건에 토큰·메모 본문이 섞여 있어도 결과에 복사하지 않습니다.
+  { name: '추가 항목은 결과에 복사하지 않음', events: reads(121).map((event) => ({
+    ...event, token: 'not-a-real-token', body: 'sample' })), expected: {
+    action: 'propose_revocation', reasonCode: 'burst_read', subject } },
 ];
 
 // This is a practice contract, not a live engine assertion or judge score.
