@@ -6,3 +6,4 @@
 {"at":"2026-10-13T04:54:13.770Z","action":"note_backup_copied","noteId":"c4e5fd73-5912-455d-8b92-9bea85745fc1","created":0,"skipped":1,"result":"ok"}
 {"at":"2026-10-13T04:54:24.298Z","action":"policy_copy_verified","policyVersion":1,"policyHash":"f17cc40258c7","result":"ok"}
 {"at":"2026-10-13T04:54:24.549Z","action":"note_backups_verified","verified":2,"failed":0,"result":"ok"}
+{"at":"2026-10-13T05:15:23.361Z","action":"audit_exported","created":8,"verified":15,"result":"ok"}

@@ -93,6 +93,22 @@ places. Nothing below holds note titles, note text, tokens or keys.
 | 3 | Restore response | `audit` (`recorded`, `seq`) in the body of every `POST /api/restore/notes` | the number of the row in record 1 | `src/restore-note.mjs` |
 | 4 | Class engine record | held by the class operator, **not in this repository** | decisions the engine made | the provided ALEPH SDP engine |
 
+### Everything that happened in step 10, kept in the repository
+
+`audit/step10/` holds the records of what really happened in step 10, so they can be read
+without opening the database. Start with `audit/step10/INDEX.md`: it lists every file and a
+time-ordered table of the events, and says what is not known.
+
+| File | What it is |
+|---|---|
+| `audit/step10/export-<UTC time>.json` | the whole database audit trail (record 1), the backup rows without any note text, the step 10 save-point commits and the 15 checks of the last `npm run bundle`. Made by `npm run audit:export` |
+| `audit/step10/deployments.json` | the Vercel deployments of the step 10 save points, copied as the Vercel API returned them |
+| `audit/restore-audit.log` | the one-line log of the local procedures |
+
+Run `npm run audit:export` again after any new restore, edit or delete to add a new export file;
+an earlier export is never overwritten. Account IDs appear only as `owner_` plus ten characters of
+their SHA-256, note text never appears, and the class engine record is still not in the repository.
+
 ### Where the backups and their logs are
 
 | Backup | Where it lives | Log that it was made or checked |

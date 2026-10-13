@@ -1,0 +1,55 @@
+{
+  "schema": "aleph.audit.deployments.v1",
+  "source": "Vercel list_deployments (project choi-bujang-secret-vault), copied as returned",
+  "note": "10단계 저장점 배포만 옮겼습니다. state/target은 모두 응답 값 그대로입니다.",
+  "deployments": [
+    {
+      "deploymentId": "dpl_6jqqxHitJX9JKiAeNfSXMwbTP2rm",
+      "createdAt": "2026-10-13T04:13:46.648Z",
+      "commit": "cd488c3915ce9052205cc7925b3d7f5604efd3a1",
+      "state": "READY",
+      "target": "production",
+      "branch": "main"
+    },
+    {
+      "deploymentId": "dpl_3H6u6H85XbUCVZDxTomkp6jDKQ6H",
+      "createdAt": "2026-10-13T04:19:07.461Z",
+      "commit": "399280bf2c2e40d5ecfa0e0316f85ddab8881627",
+      "state": "READY",
+      "target": "production",
+      "branch": "main"
+    },
+    {
+      "deploymentId": "dpl_4iJoSicANauN8AnzaqNY1RJseBUU",
+      "createdAt": "2026-10-13T04:37:06.950Z",
+      "commit": "6e4e151c16c4ba9523186d1468fa08c3eb5f88a8",
+      "state": "READY",
+      "target": "production",
+      "branch": "main"
+    },
+    {
+      "deploymentId": "dpl_AqzraewpHGCxBVm3M1ahAsTDV8CZ",
+      "createdAt": "2026-10-13T04:45:00.872Z",
+      "commit": "edefe47d9357fc86ca639c28307517d404dd81c7",
+      "state": "READY",
+      "target": "production",
+      "branch": "main"
+    },
+    {
+      "deploymentId": "dpl_Eut66puCd8Bm1xtFEqohASr88p7S",
+      "createdAt": "2026-10-13T04:55:21.582Z",
+      "commit": "a5742b3d7da2cce9921fa4d1b152d3651da04ad0",
+      "state": "READY",
+      "target": "production",
+      "branch": "main"
+    },
+    {
+      "deploymentId": "dpl_AaVnoYVzcT4gKMDMzxmsZ1TBnkcR",
+      "createdAt": "2026-10-13T05:06:12.496Z",
+      "commit": "ca0498439c791d4e72c5109c9bf1317890e3674b",
+      "state": "READY",
+      "target": "production",
+      "branch": "main"
+    }
+  ]
+}

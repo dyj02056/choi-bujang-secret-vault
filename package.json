@@ -17,7 +17,8 @@
     "policy:diff": "node scripts/policy-diff.mjs",
     "policy:restore": "node scripts/policy-restore.mjs",
     "backup:verify": "node scripts/backup-verify.mjs",
-    "test:audit": "node --test test/audit.test.mjs"
+    "test:audit": "node --test test/audit.test.mjs",
+    "audit:export": "node scripts/audit-export.mjs"
   },
   "engines": {
     "node": ">=22"
