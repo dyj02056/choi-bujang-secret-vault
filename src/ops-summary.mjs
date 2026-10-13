@@ -9,16 +9,16 @@ export const DETECTION_LIMIT = 120;
 const RECENT_EVENTS = 20;
 
 // 최종 결과 이름: access_results 의 HTTP 상태로 정합니다. 관문 통과(gate_passed)만으로 허용이라 쓰지 않습니다.
-//   2xx·3xx → allowed, 4xx·5xx → 오류 코드 소문자(없으면 http_<상태>), 결과 줄 없음 → not_recorded,
-//   지금 이 요약 요청 자신 → this_request(응답을 보낸 뒤에 결과가 기록되므로)
-export function resultLabel(result, requestId, currentRequestId) {
+//   2xx·3xx → allowed, 4xx·5xx → 오류 코드 소문자(없으면 http_<상태>), 결과 줄 없음 → not_recorded.
+//   지금 이 요약 요청 자신도 응답 뒤에 결과가 기록되므로 not_recorded 입니다(따로 이름을 만들어 채우지 않음).
+export function resultLabel(result) {
   if (result) return result.status < 400 ? 'allowed' : String(result.error ?? `http_${result.status}`).toLowerCase();
-  return requestId === currentRequestId ? 'this_request' : 'not_recorded';
+  return 'not_recorded';
 }
 
 export const maskNote = (id) => (id ? `note_${createHash('sha256').update(String(id).toLowerCase()).digest('hex').slice(0, 10)}` : null);
 
-export async function buildOpsSummary({ fetchImpl = fetch, supabaseUrl, serviceKey, ownerId, currentRequestId = null, now = Date.now() }) {
+export async function buildOpsSummary({ fetchImpl = fetch, supabaseUrl, serviceKey, ownerId, now = Date.now() }) {
   const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
   const read = async (path) => {
     const response = await fetchImpl(`${supabaseUrl}/rest/v1/${path}`, { headers });
@@ -40,7 +40,7 @@ export async function buildOpsSummary({ fetchImpl = fetch, supabaseUrl, serviceK
   const shown = events.map((row) => {
     const result = resultOf.get(row.request_id) ?? null;
     return { requestId: row.request_id, route: row.route, gate: row.outcome, status: result?.status ?? null,
-      outcome: resultLabel(result, row.request_id, currentRequestId), at: row.at };
+      outcome: resultLabel(result), at: row.at };
   });
   const count = (rows, key) => rows.reduce((acc, row) => ({ ...acc, [row[key]]: (acc[row[key]] ?? 0) + 1 }), {});
   const restores = audit.filter((row) => ['updated', 'reinserted', 'unchanged', 'refused'].includes(row.mode));

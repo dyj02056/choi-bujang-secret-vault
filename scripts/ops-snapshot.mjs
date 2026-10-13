@@ -114,11 +114,11 @@ try {
   const restores = maskedRecords.restoreAuditRows.filter((row) => ['updated', 'reinserted', 'unchanged', 'refused'].includes(row.mode));
   const latest = restores.length ? restores[restores.length - 1] : null;
   // 최종 결과 이름은 화면 API 와 같은 규칙(2xx·3xx allowed, 그 밖은 오류 코드, 줄 없음 not_recorded)을 여기서 따로 계산합니다.
+  // 요약 요청 자신도 결과 줄이 없으므로 not_recorded 입니다.
   const resultById = Object.fromEntries(maskedRecords.accessResultsOfLatest20.map((row) => [row.requestId, row]));
   const events = maskedRecords.accessEventsLatest20.map(({ requestId, route, outcome, at }) => {
     const r = resultById[requestId];
-    const label = r ? (r.status < 400 ? 'allowed' : String(r.error ?? `http_${r.status}`).toLowerCase())
-      : (requestId === api.requestId ? 'this_request' : 'not_recorded');
+    const label = r ? (r.status < 400 ? 'allowed' : String(r.error ?? `http_${r.status}`).toLowerCase()) : 'not_recorded';
     return { requestId, route, gate: outcome, status: r ? r.status : null, outcome: label, at };
   });
   const server = {

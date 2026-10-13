@@ -42,15 +42,18 @@ async function send(app, path, { method = 'GET', token, body, base, device, sign
     Object.assign(headers, device.signHeaders({ method, path: url.pathname + url.search, body, ...signAs }));
   }
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const response = await fetch(url, {
-    method, headers, body: body === undefined ? undefined : JSON.stringify(body),
-    redirect: 'error', signal: AbortSignal.timeout(10000),
-  });
+  // Read-only run (npm run bundle, the judge's isolated runner): only a plain GET/HEAD with method and headers,
+  // no timeout signal or redirect option, so the request goes out through the runner's own fetch as it is.
+  const init = writesAllowed
+    ? { method, headers, body: body === undefined ? undefined : JSON.stringify(body), redirect: 'error', signal: AbortSignal.timeout(10000) }
+    : { method, headers };
+  const response = await fetch(url.href, init);
   let data;
-  try { data = await response.json(); } catch { /* body is not JSON */ }
+  try { data = JSON.parse(await response.text()); } catch { /* body is not JSON */ }
+  const requestId = typeof response.headers?.get === 'function' ? response.headers.get('x-aleph-request-id') : null;
   return {
     status: response.status, error: data?.error, mode: data?.mode, audit: data?.audit, deviceStatus: data?.device?.status,
-    requestId: response.headers.get('x-aleph-request-id') ?? null, accessToken: data?.accessToken, data,
+    requestId: requestId ?? null, accessToken: data?.accessToken, data,
   };
 }
 
@@ -98,14 +101,22 @@ async function runChecks(config, details) {
     for (const row of rows) details.push({ attackId: meta.id, step: meta.step, kind: meta.kind, expected, ...row });
   };
   // One live check: one or more requests, all judged together. Each request gets its own row in `details`.
+  // A request that got no response (fetch failed or was refused) has no result: it is written as not_run, never as a result.
   const sentBy = { A: [], B: [] };
   const live = async (meta, expected, steps, notRunParts = []) => {
     const rows = [];
+    const unsent = [...notRunParts];
     currentAttack = meta.id;
     try {
       let ok = true;
       for (const { run, accept, label, who } of steps) {
-        const result = await run();
+        let result;
+        try {
+          result = await run();
+        } catch (error) {
+          unsent.push({ label, reason: `no response in this run (${error.name}), so no result is written` });
+          continue;
+        }
         const at = new Date().toISOString();
         const fine = accept(result);
         ok &&= fine;
@@ -113,15 +124,15 @@ async function runChecks(config, details) {
         rows.push({ request: label, observed: describe(result), requestId: result.requestId ?? 'none', checkedAt: at, verdict: fine ? 'as_expected' : 'needs_review' });
       }
       const sentRows = rows.length;
-      for (const part of notRunParts) rows.push({ request: part.label, observed: 'not run', requestId: 'none', checkedAt: null, verdict: 'not_run', reason: part.reason });
+      for (const part of unsent) rows.push({ request: part.label, observed: 'not run', requestId: 'none', checkedAt: null, verdict: 'not_run', reason: part.reason });
+      if (!sentRows) {
+        record(meta, expected, notRun(rows.map((row) => `${row.request}: ${row.reason}`).join('; ')), rows);
+        return;
+      }
       const many = rows.length > 1;
       const text = rows.map((row) => (row.verdict === 'not_run' ? `${row.request}: not_run (${row.reason})` : `${many ? `${row.request}: ` : ''}${row.observed} req=${row.requestId}`)).join('; ');
-      const head = !ok ? 'Needs review' : notRunParts.length ? 'Partly run, sent part as expected' : 'As expected';
+      const head = !ok ? 'Needs review' : unsent.length ? 'Partly run, sent part as expected' : 'As expected';
       record(meta, expected, `${head}: ${text} at ${rows[sentRows - 1].checkedAt}`, rows);
-    } catch (error) {
-      const at = new Date().toISOString();
-      rows.push({ request: 'error', observed: `Could not be checked (${error.name})`, requestId: 'none', checkedAt: at, verdict: 'error' });
-      record(meta, expected, `Could not be checked (${error.name}) at ${at}`, rows);
     } finally {
       currentAttack = null;
     }

@@ -215,12 +215,13 @@ test('관문을 통과해도 핸들러가 거절하면 최종 결과는 그 거�
   assert.deepEqual(summary.detection.outcomeCounts, { forbidden: 1 });
 });
 
-test('결과 줄이 없는 사건은 허용으로 채우지 않고 not_recorded, 요약 요청 자신은 this_request 로 둔다', async () => {
+test('결과 줄이 없는 사건은 허용으로 채우지 않고 요약 요청 자신까지 not_recorded 로 둔다', async () => {
   const db = makeDb();
   const device = approve(db);
   const owner = ownerKeyOf(verifiedA);
   const first = await access(db, signedGet(device, '/api/notes'));
   const self = await access(db, signedGet(device, '/api/ops/summary'));
-  const summary = await buildOpsSummary({ fetchImpl: db.fetch, ...BASE, ownerId: owner, currentRequestId: self.requestId });
-  assert.deepEqual(summary.detection.recentEvents.map((event) => [event.requestId, event.outcome]), [[self.requestId, 'this_request'], [first.requestId, 'not_recorded']]);
+  const summary = await buildOpsSummary({ fetchImpl: db.fetch, ...BASE, ownerId: owner });
+  assert.deepEqual(summary.detection.recentEvents.map((event) => [event.requestId, event.outcome]), [[self.requestId, 'not_recorded'], [first.requestId, 'not_recorded']]);
+  assert.deepEqual(summary.detection.outcomeCounts, { not_recorded: 2 });
 });

@@ -557,7 +557,7 @@
       // 결과 = 서버가 기록한 최종 HTTP 상태(access_results). 관문 = 핸들러 앞 관문의 결정. 결과 줄이 없으면 not_recorded 그대로 둡니다.
       fillTable(opsEvents, ['요청 ID', '경로 모양', '관문', 'HTTP', '최종 결과', '시각'],
         data.detection.recentEvents.map((event) => ({ cells: [event.requestId, event.route, event.gate ?? '-', event.status ?? '기록 없음', event.outcome, event.at], outcome: event.outcome })),
-        (row) => (row.outcome === 'allowed' ? 'v-ok' : (row.outcome === 'not_recorded' || row.outcome === 'this_request' ? '' : 'v-bad')));
+        (row) => (row.outcome === 'allowed' ? 'v-ok' : (row.outcome === 'not_recorded' ? '' : 'v-bad')));
     }
 
     function clearSummary(reason) {
