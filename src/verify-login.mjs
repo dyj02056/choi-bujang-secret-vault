@@ -74,8 +74,9 @@ export function createLoginVerifier({ config, supabaseSecretKey, judgeKeySet,
             || !['a', 'b'].includes(payload.aleph_identity)
             || !Number.isSafeInteger(payload.iat) || !Number.isSafeInteger(payload.exp)
             || payload.exp <= payload.iat || payload.exp - payload.iat > 900) return null;
+        // 심판 토큰은 최대 15분짜리이며 발급 시각(iat)을 로그인 시각으로 봅니다.
         return Object.freeze({ kind: 'judge', userId: payload.sub,
-          runId: payload.aleph_run, identity: payload.aleph_identity });
+          runId: payload.aleph_run, identity: payload.aleph_identity, authTime: payload.iat });
       } catch { return null; }
     }
     if (issuer === bound.studentIssuer) {
@@ -89,7 +90,11 @@ export function createLoginVerifier({ config, supabaseSecretKey, judgeKeySet,
             || claims.role !== 'authenticated' || !UUID.test(claims.sub ?? '')
             || !Number.isSafeInteger(claims.exp)
             || claims.exp <= Math.floor(Date.now() / 1000)) return null;
-        return Object.freeze({ kind: 'student', userId: claims.sub });
+        // 11단계 기기 승인용: 실제로 비밀번호 등으로 로그인한 시각(amr). 토큰을 새로 고쳐도 바뀌지 않습니다.
+        const authTimes = Array.isArray(claims.amr)
+          ? claims.amr.map((entry) => entry?.timestamp).filter(Number.isSafeInteger) : [];
+        return Object.freeze({ kind: 'student', userId: claims.sub,
+          authTime: authTimes.length ? Math.max(...authTimes) : null });
       } catch { return null; }
     }
     return null;

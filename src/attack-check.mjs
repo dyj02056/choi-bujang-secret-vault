@@ -5,20 +5,27 @@
 //   $env:ALEPH_CHECK_TOKEN_A = '<test account A token>'   (also _B)
 //   $env:ALEPH_CHECK_NOTE_A  = '<A note UUID>'            (also _B)
 // Tokens are used only in the Authorization header and are never printed or stored.
+// Step 11: every login request is signed by a virtual device (a key that lives only in this process),
+// registered and approved through POST /api/devices first. Approval needs a recent login, so use fresh tokens.
 import { randomUUID } from 'node:crypto';
 import { fixtureRequests } from '../scripts/fixture-7.mjs';
 import { decide } from './decider.mjs';
 import { detect } from './detect.mjs';
+import { createVirtualDevice } from './device-client.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const cut = (text) => (text.length > 290 ? `${text.slice(0, 287)}...` : text);
 const entry = (attackId, expected, observed) => ({ attackId, expected: cut(expected), observed: cut(observed) });
 const notRun = (reason) => `Not run: ${reason}`;
 
-async function send(app, path, { method = 'GET', token, body, base } = {}) {
+// device signs the request; signAs lets a check sign one path/body and then send another (tampering).
+async function send(app, path, { method = 'GET', token, body, base, device, signAs } = {}) {
   const url = base ?? new URL(path, app);
   const headers = {};
   if (token) headers.Authorization = `Bearer ${token}`;
+  if (device) {
+    Object.assign(headers, device.signHeaders({ method, path: url.pathname + url.search, body, ...signAs }));
+  }
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const response = await fetch(url, {
     method, headers, body: body === undefined ? undefined : JSON.stringify(body),
@@ -26,14 +33,14 @@ async function send(app, path, { method = 'GET', token, body, base } = {}) {
   });
   let data;
   try { data = await response.json(); } catch { /* body is not JSON */ }
-  return { status: response.status, error: data?.error, mode: data?.mode, audit: data?.audit };
+  return { status: response.status, error: data?.error, mode: data?.mode, audit: data?.audit, deviceStatus: data?.device?.status };
 }
 
 // Sends one request and judges it with `accept`. A network failure is reported as such.
 async function live(id, expected, accept, run) {
   try {
     const result = await run();
-    const text = `HTTP ${result.status}${result.error ? ` ${result.error}` : ''}${result.mode ? ` mode=${result.mode}` : ''}${result.audit ? ` audit=${result.audit.recorded ? `#${result.audit.seq}` : 'missing'}` : ''}`;
+    const text = `HTTP ${result.status}${result.error ? ` ${result.error}` : ''}${result.deviceStatus ? ` device=${result.deviceStatus}` : ''}${result.mode ? ` mode=${result.mode}` : ''}${result.audit ? ` audit=${result.audit.recorded ? `#${result.audit.seq}` : 'missing'}` : ''}`;
     return entry(id, expected, `${accept(result) ? 'As expected' : 'Needs review'}: ${text} at ${new Date().toISOString()}`);
   } catch (error) {
     return entry(id, expected, `Could not be checked (${error.name}) at ${new Date().toISOString()}`);
@@ -44,7 +51,7 @@ const denied = (status) => (r) => r.status === status;
 const rejected = (r) => r.status === 401 || r.status === 403;
 
 export async function runAttackChecks(config) {
-  if (config.step !== 10) throw new Error('Current step requires updating src/attack-check.mjs.');
+  if (config.step !== 11) throw new Error('Current step requires updating src/attack-check.mjs.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -69,12 +76,25 @@ export async function runAttackChecks(config) {
   const noRestoreRoute = notRun('restoreRoute is not set in aleph.config.json.');
   const results = [];
 
+  // 0) Step 11: each test account gets one virtual device, approved by the server (recent login required).
+  const deviceA = createVirtualDevice();
+  const deviceB = createVirtualDevice();
+  const approval = (device, token) => send(app, '/api/devices', {
+    method: 'POST', token, device, body: { publicKey: device.publicJwk, label: 'bundle self-check' },
+  });
+  const approvalExpected = 'A virtual device signed with its own key and a recent login is approved: HTTP 200, device=approved';
+  results.push(loginReady
+    ? await live('s11_device_approval', approvalExpected,
+      (r) => r.status === 200 && r.deviceStatus === 'approved', () => approval(deviceA, tokenA))
+    : entry('s11_device_approval', approvalExpected, missing));
+  if (loginReady) await approval(deviceB, tokenB).catch(() => null); // B's result shows up in the B checks below.
+
   // 1) Restore first, so every check below runs after the data came back.
   const restoreExpected = 'Account B restores its own note: HTTP 200, mode updated/reinserted/unchanged, and an audit record number';
   results.push(loginReady && restoreUsable
     ? await live('s10_restore_own_note', restoreExpected,
       (r) => r.status === 200 && ['updated', 'reinserted', 'unchanged'].includes(r.mode) && r.audit?.recorded === true,
-      () => send(app, restorePath, { method: 'POST', token: tokenB, body: { id: noteB } }))
+      () => send(app, restorePath, { method: 'POST', token: tokenB, device: deviceB, body: { id: noteB } }))
     : entry('s10_restore_own_note', restoreExpected, loginReady ? noRestoreRoute : missing));
 
   // 2) Normal requests after the restore.
@@ -82,7 +102,7 @@ export async function runAttackChecks(config) {
     (r) => r.status === 200, () => send(app, '/')));
   results.push(loginReady
     ? await live('s8_own_note_read_after_restore', 'Account A reads its own note: HTTP 200',
-      (r) => r.status === 200, () => send(app, `/api/notes/${noteA}`, { token: tokenA }))
+      (r) => r.status === 200, () => send(app, `/api/notes/${noteA}`, { token: tokenA, device: deviceA }))
     : entry('s8_own_note_read_after_restore', 'Account A reads its own note: HTTP 200', missing));
 
   // 3) Forbidden requests that need no login at all.
@@ -106,19 +126,42 @@ export async function runAttackChecks(config) {
   // 4) Forbidden requests that need two test logins.
   results.push(loginReady
     ? await live('s8_cross_zone_note_read', 'Account B reading account A note is rejected with HTTP 403',
-      denied(403), () => send(app, `/api/notes/${noteA}`, { token: tokenB }))
+      denied(403), () => send(app, `/api/notes/${noteA}`, { token: tokenB, device: deviceB }))
     : entry('s8_cross_zone_note_read', 'Account B reading account A note is rejected with HTTP 403', missing));
   results.push(loginReady
     ? await live('s8_announcement_write_non_instructor', 'A non-instructor announcement update is rejected with HTTP 403',
-      denied(403), () => send(app, `/api/announcements/${randomUUID()}`, { method: 'PUT', token: tokenA, body: { title: 'x' } }))
+      denied(403), () => send(app, `/api/announcements/${randomUUID()}`, { method: 'PUT', token: tokenA, device: deviceA, body: { title: 'x' } }))
     : entry('s8_announcement_write_non_instructor', 'A non-instructor announcement update is rejected with HTTP 403', missing));
   const otherRestoreExpected = 'Account A restoring account B note is rejected with HTTP 403';
   results.push(loginReady && restoreUsable
     ? await live('s10_restore_other_users_note', otherRestoreExpected,
-      denied(403), () => send(app, restorePath, { method: 'POST', token: tokenA, body: { id: noteB } }))
+      denied(403), () => send(app, restorePath, { method: 'POST', token: tokenA, device: deviceA, body: { id: noteB } }))
     : entry('s10_restore_other_users_note', otherRestoreExpected, loginReady ? noRestoreRoute : missing));
 
-  // 5) Local practice with virtual events (the decider and detector run in this process; not a judge result).
+  // 5) Step 11: protected requests from the access app must carry a signature that matches what is sent.
+  const unsignedExpected = 'A logged-in protected request without a device signature is rejected: HTTP 401 DEVICE_SIGNATURE_REQUIRED';
+  results.push(loginReady
+    ? await live('s11_unsigned_protected_request', unsignedExpected,
+      (r) => r.status === 401 && r.error === 'DEVICE_SIGNATURE_REQUIRED', () => send(app, `/api/notes/${noteA}`, { token: tokenA }))
+    : entry('s11_unsigned_protected_request', unsignedExpected, missing));
+  const pathExpected = 'A request signed for one note and sent to another path is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH';
+  results.push(loginReady
+    ? await live('s11_signed_path_changed', pathExpected,
+      (r) => r.status === 403 && r.error === 'DEVICE_SIGNATURE_MISMATCH',
+      () => send(app, '/api/notes', { token: tokenA, device: deviceA, signAs: { path: `/api/notes/${noteA}` } }))
+    : entry('s11_signed_path_changed', pathExpected, missing));
+  // The body check targets a random note ID, so nothing can change even if the signature were not checked.
+  const bodyExpected = 'An update whose body changed after signing is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH';
+  results.push(loginReady
+    ? await live('s11_signed_body_changed', bodyExpected,
+      (r) => r.status === 403 && r.error === 'DEVICE_SIGNATURE_MISMATCH',
+      () => send(app, `/api/notes/${randomUUID()}`, {
+        method: 'PUT', token: tokenA, device: deviceA, body: { title: 'changed after signing' },
+        signAs: { body: { title: 'signed title' } },
+      }))
+    : entry('s11_signed_body_changed', bodyExpected, missing));
+
+  // 6) Local practice with virtual events (the decider and detector run in this process; not a judge result).
   const local = async (id, expected, wanted, run) => {
     try {
       const got = await run();

@@ -5,6 +5,7 @@ import { createLoginVerifier } from '../../src/verify-login.mjs';
 import { ownerKeyOf } from '../../src/owner-key.mjs';
 import { auditField, blocksChange, recordNoteEvent } from '../../src/note-audit.mjs';
 import { ensureBackup } from '../../src/note-backup.mjs';
+import { requireSignedDevice } from '../../src/device-signature.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
@@ -57,6 +58,8 @@ export default async function handler(req, res) {
   if (!ownerId) {
     return res.status(401).json({ error: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
   }
+  // 11단계: 로그인과 별개로, 승인된 기기가 이 요청(메서드·경로·본문)에 서명했는지 확인합니다.
+  if (!(await requireSignedDevice(req, res, { ownerId, supabaseUrl, serviceKey: supabaseKey }))) return;
 
   const { id } = req.query;
   if (typeof id !== 'string' || !UUID.test(id)) {

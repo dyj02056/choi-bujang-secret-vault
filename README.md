@@ -1,4 +1,4 @@
-# BYTE BACK — secret-note vault (step 10)
+# BYTE BACK — secret-note vault (step 11)
 
 Private notes and instructor announcements are separate resource zones.
 Private-note access continues to use verified login plus `owner_id` checks.
@@ -23,6 +23,41 @@ otherwise it returns `observe`. Exactly 120 events is not flagged, other
 subjects are never added together, and the result keeps the same shape if the
 subject keeps trying after a proposal. This code only proposes. Delivering real
 events to the class engine and revoking access are not connected or tested here.
+
+## Step 11: the access app and device approval
+
+The page is now an installable app, **BYTE BACK 접속 앱** (`public/manifest.webmanifest`, `public/icon.svg`,
+`public/sw.js`, `public/offline.html`). Installing it only makes it easier to open; it is **not** a device check.
+Offline, the app shows a notice and never shows or stores notes; the service worker caches only the offline page,
+icon and manifest, never `/api/` responses.
+
+After login the app shows the **device approval** screen first. Notes stay hidden until the server approves
+this device:
+
+1. The app makes an ECDSA P-256 key with WebCrypto. The private key cannot be exported and lives only in the
+   open page's memory, never in browser storage, so a reload needs a new approval.
+2. "이 기기 승인 요청" sends `POST /api/devices` with the public key, signed by that same key.
+3. The server approves only if the login token shows a real login within the last 10 minutes; otherwise the
+   device stays `pending` and the app asks for the password again. The button alone never grants access.
+4. Every protected request (`/api/notes`, `/api/notes/:id`, `/api/announcements/:id`, `/api/restore/notes`)
+   carries a signature over method, path with query, body SHA-256, time and a one-time number. The server rebuilds
+   that text from what it really received, so a request without a signature, or whose path or body changed after
+   signing, is rejected. The full contract is in `docs/DEVICE_SIGNATURE.md`.
+
+| Request | Result |
+|---|---|
+| Approved device, signed as sent | the earlier result (200 for own note, 403 for another user's note, ...) |
+| Logged in, no signature | 401 `DEVICE_SIGNATURE_REQUIRED` |
+| Path, query or method changed after signing | 403 `DEVICE_SIGNATURE_MISMATCH` |
+| Body changed after signing | 403 `DEVICE_SIGNATURE_MISMATCH` |
+| Same signature sent again / older than 60 s | 403 `DEVICE_SIGNATURE_REPLAYED` / 401 `DEVICE_SIGNATURE_EXPIRED` |
+| Pending, unknown or another account's device | 403 `DEVICE_NOT_APPROVED` |
+| No login | 401 `UNAUTHORIZED` (unchanged) |
+
+Setup: run `supabase/migrations/008_device_keys.sql` in the official Supabase SQL Editor **before deploying**
+(tables `device_keys` and `device_nonces`, public keys only, no browser access). Without it every protected
+request fails closed with 502. `/api/devices` is the app's own enrollment endpoint; it is not added to
+`allowedRoutes` and the decider rules are unchanged.
 
 ## Step 10: restore from a verified backup
 
@@ -143,15 +178,17 @@ records are not touched.
 
 ### Run after a restore (steps 1 to 9)
 
-This README does not contain results. `npm run bundle` runs `src/attack-check.mjs`, which
-sends the requests below after the restore and writes only what really happened into the
+This README does not contain results. `npm run bundle` runs `src/attack-check.mjs`, which first gets one
+virtual device approved per test account (`s11_device_approval`; the key exists only in that process), signs every
+login request with it, and sends the requests below after the restore and writes only what really happened into the
 submission (`attackAttempts`: expected, observed with HTTP status and time). A request
 that could not be sent says `Not run: <reason>`. A result that is not the expected one
 says `Needs review`; it is never turned into a pass.
 
 | Attack ID | Step | Normal or forbidden | Expected | Needs |
 |---|---|---|---|---|
-| `s10_restore_own_note` | 10 | normal: B restores its own note (runs first) | 200 | 2 test logins |
+| `s11_device_approval` | 11 | normal: A's virtual device is approved (runs first) | 200 approved | 2 fresh test logins |
+| `s10_restore_own_note` | 10 | normal: B restores its own note | 200 | 2 test logins |
 | `s1_public_page_normal` | 1 | normal: public page | 200 | nothing |
 | `s8_own_note_read_after_restore` | 8 | normal: A reads its own note | 200 | 2 test logins |
 | `s1_anonymous_notes_list` | 1 | forbidden: list without login | 401 or 403 | nothing |
@@ -162,6 +199,9 @@ says `Needs review`; it is never turned into a pass.
 | `s8_cross_zone_note_read` | 8 | forbidden: B reads A note | 403 | 2 test logins |
 | `s8_announcement_write_non_instructor` | 8 | forbidden: non-instructor announcement update | 403 | 2 test logins |
 | `s10_restore_other_users_note` | 10 | forbidden: A restores B note | 403 | 2 test logins |
+| `s11_unsigned_protected_request` | 11 | forbidden: logged in, no device signature | 401 | 2 test logins |
+| `s11_signed_path_changed` | 11 | forbidden: signed for A's note, sent to the list | 403 | 2 test logins |
+| `s11_signed_body_changed` | 11 | forbidden: update body changed after signing (random note ID, nothing changes) | 403 | 2 test logins |
 | `s6_unregistered_device_denied` | 6 | forbidden: unregistered device | deny | local practice |
 | `s7_unusual_access_step_up` | 7 | forbidden: unusual region, network and hour together | step_up | local practice |
 | `s9_burst_read_proposes_revocation` | 9 | forbidden: 121 reads in 10 minutes | propose_revocation | local practice |
@@ -170,7 +210,8 @@ says `Needs review`; it is never turned into a pass.
 The rows marked local practice run the decider and detector in this process with virtual
 requests; they are not judge results. The rows that need two test logins are sent only when
 you set these four values in your own shell (never in a file, chat or Git). Use the two test
-accounts, a note owned by each, and a token that is still valid:
+accounts, a note owned by each, and tokens from a login **within the last 10 minutes** (device approval needs a
+recent login):
 
 ```powershell
 $env:ALEPH_CHECK_TOKEN_A = '<test account A token>'
@@ -199,6 +240,7 @@ npm run fixture:7
 npm run detect:test
 npm run test:restore
 npm run test:audit
+npm run test:device
 npm run policy:diff
 npm run backup:verify -- --policy-only
 npm run build -- --local

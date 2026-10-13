@@ -5,6 +5,7 @@ import { createLoginVerifier } from '../../src/verify-login.mjs';
 import { ownerKeyOf } from '../../src/owner-key.mjs';
 import { restoreNote } from '../../src/restore-note.mjs';
 import { auditField, recordNoteEvent } from '../../src/note-audit.mjs';
+import { requireSignedDevice } from '../../src/device-signature.mjs';
 
 try {
   process.loadEnvFile?.(resolve(process.cwd(), '.env'));
@@ -44,6 +45,8 @@ export default async function handler(req, res) {
   }
   const ownerId = ownerKeyOf(verified);
   if (!ownerId) return res.status(401).json({ error: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
+  // 11단계: 로그인과 별개로, 승인된 기기가 이 요청(메서드·경로·본문)에 서명했는지 확인합니다.
+  if (!(await requireSignedDevice(req, res, { ownerId, supabaseUrl, serviceKey: serviceKey }))) return;
 
   // 로그인한 사람의 복구 호출은 거절되더라도 감사 표에 남깁니다(자료는 바꾸지 않습니다).
   const refuse = async (status, error, message) => {
