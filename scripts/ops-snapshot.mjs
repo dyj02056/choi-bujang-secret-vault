@@ -100,6 +100,8 @@ try {
   writeFileSync(resolve(ROOT, 'public', 'ops-summary.json'), `${JSON.stringify({
     schema: snapshot.schema, app: snapshot.app, api: snapshot.api, comparison, allMatch,
     serverRecordFile: `audit/step12/ops-snapshot-${stamp}.json`,
+    // 화면이 API 응답 값 옆에 같은 시점의 가린 서버 기록 값을 나란히 보여 줄 수 있게 함께 둡니다.
+    serverRecord: snapshot.serverRecord.body,
   }, null, 2)}\n`, 'utf8');
   process.stdout.write(`작전실 실측: 요청 ID ${snapshot.api.requestId} · 서버 기록 대조 ${allMatch ? '모두 일치' : '불일치 있음'}\n`
     + Object.entries(comparison).map(([name, ok]) => `  ${ok ? '일치' : '불일치'} ${name}`).join('\n')

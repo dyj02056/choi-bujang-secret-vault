@@ -1,0 +1,278 @@
+{
+  "schema": "aleph.ops.checks.v1",
+  "commit": "0a7fc6e3fad2d1da17f4ec22ec89f46b529f283e",
+  "workingTreeClean": true,
+  "step": 12,
+  "app": "https://choi-bujang-secret-vault-tau.vercel.app/",
+  "startedAt": "2026-10-13T07:14:19.068Z",
+  "finishedAt": "2026-10-13T07:14:54.285Z",
+  "selfChecks": {
+    "checks": 20,
+    "requests": 23,
+    "verdicts": {
+      "as_expected": 21,
+      "local_as_expected": 2
+    }
+  },
+  "judgeTests": {
+    "total": 41,
+    "run": 0,
+    "status": "not_run",
+    "note": "운영 심판의 41종 시험은 이 절차에서 실행하지 않았습니다. 결과가 없으므로 통과로 표시하지 않습니다."
+  },
+  "rows": [
+    {
+      "attackId": "s11_device_approval",
+      "step": "11",
+      "kind": "normal",
+      "request": "A approval",
+      "expected": "A virtual passkey that signs its own registration, with a recent login, is approved: HTTP 200, device=approved",
+      "observed": "HTTP 200 device=approved",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T07:14:23.946Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s11_device_approval",
+      "step": "11",
+      "kind": "normal",
+      "request": "B approval",
+      "expected": "A virtual passkey that signs its own registration, with a recent login, is approved: HTTP 200, device=approved",
+      "observed": "HTTP 200 device=approved",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T07:14:26.376Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s10_restore_own_note",
+      "step": "10",
+      "kind": "normal",
+      "request": "B restore",
+      "expected": "Account B restores its own note: HTTP 200, mode updated/reinserted/unchanged, and an audit record number",
+      "observed": "HTTP 200 mode=unchanged audit=#13",
+      "requestId": "afc8f021-4d0e-4ec2-a4b9-70a4447aba43",
+      "checkedAt": "2026-10-13T07:14:29.553Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s12_after_restore_unsigned_write_and_out_of_zone",
+      "step": "12 (10+11+8)",
+      "kind": "forbidden",
+      "request": "unsigned update",
+      "expected": "After the restore: B unsigned update of its own note is rejected (401 DEVICE_SIGNATURE_REQUIRED), then B signed read of A note is rejected (403)",
+      "observed": "HTTP 401 DEVICE_SIGNATURE_REQUIRED",
+      "requestId": "c9f0d4e8-28fc-4d49-8ca4-37aef4b0a709",
+      "checkedAt": "2026-10-13T07:14:31.155Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s12_after_restore_unsigned_write_and_out_of_zone",
+      "step": "12 (10+11+8)",
+      "kind": "forbidden",
+      "request": "out-of-zone read",
+      "expected": "After the restore: B unsigned update of its own note is rejected (401 DEVICE_SIGNATURE_REQUIRED), then B signed read of A note is rejected (403)",
+      "observed": "HTTP 403 FORBIDDEN",
+      "requestId": "b5fccde8-3825-48a2-8df8-d311a5acfe5e",
+      "checkedAt": "2026-10-13T07:14:33.915Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s1_public_page_normal",
+      "step": "1",
+      "kind": "normal",
+      "request": "public page",
+      "expected": "The public page still opens: HTTP 200",
+      "observed": "HTTP 200",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T07:14:33.936Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s8_own_note_read_after_restore",
+      "step": "8",
+      "kind": "normal",
+      "request": "A own read",
+      "expected": "Account A reads its own note: HTTP 200",
+      "observed": "HTTP 200",
+      "requestId": "32efdcf2-4f51-47aa-b8e2-ae7aa9fbaf06",
+      "checkedAt": "2026-10-13T07:14:36.742Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s12_anonymous_then_cross_read",
+      "step": "12 (1-4+8)",
+      "kind": "forbidden",
+      "request": "anonymous read",
+      "expected": "Back to back: anonymous read of A note is rejected (401), then B signed read of the same A note is rejected (403)",
+      "observed": "HTTP 401 UNAUTHORIZED",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T07:14:36.960Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s12_anonymous_then_cross_read",
+      "step": "12 (1-4+8)",
+      "kind": "forbidden",
+      "request": "cross read",
+      "expected": "Back to back: anonymous read of A note is rejected (401), then B signed read of the same A note is rejected (403)",
+      "observed": "HTTP 403 FORBIDDEN",
+      "requestId": "a6c8ca73-56ed-402a-aef8-cce757c0ab17",
+      "checkedAt": "2026-10-13T07:14:39.420Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s1_anonymous_notes_list",
+      "step": "1",
+      "kind": "forbidden",
+      "request": "anonymous list",
+      "expected": "Anonymous list request is rejected with HTTP 401 or 403",
+      "observed": "HTTP 401 UNAUTHORIZED",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T07:14:39.666Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s2_4_anonymous_note_by_id",
+      "step": "2-4",
+      "kind": "forbidden",
+      "request": "anonymous note",
+      "expected": "Anonymous single-note request is rejected with HTTP 401 or 403",
+      "observed": "HTTP 401 UNAUTHORIZED",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T07:14:39.874Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s8_anonymous_announcement_write",
+      "step": "8",
+      "kind": "forbidden",
+      "request": "anonymous announcement write",
+      "expected": "Anonymous announcement update is rejected with HTTP 401 or 403",
+      "observed": "HTTP 401 UNAUTHORIZED",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T07:14:40.111Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s10_anonymous_restore_call",
+      "step": "10",
+      "kind": "forbidden",
+      "request": "anonymous restore",
+      "expected": "Anonymous restore call is rejected with HTTP 401 or 403",
+      "observed": "HTTP 401 UNAUTHORIZED",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T07:14:40.331Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s5_original_api_without_key",
+      "step": "5",
+      "kind": "forbidden",
+      "request": "original API",
+      "expected": "The original table API rejects a request that carries no key: HTTP 401 or 403",
+      "observed": "HTTP 401",
+      "requestId": "none",
+      "checkedAt": "2026-10-13T07:14:42.027Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s8_cross_zone_note_read",
+      "step": "8",
+      "kind": "forbidden",
+      "request": "cross read",
+      "expected": "Account B reading account A note is rejected with HTTP 403",
+      "observed": "HTTP 403 FORBIDDEN",
+      "requestId": "be008f85-94ac-4f22-b71a-ca25ddf7993d",
+      "checkedAt": "2026-10-13T07:14:43.998Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s8_announcement_write_non_instructor",
+      "step": "8",
+      "kind": "forbidden",
+      "request": "non-instructor write",
+      "expected": "A non-instructor announcement update is rejected with HTTP 403",
+      "observed": "HTTP 403 INSTRUCTOR_REQUIRED",
+      "requestId": "5c395a33-aeaf-45ad-8f8d-13876065f243",
+      "checkedAt": "2026-10-13T07:14:46.611Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s10_restore_other_users_note",
+      "step": "10",
+      "kind": "forbidden",
+      "request": "other restore",
+      "expected": "Account A restoring account B note is rejected with HTTP 403",
+      "observed": "HTTP 403 FORBIDDEN audit=#14",
+      "requestId": "8d230c04-1e41-49d0-bc5d-0f1dd6689b57",
+      "checkedAt": "2026-10-13T07:14:49.029Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s11_unsigned_protected_request",
+      "step": "11",
+      "kind": "forbidden",
+      "request": "unsigned read",
+      "expected": "A logged-in protected request without a device signature is rejected: HTTP 401 DEVICE_SIGNATURE_REQUIRED",
+      "observed": "HTTP 401 DEVICE_SIGNATURE_REQUIRED",
+      "requestId": "35c9379c-f055-4a0b-9f09-6c637dee6b35",
+      "checkedAt": "2026-10-13T07:14:50.447Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s11_signed_path_changed",
+      "step": "11",
+      "kind": "forbidden",
+      "request": "path changed",
+      "expected": "A request signed for one note and sent to another path is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH",
+      "observed": "HTTP 403 DEVICE_SIGNATURE_MISMATCH",
+      "requestId": "1e413532-3897-40ab-8100-399c0152ca60",
+      "checkedAt": "2026-10-13T07:14:51.729Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s11_signed_body_changed",
+      "step": "11",
+      "kind": "forbidden",
+      "request": "body changed",
+      "expected": "An update whose body changed after signing is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH",
+      "observed": "HTTP 403 DEVICE_SIGNATURE_MISMATCH",
+      "requestId": "f307182e-f1f3-45f6-93df-0a753bff9a21",
+      "checkedAt": "2026-10-13T07:14:53.061Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s12_unregistered_device_then_revoked_identity",
+      "step": "12 (6+9+11)",
+      "kind": "forbidden",
+      "request": "unregistered device",
+      "expected": "A signed request from a never-approved device is rejected (403 DEVICE_NOT_APPROVED); then a revoked identity is rejected (403 IDENTITY_REVOKED). Revoked part not run live: no revoked test account C",
+      "observed": "HTTP 403 DEVICE_NOT_APPROVED",
+      "requestId": "4596e6e1-50fb-4439-8ce1-0c66c25df5a5",
+      "checkedAt": "2026-10-13T07:14:54.279Z",
+      "verdict": "as_expected"
+    },
+    {
+      "attackId": "s6_s7_decider_local",
+      "step": "6-7",
+      "kind": "forbidden",
+      "request": "local virtual run",
+      "expected": "Unregistered device is denied; unusual region, network and hour ask for extra verification (local practice)",
+      "observed": "deny device_not_registered; step_up step_up_required",
+      "requestId": "local",
+      "checkedAt": "2026-10-13T07:14:54.282Z",
+      "verdict": "local_as_expected"
+    },
+    {
+      "attackId": "s9_s12_detector_and_revocation_local",
+      "step": "9, 12",
+      "kind": "forbidden",
+      "request": "local virtual run",
+      "expected": "121 reads in 10 minutes propose a revocation, 30 are only observed, and the access guard refuses a revoked identity (local practice)",
+      "observed": "propose_revocation burst_read; observe; 403 IDENTITY_REVOKED",
+      "requestId": "local",
+      "checkedAt": "2026-10-13T07:14:54.285Z",
+      "verdict": "local_as_expected"
+    }
+  ]
+}

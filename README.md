@@ -81,6 +81,20 @@ server request ID and check time. Output: `audit/step12/checks-<UTC>.json` and `
 `public/ops-checks.json`, which the operations room shows. A check that could not be sent is `not_run` with its
 reason. The operator's 41 judge tests are **not run** by this procedure and are shown as not run, never as passed.
 
+### 12단계 실측 기록
+
+`npm run ops:record`로 실제로 보낸 요청의 결과입니다. 계산해서 채운 값은 없습니다.
+
+| 기록 | 파일 | 결과 |
+|---|---|---|
+| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `5be40f2a-2004-4f15-9c13-7fde74c8ebc5`, 서버 시각 2026-10-13T07:15:49.056Z |
+| 같은 시점의 가린 서버 기록 | `audit/step12/ops-snapshot-20261013T071549Z.json` | 항목 대조: rules 일치, detection.recentGetCount 일치, detection.outcomeCounts 일치, detection.recentEvents 일치, revocation 일치, restore 일치 |
+| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T071542Z.md` | 학생 자기 점검 20건 / 요청 23행: as_expected 21, local_as_expected 2 (검사한 커밋 `0a7fc6e`) |
+| 운영 심판 41종 시험 | — | **미실행** (이 저장소에서 실행하지 않음, 통과로 표시하지 않음) |
+
+작전실 화면의 "화면 값과 가린 서버 기록 대조" 표는 위 두 기록의 같은 항목 값을 그대로 나란히 보여 줍니다.
+그 전에 만든 `audit/step12/` 파일(토큰 만료로 미실행·401이 남은 실행 포함)도 실제로 일어난 기록이라 지우지 않았습니다.
+
 ### Install, run, stop, restore (from the checked commit)
 
 | Part | Install | Run | Stop | Restore |

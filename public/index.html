@@ -136,6 +136,9 @@
         <div class="card"><h4>복구 버전</h4><div id="ops-restore" class="ops-meta">미실행</div></div>
       </div>
       <div class="table-wrap"><table id="ops-events"></table></div>
+      <h4 style="margin:18px 0 6px; color:#8ad8df;">화면 값과 가린 서버 기록 대조 (같은 시점)</h4>
+      <div id="ops-compare-meta" class="ops-meta">대조: 미실행 (저장된 실측 없음)</div>
+      <div class="table-wrap"><table id="ops-compare"></table></div>
       <h4 style="margin:18px 0 6px; color:#8ad8df;">1~11단계 점검표 (npm run ops:checks 실측)</h4>
       <div id="ops-checks-meta" class="ops-meta">점검표를 불러오지 않았습니다.</div>
       <div class="table-wrap"><table id="ops-checks"></table></div>
@@ -465,6 +468,33 @@
     const opsEvents = document.getElementById('ops-events');
     const opsChecksMeta = document.getElementById('ops-checks-meta');
     const opsChecks = document.getElementById('ops-checks');
+    const opsCompare = document.getElementById('ops-compare');
+    const opsCompareMeta = document.getElementById('ops-compare-meta');
+
+    // 화면에 보인 값(API 응답)과 같은 시점의 가린 서버 기록 값을 항목별로 그대로 나란히 둡니다. 새로 계산하지 않습니다.
+    function renderCompare(snap) {
+      if (!snap.serverRecord) {
+        opsCompareMeta.textContent = '대조: 미실행 (실측 파일에 서버 기록 값이 없음)';
+        opsCompare.textContent = '';
+        return;
+      }
+      const shown = snap.api.body;
+      const recorded = snap.serverRecord;
+      const pick = (object, path) => path.split('.').reduce((value, key) => (value == null ? value : value[key]), object);
+      const fields = [
+        ['rules.ruleIds', '판정기 규칙'], ['detection.recentGetCount', '최근 10분 GET 수'], ['detection.outcomeCounts', '최근 사건 결과별 수'],
+        ['detection.recentEvents', '최근 사건(요청 ID·경로·결과·시각)'], ['revocation.revoked', '회수 여부'], ['revocation.devices', '기기 상태별 수'],
+        ['restore.auditRows', '감사 기록 수'], ['restore.byMode', '감사 기록 종류별 수'], ['restore.backups', '사본 수'], ['restore.latest', '마지막 복구'],
+      ];
+      opsCompareMeta.textContent = `대조 기준: 실제 API 응답 요청 ID ${snap.api.requestId} · 가린 서버 기록 ${snap.serverRecordFile} · 실측 스크립트의 항목 대조 결과: ${snap.allMatch ? '모두 일치' : '불일치 있음'}`;
+      fillTable(opsCompare, ['항목', '화면 값 (API 응답)', '가린 서버 기록 값', '같음'],
+        fields.map(([path, label]) => {
+          const a = JSON.stringify(pick(shown, path));
+          const b = JSON.stringify(pick(recorded, path));
+          return { same: a === b, cells: [label, a, b, a === b ? '같음' : '다름'] };
+        }),
+        (row) => (row.same ? 'v-ok' : 'v-bad'));
+    }
 
     function fillLines(target, lines) {
       target.textContent = '';
@@ -541,6 +571,7 @@
         opsSource.textContent = `요약: 저장된 실측 응답 · ${snap.api.route} HTTP ${snap.api.status} · 요청 ID ${snap.api.requestId} · 서버 시각 ${snap.api.body.generatedAt}`
           + ` · 가린 서버 기록(${snap.serverRecordFile}) 대조: ${snap.allMatch ? '모두 일치' : '불일치 있음'} (${matched})`;
         renderSummary(snap.api.body);
+        renderCompare(snap);
       } catch (err) {
         opsSource.textContent = `요약: 저장된 실측 응답 없음 (${err.message}). npm run ops:snapshot 을 아직 실행하지 않았습니다.`;
         clearSummary('실측 응답 없음');
