@@ -93,10 +93,10 @@ reason. The operator's 41 judge tests are **not run** by this procedure and are 
 
 | 기록 | 파일 | 결과 |
 |---|---|---|
-| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `dfd26d96-815c-4838-902e-43dcbca66da9`, 서버 시각 2026-10-13T08:00:41.296Z |
-| 같은 시점의 가린 서버 원본 줄 | `audit/step12/ops-snapshot-20261013T080042Z.json` (`maskedRecords`) | 계정 `owner_49c3b2ec3c`: 접근 사건 20줄, 그 사건의 최종 결과 19줄(`access_results`, 요약 요청 자신은 응답 뒤 기록이라 제외), 10분 GET 10줄, 감사 기록 10줄, 기기 19줄, 사본 1줄. 최종 결과: allowed 4, forbidden 2, instructor_required 2, device_signature_mismatch 6, device_signature_required 2, device_not_approved 3, 요약 요청 자신 1(this_request). 결과 줄이 없는 사건은 허용으로 채우지 않고 not_recorded 로 둡니다(이번 20줄에는 없음). 다시 센 값과 화면 값 대조: rules 일치, detection.recentGetCount 일치, detection.outcomeCounts 일치, detection.recentEvents 일치, revocation 일치, restore 일치 |
+| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `d9947fbb-c97e-4f13-84b3-a85492b6dfe6`, 서버 시각 2026-10-13T08:10:59.274Z |
+| 같은 시점의 가린 서버 원본 줄 | `audit/step12/ops-snapshot-20261013T081101Z.json` (`maskedRecords`) | 계정 `owner_49c3b2ec3c`: 접근 사건 20줄, 그 사건의 최종 결과 19줄(`access_results`, 요약 요청 자신은 응답 뒤 기록이라 제외), 10분 GET 6줄, 감사 기록 11줄, 기기 21줄, 사본 1줄. 최종 결과: allowed 5, forbidden 2, instructor_required 2, device_signature_mismatch 5, device_signature_required 2, device_not_approved 3, 요약 요청 자신 1(this_request). 결과 줄이 없는 사건은 허용으로 채우지 않고 not_recorded 로 둡니다(이번 20줄에는 없음). 대조 6항목 모두 일치 |
 | 전체 계정의 가린 감사 기록 | `audit/step10/db-audit-trail.jsonl` | 같은 시점까지 이어 씀 (위 계정 줄은 `owner` 가 `owner_49c3b2ec3c` 인 줄) |
-| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T080033Z.md`, `src/attack-check.mjs`의 `<recorded-checks>` 구역(같은 값, 제출 묶음이 파일을 읽지 않고 불러옴) | 학생 자기 점검 20건 / 요청 24행: as_expected 21, not_run 1(회수된 시험 계정 C 없음, 보내지 않음), local_as_expected 2(로컬 연습, API 결과 아님). 표의 커밋은 `53d3e9b`(작업 트리 변경 있음)로 남았습니다: 점검을 시작한 순간 점검 모듈 변경(`3eeadd6`, 점검 모듈만 바뀜)이 아직 커밋 전이었기 때문입니다. 요청을 받은 배포 API 코드는 `e1a07fb` 이후 바뀌지 않았습니다 |
+| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T081053Z.md` | 학생 자기 점검 20건 / 요청 24행: as_expected 22, not_run 2(회수된 시험 계정 C 요청은 보내지 않음, 6·7·9단계 규칙은 로컬 연습뿐이라 요청 없음). 익명 401 에도 요청 ID 가 붙음. `s12_ops_room_live_summary`: 작전실 API 가 이 실행에서 A 가 보낸 요청 7건을 모두 같은 HTTP 상태로 보여 줌. 검사한 커밋 `4b1a215`, 깨끗한 작업 트리 |
 | 운영 심판 41종 시험 | — | **미실행** (이 저장소에서 실행하지 않음, 통과로 표시하지 않음) |
 
 작전실 화면의 "화면 값과 가린 서버 기록 대조" 표는 위 두 기록의 같은 항목 값을 그대로 나란히 보여 줍니다.
