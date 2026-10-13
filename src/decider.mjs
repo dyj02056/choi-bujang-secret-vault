@@ -46,6 +46,36 @@ function requiresStepUp(request) {
     && (signals?.hour < 6 || signals?.hour >= 22);
 }
 
+// The contract carries no owner or role, so a private note is bound to the first
+// verified subject the engine lets read or write it. Any other subject is denied that
+// exact note. Process-local and bounded; the API handlers still check owner_id.
+const NOTE_OWNERS = new Map();
+const NOTE_OWNER_LIMIT = 5000;
+
+function noteKey(request) {
+  return request.service === 'notes' ? request.path.split('/').pop() : null;
+}
+
+function isOtherUsersNote(request) {
+  const key = noteKey(request);
+  if (key === null) return false;
+  const owner = NOTE_OWNERS.get(key);
+  return owner !== undefined && owner !== request.subjectId;
+}
+
+function bindNoteOwner(request) {
+  const key = noteKey(request);
+  if (key === null || NOTE_OWNERS.has(key)) return;
+  if (NOTE_OWNERS.size >= NOTE_OWNER_LIMIT) NOTE_OWNERS.delete(NOTE_OWNERS.keys().next().value);
+  NOTE_OWNERS.set(key, request.subjectId);
+}
+
+// The instructor role is not in the contract either, so every announcement write needs
+// a fresh step-up; ordinary students cannot pass it at the API's instructor check.
+function isAnnouncementWrite(request) {
+  return request.service === 'announcements' && request.method !== 'GET';
+}
+
 export async function decide(request) {
   if (request.deviceRegistered !== true) {
     return {
@@ -67,6 +97,26 @@ export async function decide(request) {
     };
   }
 
+  if (isOtherUsersNote(request)) {
+    return {
+      schema: 'aleph.decision.v1',
+      requestId: request.requestId,
+      decision: 'deny',
+      reasonCode: 'resource_route_denied',
+      ruleIds: [RULE_IDS[2]],
+    };
+  }
+
+  if (isAnnouncementWrite(request) && request.stepUp?.verified !== true) {
+    return {
+      schema: 'aleph.decision.v1',
+      requestId: request.requestId,
+      decision: 'step_up',
+      reasonCode: 'step_up_required',
+      ruleIds: [RULE_IDS[1], RULE_IDS[2]],
+    };
+  }
+
   if (requiresStepUp(request) && request.stepUp?.verified !== true) {
     return {
       schema: 'aleph.decision.v1',
@@ -77,12 +127,13 @@ export async function decide(request) {
     };
   }
 
+  bindNoteOwner(request);
   return {
     schema: 'aleph.decision.v1',
     requestId: request.requestId,
     decision: 'allow',
     reasonCode: 'resource_route_allowed',
-    ruleIds: requiresStepUp(request)
+    ruleIds: requiresStepUp(request) || isAnnouncementWrite(request)
       ? [RULE_IDS[0], RULE_IDS[1], RULE_IDS[2]]
       : [RULE_IDS[0], RULE_IDS[2]],
   };
