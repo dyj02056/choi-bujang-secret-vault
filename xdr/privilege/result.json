@@ -1,0 +1,167 @@
+{
+  "schema": "aleph.xdr.result.v1",
+  "moduleKey": "privilege",
+  "decisions": [
+    {
+      "alertId": "pv-01",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "admin-group-add"
+    },
+    {
+      "alertId": "pv-02",
+      "action": "block",
+      "confidence": 0.99,
+      "reason": "unfamiliar-admin-command, exploit-with-valid-account"
+    },
+    {
+      "alertId": "pv-03",
+      "action": "block",
+      "confidence": 0.99,
+      "reason": "unfamiliar-admin-command, off-hours-privilege-use"
+    },
+    {
+      "alertId": "pv-04",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "admin-group-add"
+    },
+    {
+      "alertId": "pv-05",
+      "action": "block",
+      "confidence": 0.99,
+      "reason": "admin-group-add, repeated-admin-grant"
+    },
+    {
+      "alertId": "pv-06",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "unfamiliar-admin-command"
+    },
+    {
+      "alertId": "pv-07",
+      "action": "block",
+      "confidence": 0.99,
+      "reason": "admin-group-add, off-hours-privilege-use, exploit-with-valid-account"
+    },
+    {
+      "alertId": "pv-08",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "unfamiliar-admin-command"
+    },
+    {
+      "alertId": "pv-09",
+      "action": "block",
+      "confidence": 0.99,
+      "reason": "admin-group-add, repeated-admin-grant"
+    },
+    {
+      "alertId": "pv-10",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-privilege-change"
+    },
+    {
+      "alertId": "pv-11",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-privilege-change"
+    },
+    {
+      "alertId": "pv-12",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-privilege-change"
+    },
+    {
+      "alertId": "pv-13",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-privilege-change"
+    },
+    {
+      "alertId": "pv-14",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-privilege-change"
+    },
+    {
+      "alertId": "pv-15",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-privilege-change"
+    },
+    {
+      "alertId": "pv-16",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-privilege-change"
+    },
+    {
+      "alertId": "pv-17",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "unverified-privilege-change"
+    },
+    {
+      "alertId": "pv-18",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "pv-19",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "pv-20",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "pv-21",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "pv-22",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "pv-23",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "pv-24",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "pv-25",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    },
+    {
+      "alertId": "pv-26",
+      "action": "record",
+      "confidence": 0,
+      "reason": "맞는 패턴 없음"
+    }
+  ],
+  "counts": {
+    "block": 9,
+    "alert": 8,
+    "record": 9
+  }
+}

@@ -377,7 +377,7 @@ are local practice or build checks only; they are not live judge results.
 ## XDR bonus modules (student work)
 
 `xdr/<moduleKey>/decide.mjs` answers each practice Wazuh-shaped alert in `xdr/fixtures/<moduleKey>.json` with
-`{ action: block | alert | record, confidence, reason }`. Done: `brute-force`, `web-injection`, `known-cve`, `persistence`.
+`{ action: block | alert | record, confidence, reason }`. Done: `brute-force`, `web-injection`, `known-cve`, `persistence`, `privilege`.
 `decide.mjs` has no `import`, reads and writes no file and asks nothing outside; `respond.mjs` writes `xdr/alerts.log`
 (append only) and builds deny-rule candidates with an expiry time and the evidence alert IDs. The decider contract
 (`docs/DECIDER_REQUEST.md`) has no source address, so those rules are candidates for the front relay; `src/decider.mjs`
@@ -413,3 +413,22 @@ node xdr/persistence/respond.mjs
 Expected: `경보 24건 · 뽑은 줄 24줄 · 일치`; `xdr/persistence/result.json` counts block 8 · alert 8 · record 8 with no
 normal event (ps-17–24, including user01's normal login) blocked; replay shows `정상 이벤트 막힘 0건`. `respond.mjs`
 appends 16 lines to `xdr/alerts.log` on every run. Local practice results, not judge results.
+
+`privilege` (MITRE ATT&CK T1068 privilege escalation, T1078 valid accounts): a T1068/T1078 alert at level 5 or more
+starts at 0.6 (`alert`); clear signals add to it (the alert's group value is `administrators` — not the description
+text, which can say "not the administrators group" —, an admin command together with a first-seen address, a just-promoted
+account or another account's rights, use outside class or work hours, repeated admin grants, T1068 and T1078 together),
+and below level 10 it stays at most 0.84, so it cannot `block`. Anything else is `record` (0). `respond.mjs` revokes
+the session of one source address + account pair per rule (never a whole account: the attacked accounts also log in
+normally from other addresses) and skips addresses seen in normal events. Patterns and their one-line evidence:
+`xdr/privilege/patterns.json`.
+
+```powershell
+node xdr/privilege/read-alerts.mjs
+npm run xdr:run -- privilege
+node xdr/privilege/respond.mjs
+```
+
+Expected: `경보 26건 · 뽑은 줄 26줄 · 일치`; `xdr/privilege/result.json` counts block 9 · alert 8 · record 9 with no
+normal event (pv-18–26) blocked; replay shows `정상 이벤트 막힘 0건`. `respond.mjs` appends 17 lines to
+`xdr/alerts.log` on every run. Local practice results, not judge results.
