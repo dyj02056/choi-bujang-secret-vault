@@ -14,8 +14,9 @@ const RESOURCE_METHODS = Object.freeze({
   announcements: Object.freeze(['GET', 'PUT']),
 });
 
-// "/notes/<uuid>" or "/api/notes/<uuid>" only: one segment, a UUID, no encoding tricks.
-const RESOURCE_PATH = /^\/(?:api\/)?(notes|announcements)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+// "/notes/<id>" or "/api/notes/<id>" only: one segment. The API handlers validate the
+// real UUID, so the policy accepts any plain ID token but never dots, escapes or slashes.
+const RESOURCE_PATH = /^\/(?:api\/)?(notes|announcements)\/[A-Za-z0-9_-]{1,64}$/u;
 
 function isKnownResourceRoute(request) {
   if (request.schema !== 'aleph.decision.v1'
