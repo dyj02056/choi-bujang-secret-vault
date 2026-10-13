@@ -1,5 +1,18 @@
 # BYTE BACK — secret-note vault (step 12)
 
+## 출처: 제공 엔진과 학생 작업
+
+| 구분 | 출처 | 무엇 | 위치 |
+|---|---|---|---|
+| **제공 엔진** | **ALEPH SDP 엔진** (운영 측 제공, 이 저장소에 코드 없음) | 신원·기기·경로를 먼저 확인하고 판정기를 부르는 릴레이, 사건 전달, 릴레이의 접속 회수, 심판 | 운영 측. 계약 문서만 `docs/DECIDER_REQUEST.md`, `docs/DETECT_EVENTS.md` (운영 측 제공) |
+| 학생 작업 | 학생 | **판정기** | `src/decider.mjs` |
+| 학생 작업 | 학생 | **탐지 규칙** (10분 GET 120건 초과 → 회수 제안, 서버 기록에 적용) | `src/detect.mjs`, `src/access-guard.mjs` |
+| 학생 작업 | 학생 | **접속 앱** (설치형 화면, 패스키 기기 승인, 서명 요청, 탈환 작전실) | `public/`, `api/session.js`, `api/devices.js`, `src/device-*.mjs` |
+| 학생 작업 | 학생 | **자료실** (메모·공지 API, 사본·복구, 감사 기록, 접근 관문, 작전실 요약) | `api/`, `src/`, `supabase/migrations/001`–`009` |
+
+비밀값(비밀번호, 토큰, 서버 키, 기기 키)과 메모 본문은 이 안내와 저장소, 제출 묶음에 넣지 않습니다.
+서버 키는 Vercel 환경 설정 화면과 학생 PC의 `.env`(Git 제외)에만 둡니다.
+
 Private notes and instructor announcements are separate resource zones.
 Private-note access continues to use verified login plus `owner_id` checks.
 Instructor announcements use `/api/announcements/:id`; only a verified user
@@ -22,24 +35,21 @@ returns `propose_revocation` with reason `burst_read` and that subject;
 otherwise it returns `observe`. Exactly 120 events is not flagged, other
 subjects are never added together, and the result keeps the same shape if the
 subject keeps trying after a proposal. This code only proposes. Delivering real
-events to the class engine and revoking access are not connected or tested here.
+events to the ALEPH SDP 엔진 and revoking access in its relay are not connected or tested here.
 
 ## Step 12: the operations room (탈환 작전실)
 
-### What is whose
-
-| Part | Source | Where |
-|---|---|---|
-| Class engine: identity, device and route checks before the decider, event delivery, revocation in the relay | **ALEPH SDP engine** (provided by the course operator, not in this repository; contract in `docs/DECIDER_REQUEST.md`, `docs/DETECT_EVENTS.md`) | operator |
-| Decider rules | student | `src/decider.mjs` |
-| Burst-read detection rule | student | `src/detect.mjs`, applied to server records by `src/access-guard.mjs` |
-| Access app (installable page, passkey device approval, signed requests) | student | `public/`, `api/devices.js`, `api/session.js`, `src/device-*.mjs` |
-| Vault APIs, backup/restore, audit, access guard, operations summary | student | `api/`, `src/`, `supabase/migrations/001`–`009` |
+Sources are in the table at the top (**ALEPH SDP 엔진** provided by the operator; decider, detection rule, access app and vault by the student).
 
 ### Operations room
 
-After a device is approved the app shows **탈환 작전실**. "서버 기록으로 요약 불러오기" sends a signed
-`GET /api/ops/summary` and shows, for the logged-in account only: the decider rule names and zones, access
+After a device is approved the app shows **탈환 작전실**. It first shows the **saved real response** recorded by
+`npm run ops:snapshot` (`public/ops-summary.json`): that procedure logs in as test account A, sends a signed
+`GET /api/ops/summary`, and right after it recounts the same account's masked server tables with the server key at the
+same reference time, then stores both and a field-by-field comparison in `audit/step12/ops-snapshot-<UTC>.json`.
+The screen shows the request ID and whether every field matched. "지금 실제 API로 다시 받기" replaces it with a live
+response. The screen only shows values that are in a response and never computes or fills numbers itself. It shows,
+for the logged-in account only: the decider rule names and zones, access
 events of the last 10 minutes (request ID, route shape, outcome), revocation state and device counts, and the
 restore audit summary (row counts per event, backups, last restore with a masked note reference). Every value
 comes from that API response, whose request ID and server time are shown; until it is requested every box says
@@ -65,7 +75,7 @@ If the records cannot be read or written the request is refused (502).
 
 ### The 1–11 check table
 
-`npm run ops:checks` sends the normal and forbidden requests of steps 1–11 (the same 20 checks as
+`npm run ops:record` runs `ops:checks` and then `ops:snapshot`. `npm run ops:checks` sends the normal and forbidden requests of steps 1–11 (the same 20 checks as
 `npm run bundle`) and writes one row per request: step, normal/forbidden, expected result, observed API result,
 server request ID and check time. Output: `audit/step12/checks-<UTC>.json` and `.md` (never overwritten) and
 `public/ops-checks.json`, which the operations room shows. A check that could not be sent is `not_run` with its
@@ -77,7 +87,7 @@ reason. The operator's 41 judge tests are **not run** by this procedure and are 
 |---|---|---|---|---|
 | Database | run `supabase/migrations/001`–`009` in order in the official Supabase SQL Editor | — | — | notes: `POST /api/restore/notes`; the audit, backup, event and revocation tables are append-only |
 | Vault + access app | Vercel project from this repository; set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` only in the Vercel environment screen | push to `main` (Vercel builds with `npm run build`) | roll back or pause the deployment in Vercel | redeploy a trusted commit; `npm run policy:diff` / `policy:restore` for routes |
-| Student decider | `src/decider.mjs` | the ALEPH SDP engine calls `decide(request)`; practice: `npm run decider:test` | revert the commit | `npm run policy:diff` shows rule differences from `policy/safe-policy.json` |
+| Student decider | `src/decider.mjs` | the ALEPH SDP 엔진 calls `decide(request)`; practice: `npm run decider:test` | revert the commit | `npm run policy:diff` shows rule differences from `policy/safe-policy.json` |
 | Detection rule | `src/detect.mjs` | the access guard on every `GET`; practice: `npm run detect:test` | — | a revocation cannot be undone by the app; use a new test account |
 | Self-check table | `npm install` | `npm run ops:checks`, then `npm run bundle` | — | — |
 
@@ -209,7 +219,7 @@ places. Nothing below holds note titles, note text, tokens or keys.
 | 1 | Database table | `secret_notes_restore_log` in Supabase (created by `supabase/migrations/004`, widened by `005`, `006` and `007`). It is the one trail for every change to a note | note ID, owner, event, time, and the SHA-256 of the content before and after (never the text). Events: `created`, `edited`, `deleted` (written by the notes API) and `updated`, `reinserted`, `unchanged`, `refused` with `reason` (written by the restore route). Append only; update, delete and truncate are blocked by triggers (`004`, `007`) | `api/notes.js`, `api/notes/[id].js` and `src/restore-note.mjs`, through `src/note-audit.mjs`, before the change (a creation is written right after it) |
 | 2 | Repository file | `audit/restore-audit.log`, one JSON line per event | time, action, policy version and hash, counts, whether anything was written | `scripts/policy-snapshot.mjs`, `policy-restore.mjs`, `backup-notes.mjs`, `backup-verify.mjs` |
 | 3 | Restore response | `audit` (`recorded`, `seq`) in the body of every `POST /api/restore/notes` | the number of the row in record 1 | `src/restore-note.mjs` |
-| 4 | Class engine record | held by the class operator, **not in this repository** | decisions the engine made | the provided ALEPH SDP engine |
+| 4 | ALEPH SDP 엔진 record | held by the operator, **not in this repository** | decisions the ALEPH SDP 엔진 made | the provided ALEPH SDP 엔진 |
 
 ### Everything that happened in step 10, kept in the repository
 
@@ -226,7 +236,7 @@ time-ordered table of the events, and says what is not known.
 
 Run `npm run audit:export` again after any new restore, edit or delete to add a new export file;
 an earlier export is never overwritten. Account IDs appear only as `owner_` plus ten characters of
-their SHA-256, note text never appears, and the class engine record is still not in the repository.
+their SHA-256, note text never appears, and the ALEPH SDP 엔진 record is still not in the repository.
 
 ### Where the backups and their logs are
 

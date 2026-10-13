@@ -61,7 +61,7 @@ export function publicJwkFromSpki(spkiB64url) {
   }
 }
 
-// 기기 ID = 패스키 자격 ID(credential ID) 바이트의 SHA-256 앞 16자리. 반 엔진 계약의 deviceId 형식과 같습니다.
+// 기기 ID = 패스키 자격 ID(credential ID) 바이트의 SHA-256 앞 16자리. ALEPH SDP 엔진 계약의 deviceId 형식과 같습니다.
 export function deviceIdOfCredential(credentialIdB64url) {
   if (typeof credentialIdB64url !== 'string' || !B64URL.test(credentialIdB64url)) return null;
   const raw = Buffer.from(credentialIdB64url, 'base64url');

@@ -17,7 +17,7 @@ function validResponse(request, response, ruleIds) {
     && response.ruleIds.every(id => ruleIds.includes(id));
 }
 
-// Local practice only. The class engine and the server judge validate live requests separately.
+// Local practice only. The ALEPH SDP 엔진 and the server judge validate live requests separately.
 export async function checkDecider({ decide, ruleIds }) {
   if (typeof decide !== 'function' || !Array.isArray(ruleIds)
       || !ruleIds.includes('device_registered')) {

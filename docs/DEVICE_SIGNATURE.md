@@ -80,5 +80,5 @@ clientData 의 `type`이 `webauthn.get`, `challenge`가 다시 만든 값, `orig
 
 - `npm run test:device`와 `npm run bundle`의 기기 점검은 같은 바이트 형식으로 서명하는 가상 인증기(`src/device-client.mjs`)를
   씁니다. 그 키는 실행 중인 프로세스 메모리에서만 만들어지고 사라집니다. 로컬 연습이며 심판 판정이 아닙니다.
-- 반 엔진(ALEPH SDP)의 기기 등록과 이 앱의 기기 승인은 별개입니다. 판정기(`src/decider.mjs`)는 엔진이 넘긴
+- ALEPH SDP 엔진(제공 엔진)의 기기 등록과 이 앱의 기기 승인은 별개입니다. 판정기(`src/decider.mjs`)는 엔진이 넘긴
   `deviceRegistered`만 보며, 이 계약 때문에 바뀌지 않았습니다.
