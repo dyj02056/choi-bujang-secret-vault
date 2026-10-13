@@ -8,7 +8,7 @@
 | 학생 작업 | 학생 | **판정기** | `src/decider.mjs` |
 | 학생 작업 | 학생 | **탐지 규칙** (10분 GET 120건 초과 → 회수 제안, 서버 기록에 적용) | `src/detect.mjs`, `src/access-guard.mjs` |
 | 학생 작업 | 학생 | **접속 앱** (설치형 화면, 패스키 기기 승인, 서명 요청, 탈환 작전실) | `public/`, `api/session.js`, `api/devices.js`, `src/device-*.mjs` |
-| 학생 작업 | 학생 | **자료실** (메모·공지 API, 사본·복구, 감사 기록, 접근 관문, 작전실 요약) | `api/`, `src/`, `supabase/migrations/001`–`009` |
+| 학생 작업 | 학생 | **자료실** (메모·공지 API, 사본·복구, 감사 기록, 접근 관문, 작전실 요약) | `api/`, `src/`, `supabase/migrations/001`–`010` |
 
 비밀값(비밀번호, 토큰, 서버 키, 기기 키)과 메모 본문은 이 안내와 저장소, 제출 묶음에 넣지 않습니다.
 서버 키는 Vercel 환경 설정 화면과 학생 PC의 `.env`(Git 제외)에만 둡니다.
@@ -67,6 +67,12 @@ applies the step 9 rule to those records: the 121st read within 10 minutes revok
 (`identity_revocations`, reason `burst_read`) and all its devices. A revoked identity cannot approve a new device.
 If the records cannot be read or written the request is refused (502).
 
+The event's `outcome` is only the gate's decision (`gate_passed` means the gate let it through, not that the API
+answered 200). The handler can still refuse (for example 403 `FORBIDDEN` for another user's note), so just before
+the response is sent the server writes the final HTTP status to `access_results` (migration `010`). The operations
+room shows that final result (`allowed` only for 2xx/3xx, otherwise the error code); an event without a result row is
+shown as `not_recorded`, never as allowed, and the summary request itself as `this_request`.
+
 | Sequence | Result |
 |---|---|
 | Anonymous read, then another user's note read, back to back | 401, then 403 |
@@ -111,7 +117,7 @@ reason. The operator's 41 judge tests are **not run** by this procedure and are 
 
 | Part | Install | Run | Stop | Restore |
 |---|---|---|---|---|
-| Database | run `supabase/migrations/001`–`009` in order in the official Supabase SQL Editor | — | — | notes: `POST /api/restore/notes`; the audit, backup, event and revocation tables are append-only |
+| Database | run `supabase/migrations/001`–`010` in order in the official Supabase SQL Editor | — | — | notes: `POST /api/restore/notes`; the audit, backup, event and revocation tables are append-only |
 | Vault + access app | Vercel project from this repository; set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` only in the Vercel environment screen | push to `main` (Vercel builds with `npm run build`) | roll back or pause the deployment in Vercel | redeploy a trusted commit; `npm run policy:diff` / `policy:restore` for routes |
 | Student decider | `src/decider.mjs` | the ALEPH SDP 엔진 calls `decide(request)`; practice: `npm run decider:test` | revert the commit | `npm run policy:diff` shows rule differences from `policy/safe-policy.json` |
 | Detection rule | `src/detect.mjs` | the access guard on every `GET`; practice: `npm run detect:test` | — | a revocation cannot be undone by the app; use a new test account |

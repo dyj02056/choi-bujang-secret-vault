@@ -86,11 +86,14 @@ export function recordedAttackChecks(config) {
   return order.map((attackId) => {
     const rows = table.rows.filter((row) => row.attackId === attackId);
     const expected = rows[0].expected;
-    if (rows.some((row) => row.verdict === 'not_run')) return entry(attackId, expected, notRun(`${rows[0].notRunReason ?? 'not sent'} [${source}]`));
-    const local = rows.every((row) => row.verdict === 'local_as_expected');
-    const ok = rows.every((row) => row.verdict === 'as_expected' || row.verdict === 'local_as_expected');
-    const text = rows.map((row) => (local ? row.observed : `${rows.length > 1 ? `${row.request}: ` : ''}${row.observed} req=${row.requestId}`)).join('; ');
-    const head = ok ? (local ? 'As expected (local virtual run)' : 'As expected') : 'Needs review';
+    const sent = rows.filter((row) => row.verdict !== 'not_run');
+    if (!sent.length) return entry(attackId, expected, notRun(`${rows[0].notRunReason ?? rows[0].reason ?? 'not sent'} [${source}]`));
+    const local = sent.every((row) => row.verdict === 'local_as_expected');
+    const ok = sent.every((row) => row.verdict === 'as_expected' || row.verdict === 'local_as_expected');
+    const text = rows.map((row) => (row.verdict === 'not_run' ? `${row.request}: Not run (${row.reason ?? row.notRunReason ?? 'not sent'})`
+      : local ? row.observed : `${rows.length > 1 ? `${row.request}: ` : ''}${row.observed} req=${row.requestId}`)).join('; ');
+    const partial = sent.length < rows.length;
+    const head = !ok ? 'Needs review' : local ? 'Local practice only, not an API result' : partial ? 'Partly run, sent part as expected' : 'As expected';
     return entry(attackId, expected, `${head}: ${text} at ${rows.at(-1).checkedAt} [${source}]`);
   });
 }
@@ -118,7 +121,7 @@ export async function runAttackChecks(config, { details = [], sendLive = process
     for (const row of rows) details.push({ attackId: meta.id, step: meta.step, kind: meta.kind, expected, ...row });
   };
   // One live check: one or more requests, all judged together. Each request gets its own row in `details`.
-  const live = async (meta, expected, steps) => {
+  const live = async (meta, expected, steps, notRunParts = []) => {
     const rows = [];
     try {
       let ok = true;
@@ -129,8 +132,12 @@ export async function runAttackChecks(config, { details = [], sendLive = process
         ok &&= fine;
         rows.push({ request: label, observed: describe(result), requestId: result.requestId ?? 'none', checkedAt: at, verdict: fine ? 'as_expected' : 'needs_review' });
       }
-      const text = rows.map((row) => `${steps.length > 1 ? `${row.request}: ` : ''}${row.observed} req=${row.requestId}`).join('; ');
-      record(meta, expected, `${ok ? 'As expected' : 'Needs review'}: ${text} at ${rows.at(-1).checkedAt}`, rows);
+      const sentRows = rows.length;
+      for (const part of notRunParts) rows.push({ request: part.label, observed: 'not run', requestId: 'none', checkedAt: null, verdict: 'not_run', reason: part.reason });
+      const many = rows.length > 1;
+      const text = rows.map((row) => (row.verdict === 'not_run' ? `${row.request}: Not run (${row.reason})` : `${many ? `${row.request}: ` : ''}${row.observed} req=${row.requestId}`)).join('; ');
+      const head = !ok ? 'Needs review' : notRunParts.length ? 'Partly run, sent part as expected' : 'As expected';
+      record(meta, expected, `${head}: ${text} at ${rows[sentRows - 1].checkedAt}`, rows);
     } catch (error) {
       const at = new Date().toISOString();
       rows.push({ request: 'error', observed: `Could not be checked (${error.name})`, requestId: 'none', checkedAt: at, verdict: 'error' });
@@ -149,7 +156,7 @@ export async function runAttackChecks(config, { details = [], sendLive = process
       parts.push(got);
     }
     const at = new Date().toISOString();
-    record(meta, expected, `${ok ? 'As expected' : 'Needs review'} (local virtual run): ${parts.join('; ')}`,
+    record(meta, expected, `${ok ? 'Local practice only, not an API result' : 'Needs review (local practice)'}: ${parts.join('; ')}`,
       [{ request: 'local virtual run', observed: parts.join('; '), requestId: 'local', checkedAt: at, verdict: ok ? 'local_as_expected' : 'needs_review' }]);
   };
 
@@ -296,7 +303,7 @@ export async function runAttackChecks(config, { details = [], sendLive = process
       steps.push({ label: 'revoked identity', run: () => send(app, '/api/notes', { token: tokenC, device: deviceC }), accept: (r) => r.status === 403 && r.error === 'IDENTITY_REVOKED' });
       await live(revokedMeta, revokedExpected, steps);
     } else {
-      await live(revokedMeta, `${revokedExpected}. Revoked part not run live: no revoked test account C`, steps);
+      await live(revokedMeta, revokedExpected, steps, [{ label: 'revoked identity', reason: 'no revoked test account C (ALEPH_CHECK_EMAIL_C/PASSWORD_C), so this request was not sent' }]);
     }
   } else skip(revokedMeta, revokedExpected, missing);
 

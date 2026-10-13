@@ -92,10 +92,17 @@ try {
     read(`identity_revocations?owner_id=eq.${ownerId}&select=reason,revoked_at`),
     read(`secret_notes_backup?owner_id=eq.${ownerId}&select=id&order=id.asc`),
   ]);
+  const eventIds = recentRows.map((row) => row.request_id);
+  // 결과 줄은 요약 응답 뒤에 생기므로, 화면과 같은 시점이 되도록 요약 요청 자신의 결과 줄은 빼고 셉니다.
+  const resultRows = eventIds.length
+    ? (await read(`access_results?request_id=in.(${eventIds.join(',')})&select=request_id,status,error`)).filter((row) => row.request_id !== api.requestId)
+    : [];
   const maskedRecords = {
     owner,
     referenceTime: api.data.generatedAt,
     accessEventsLatest20: recentRows.map((row) => ({ seq: row.seq, requestId: row.request_id, method: row.method, route: row.route, outcome: row.outcome, at: row.at })),
+    accessResultsOfLatest20: resultRows.map((row) => ({ requestId: row.request_id, status: row.status, error: row.error ?? null }))
+      .sort((x, y) => eventIds.indexOf(x.requestId) - eventIds.indexOf(y.requestId)),
     getEventsLast10Minutes: windowRows.map((row) => ({ requestId: row.request_id, at: row.at })),
     restoreAuditRows: auditRows.map((row) => ({ seq: row.seq, mode: row.mode, reason: row.reason ?? null, note: note(row.note_id), at: row.restored_at })),
     deviceStatuses: deviceRows.map((row) => row.status),
@@ -106,6 +113,14 @@ try {
   const tally = (values) => values.reduce((acc, value) => ({ ...acc, [value]: (acc[value] ?? 0) + 1 }), {});
   const restores = maskedRecords.restoreAuditRows.filter((row) => ['updated', 'reinserted', 'unchanged', 'refused'].includes(row.mode));
   const latest = restores.length ? restores[restores.length - 1] : null;
+  // 최종 결과 이름은 화면 API 와 같은 규칙(2xx·3xx allowed, 그 밖은 오류 코드, 줄 없음 not_recorded)을 여기서 따로 계산합니다.
+  const resultById = Object.fromEntries(maskedRecords.accessResultsOfLatest20.map((row) => [row.requestId, row]));
+  const events = maskedRecords.accessEventsLatest20.map(({ requestId, route, outcome, at }) => {
+    const r = resultById[requestId];
+    const label = r ? (r.status < 400 ? 'allowed' : String(r.error ?? `http_${r.status}`).toLowerCase())
+      : (requestId === api.requestId ? 'this_request' : 'not_recorded');
+    return { requestId, route, gate: outcome, status: r ? r.status : null, outcome: label, at };
+  });
   const server = {
     rules: {
       source: api.data.rules.source,
@@ -116,8 +131,8 @@ try {
     detection: {
       source: api.data.detection.source, windowMinutes: 10, limit: 120,
       recentGetCount: maskedRecords.getEventsLast10Minutes.length,
-      recentEvents: maskedRecords.accessEventsLatest20.map(({ requestId, route, outcome, at }) => ({ requestId, route, outcome, at })),
-      outcomeCounts: tally(maskedRecords.accessEventsLatest20.map((row) => row.outcome)),
+      recentEvents: events,
+      outcomeCounts: tally(events.map((row) => row.outcome)),
     },
     revocation: {
       revoked: maskedRecords.revocations.length > 0,

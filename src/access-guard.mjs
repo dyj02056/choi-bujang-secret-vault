@@ -9,6 +9,8 @@ import { ownerKeyOf } from './owner-key.mjs';
 //   3) 승인된 기기의 서명이 실제 요청(메서드·경로·본문)과 맞지 않으면 401/403 (11단계 규칙)
 //   4) GET 이면 9단계 탐지 규칙(10분 안 GET 120건 초과)을 서버 기록에 적용해, 넘으면 그 신원을 회수하고 403
 // 기록하거나 확인할 수 없으면 허용하지 않습니다(502). 사건에는 경로 모양만 남기고 메모 ID·본문·토큰은 남기지 않습니다.
+// access_events.outcome 은 관문의 결정입니다("gate_passed" = 관문 통과, API 가 200 이라는 뜻이 아님).
+// 핸들러가 뒤에서 거절할 수 있으므로(예: 남의 메모 403), 응답을 보내기 직전에 최종 HTTP 상태를 access_results 에 남깁니다.
 export const REQUEST_ID_HEADER = 'x-aleph-request-id';
 export const DETECTION_WINDOW_MS = 10 * 60 * 1000;
 const UUID_SEGMENT = /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/giu;
@@ -85,30 +87,55 @@ export async function checkAccess({ req, verified, fetchImpl = fetch, supabaseUr
     const revoked = await readRevocation({ fetchImpl, supabaseUrl, serviceKey, ownerId });
     if (revoked) {
       await log('identity_revoked');
-      return fail(403, 'IDENTITY_REVOKED', '회수된 신원입니다. 이 신원으로는 다시 접속할 수 없습니다.');
+      return { ...fail(403, 'IDENTITY_REVOKED', '회수된 신원입니다. 이 신원으로는 다시 접속할 수 없습니다.'), logged: true };
     }
     const signed = await checkRequestSignature({ req, ownerId, fetchImpl, supabaseUrl, serviceKey, now });
     if (!signed.ok) {
-      if (signed.status !== 502) await log(signed.error.toLowerCase());
-      return { ...signed, requestId };
+      if (signed.status === 502) return { ...signed, requestId };
+      await log(signed.error.toLowerCase());
+      return { ...signed, requestId, logged: true };
     }
-    await log('allowed', signed.deviceId);
+    await log('gate_passed', signed.deviceId);
     if (method === 'GET' && await burstDetected(db, fetchImpl, ownerId, now)) {
       await revokeIdentity({ fetchImpl, supabaseUrl, serviceKey, ownerId, reason: 'burst_read', requestId });
       await log('identity_revoked_burst_read', signed.deviceId);
-      return fail(403, 'IDENTITY_REVOKED', '짧은 시간에 너무 많이 조회해 이 신원을 회수했습니다.');
+      return { ...fail(403, 'IDENTITY_REVOKED', '짧은 시간에 너무 많이 조회해 이 신원을 회수했습니다.'), logged: true };
     }
-    return { ok: true, ownerId, requestId, deviceId: signed.deviceId };
+    return { ok: true, ownerId, requestId, deviceId: signed.deviceId, logged: true };
   } catch {
     return fail(502, 'ACCESS_CHECK_UNAVAILABLE', '접근 기록을 확인할 수 없어 허용하지 않습니다.');
   }
 }
 
+// 최종 결과 한 줄. 사건 줄(access_events)이 있는 요청만 남깁니다.
+export async function recordResult({ fetchImpl = fetch, supabaseUrl, serviceKey, requestId, status, error = null }) {
+  const db = store(supabaseUrl, serviceKey);
+  const code = typeof error === 'string' && /^[A-Z_]{3,40}$/u.test(error) ? error : null;
+  const response = await fetchImpl(db.url('access_results'), {
+    method: 'POST', headers: db.headers({ Prefer: 'return=minimal' }),
+    body: JSON.stringify({ request_id: requestId, status: Number(status), error: code }),
+  });
+  if (!response.ok) throw new Error('RESULT_WRITE_FAILED');
+}
+
 // 핸들러용 도우미. 실패하면 응답을 보내고 null, 통과하면 검사 결과를 돌려줍니다.
+// 통과한 요청은 res.json 을 감싸, 핸들러가 정한 최종 상태(예: 200, 403 FORBIDDEN)를 기록한 뒤 응답을 보냅니다.
 export async function guardRequest(req, res, context) {
   const result = await checkAccess({ req, ...context });
   res.setHeader(REQUEST_ID_HEADER, result.requestId);
-  if (result.ok) return result;
-  res.status(result.status).json({ error: result.error, message: result.message, requestId: result.requestId });
-  return null;
+  const finish = (status, error) => (result.logged
+    ? recordResult({ ...context, requestId: result.requestId, status, error }).catch(() => {})
+    : Promise.resolve());
+  if (!result.ok) {
+    await finish(result.status, result.error);
+    res.status(result.status).json({ error: result.error, message: result.message, requestId: result.requestId });
+    return null;
+  }
+  const send = res.json.bind(res);
+  res.json = (body) => {
+    res.json = send;
+    const status = res.statusCode || 200;
+    return finish(status, status >= 400 ? body?.error : null).then(() => send(body));
+  };
+  return result;
 }

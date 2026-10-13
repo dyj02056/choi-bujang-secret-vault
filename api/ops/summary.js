@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED', message: '지원하지 않는 메서드입니다.', requestId: gate.requestId });
   }
   try {
-    const summary = await buildOpsSummary({ supabaseUrl, serviceKey, ownerId: gate.ownerId });
+    const summary = await buildOpsSummary({ supabaseUrl, serviceKey, ownerId: gate.ownerId, currentRequestId: gate.requestId });
     return res.status(200).json({ ...summary, requestId: gate.requestId, source: 'api' });
   } catch {
     return res.status(502).json({ error: 'OPS_SUMMARY_UNAVAILABLE', message: '서버 기록을 읽을 수 없습니다.', requestId: gate.requestId });

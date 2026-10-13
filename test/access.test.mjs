@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createPublicKey } from 'node:crypto';
 import { test } from 'node:test';
-import { checkAccess, routeShape } from '../src/access-guard.mjs';
+import { checkAccess, guardRequest, routeShape } from '../src/access-guard.mjs';
 import { createVirtualDevice } from '../src/device-client.mjs';
 import { buildOpsSummary } from '../src/ops-summary.mjs';
 import { ownerKeyOf } from '../src/owner-key.mjs';
@@ -16,7 +16,7 @@ const BASE = { supabaseUrl: 'https://example.invalid', serviceKey: 'test-key-not
 const verifiedA = { kind: 'student', userId: USER_A };
 
 function makeDb() {
-  const db = { events: [], revocations: [], devices: [], nonces: [], audit: [], backups: [], failEvents: false };
+  const db = { events: [], results: [], revocations: [], devices: [], nonces: [], audit: [], backups: [], failEvents: false };
   db.fetch = async (url, options = {}) => {
     const parsed = new URL(url);
     const table = parsed.pathname.split('/').pop();
@@ -37,6 +37,15 @@ function makeDb() {
       if (q('at')) rows = rows.filter((row) => row.at >= q('at').replace(/^gte\./u, ''));
       rows = [...rows].sort((x, y) => y.seq - x.seq).slice(0, Number(q('limit') ?? 1000));
       return reply(200, rows);
+    }
+    if (table === 'access_results') {
+      if (method === 'POST') {
+        if (!db.events.some((row) => row.request_id === body.request_id)) return reply(409, {});
+        db.results.push(body);
+        return reply(201, null);
+      }
+      const ids = (q('request_id') ?? '').replace(/^in\.\(|\)$/gu, '').split(',');
+      return reply(200, db.results.filter((row) => ids.includes(row.request_id)));
     }
     if (table === 'identity_revocations') {
       if (method === 'POST') {
@@ -71,6 +80,13 @@ const approve = (db, userId = USER_A) => {
   db.devices.push({ device_id: device.id, owner_id: ownerKeyOf({ kind: 'student', userId }), public_key: { crv: 'P-256', kty: 'EC', x: jwk.x, y: jwk.y }, status: 'approved', approved_at: 'now' });
   return device;
 };
+const fakeRes = () => {
+  const res = { statusCode: 200, headers: {}, sent: null };
+  res.setHeader = (name, value) => { res.headers[name] = value; };
+  res.status = (code) => { res.statusCode = code; return res; };
+  res.json = (body) => { res.sent = { status: res.statusCode, body }; return res; };
+  return res;
+};
 const signedGet = (device, path) => ({ method: 'GET', url: path, headers: { host: HOST, ...device.signHeaders({ path }) } });
 const access = (db, req, verified = verifiedA) => checkAccess({ req, verified, fetchImpl: db.fetch, ...BASE });
 
@@ -87,7 +103,7 @@ test('승인된 기기의 정상 요청은 통과하고 요청 ID와 경로 모�
   const result = await access(db, signedGet(device, `/api/notes/${NOTE}`));
   assert.equal(result.ok, true);
   assert.match(result.requestId, /^[0-9a-f-]{36}$/u);
-  assert.deepEqual(db.events.map((row) => [row.request_id, row.route, row.outcome]), [[result.requestId, 'GET /notes/:id', 'allowed']]);
+  assert.deepEqual(db.events.map((row) => [row.request_id, row.route, row.outcome]), [[result.requestId, 'GET /notes/:id', 'gate_passed']]);
   assert.equal(JSON.stringify(db.events).includes(NOTE), false, '메모 ID 는 기록하지 않습니다');
 });
 
@@ -118,7 +134,7 @@ test('10분 안 GET 121번째에서 신원이 회수되고 기기도 회수되�
   const device = approve(db);
   const owner = ownerKeyOf(verifiedA);
   const recent = new Date().toISOString();
-  for (let i = 0; i < 120; i += 1) db.events.push({ seq: i + 1, owner_id: owner, method: 'GET', route: 'GET /notes', outcome: 'allowed', at: recent });
+  for (let i = 0; i < 120; i += 1) db.events.push({ seq: i + 1, owner_id: owner, method: 'GET', route: 'GET /notes', outcome: 'gate_passed', at: recent });
   const flagged = await access(db, signedGet(device, '/api/notes'));
   assert.equal(flagged.error, 'IDENTITY_REVOKED');
   assert.equal(db.revocations[0].reason, 'burst_read');
@@ -132,7 +148,7 @@ test('정확히 120번째 GET 은 회수하지 않는다', async () => {
   const device = approve(db);
   const owner = ownerKeyOf(verifiedA);
   const recent = new Date().toISOString();
-  for (let i = 0; i < 119; i += 1) db.events.push({ seq: i + 1, owner_id: owner, method: 'GET', route: 'GET /notes', outcome: 'allowed', at: recent });
+  for (let i = 0; i < 119; i += 1) db.events.push({ seq: i + 1, owner_id: owner, method: 'GET', route: 'GET /notes', outcome: 'gate_passed', at: recent });
   assert.equal((await access(db, signedGet(device, '/api/notes'))).ok, true);
   assert.equal(db.revocations.length, 0);
 });
@@ -163,14 +179,17 @@ test('작전실 요약 수치는 가린 서버 기록과 같고 메모 본문이
   const db = makeDb();
   const device = approve(db);
   const owner = ownerKeyOf(verifiedA);
-  await access(db, signedGet(device, '/api/notes'));
-  await access(db, { method: 'PUT', url: `/api/notes/${NOTE}`, headers: { host: HOST }, body: { title: '비밀 제목' } });
+  const res = fakeRes();
+  await guardRequest(signedGet(device, '/api/notes'), res, { verified: verifiedA, fetchImpl: db.fetch, ...BASE });
+  await res.status(200).json({ notes: [] });
+  await guardRequest({ method: 'PUT', url: `/api/notes/${NOTE}`, headers: { host: HOST }, body: { title: '비밀 제목' } }, fakeRes(), { verified: verifiedA, fetchImpl: db.fetch, ...BASE });
   db.audit.push({ owner_id: owner, seq: 1, note_id: NOTE, mode: 'edited', restored_at: 't1' }, { owner_id: owner, seq: 2, note_id: NOTE, mode: 'updated', restored_at: 't2' });
   db.backups.push({ owner_id: owner, id: NOTE });
   const summary = await buildOpsSummary({ fetchImpl: db.fetch, ...BASE, ownerId: owner });
   assert.deepEqual(summary.rules.ruleIds, ['device_registered', 'step_up_required', 'resource_zone_route']);
   assert.equal(summary.detection.recentGetCount, 1);
   assert.deepEqual(summary.detection.outcomeCounts, { allowed: 1, device_signature_required: 1 });
+  assert.deepEqual(summary.detection.recentEvents.map((event) => [event.gate, event.status]), [['device_signature_required', 401], ['gate_passed', 200]]);
   assert.equal(summary.detection.recentEvents.length, db.events.length);
   assert.deepEqual(summary.revocation, { revoked: false, reason: null, revokedAt: null, devices: { approved: 1, pending: 0, revoked: 0 } });
   assert.deepEqual(summary.restore.byMode, { edited: 1, updated: 1 });
@@ -179,4 +198,29 @@ test('작전실 요약 수치는 가린 서버 기록과 같고 메모 본문이
   assert.match(summary.restore.latest.note, /^note_[0-9a-f]{10}$/u);
   const text = JSON.stringify(summary);
   assert.equal(text.includes(NOTE) || text.includes('비밀 제목') || text.includes(USER_A), false);
+});
+
+test('관문을 통과해도 핸들러가 거절하면 최종 결과는 그 거절로 기록되고 작전실도 거절로 보여 준다', async () => {
+  const db = makeDb();
+  const device = approve(db);
+  const owner = ownerKeyOf(verifiedA);
+  const res = fakeRes();
+  const gate = await guardRequest(signedGet(device, `/api/notes/${NOTE}`), res, { verified: verifiedA, fetchImpl: db.fetch, ...BASE });
+  assert.equal(gate.ok, true);
+  await res.status(403).json({ error: 'FORBIDDEN', message: '남의 메모' });
+  assert.equal(res.sent.status, 403, '응답은 그대로 나갑니다');
+  assert.deepEqual(db.results, [{ request_id: gate.requestId, status: 403, error: 'FORBIDDEN' }]);
+  const summary = await buildOpsSummary({ fetchImpl: db.fetch, ...BASE, ownerId: owner });
+  assert.deepEqual(summary.detection.recentEvents.map((event) => [event.gate, event.status, event.outcome]), [['gate_passed', 403, 'forbidden']]);
+  assert.deepEqual(summary.detection.outcomeCounts, { forbidden: 1 });
+});
+
+test('결과 줄이 없는 사건은 허용으로 채우지 않고 not_recorded, 요약 요청 자신은 this_request 로 둔다', async () => {
+  const db = makeDb();
+  const device = approve(db);
+  const owner = ownerKeyOf(verifiedA);
+  const first = await access(db, signedGet(device, '/api/notes'));
+  const self = await access(db, signedGet(device, '/api/ops/summary'));
+  const summary = await buildOpsSummary({ fetchImpl: db.fetch, ...BASE, ownerId: owner, currentRequestId: self.requestId });
+  assert.deepEqual(summary.detection.recentEvents.map((event) => [event.requestId, event.outcome]), [[self.requestId, 'this_request'], [first.requestId, 'not_recorded']]);
 });
