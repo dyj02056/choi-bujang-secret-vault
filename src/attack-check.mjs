@@ -1,4 +1,48 @@
-// Student self-check: retain API-access checks in stage 10.
+// Student self-check: runs after a restore and records only requests that were really sent.
+// Anything that could not be sent is written as "Not run: <reason>", never as a result.
+//
+// Optional login checks read test tokens from the student's own shell, for example
+//   $env:ALEPH_CHECK_TOKEN_A = '<test account A token>'   (also _B)
+//   $env:ALEPH_CHECK_NOTE_A  = '<A note UUID>'            (also _B)
+// Tokens are used only in the Authorization header and are never printed or stored.
+import { randomUUID } from 'node:crypto';
+import { fixtureRequests } from '../scripts/fixture-7.mjs';
+import { decide } from './decider.mjs';
+import { detect } from './detect.mjs';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+const cut = (text) => (text.length > 290 ? `${text.slice(0, 287)}...` : text);
+const entry = (attackId, expected, observed) => ({ attackId, expected: cut(expected), observed: cut(observed) });
+const notRun = (reason) => `Not run: ${reason}`;
+
+async function send(app, path, { method = 'GET', token, body, base } = {}) {
+  const url = base ?? new URL(path, app);
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const response = await fetch(url, {
+    method, headers, body: body === undefined ? undefined : JSON.stringify(body),
+    redirect: 'error', signal: AbortSignal.timeout(10000),
+  });
+  let data;
+  try { data = await response.json(); } catch { /* body is not JSON */ }
+  return { status: response.status, error: data?.error, mode: data?.mode };
+}
+
+// Sends one request and judges it with `accept`. A network failure is reported as such.
+async function live(id, expected, accept, run) {
+  try {
+    const result = await run();
+    const text = `HTTP ${result.status}${result.error ? ` ${result.error}` : ''}${result.mode ? ` mode=${result.mode}` : ''}`;
+    return entry(id, expected, `${accept(result) ? 'As expected' : 'Needs review'}: ${text} at ${new Date().toISOString()}`);
+  } catch (error) {
+    return entry(id, expected, `Could not be checked (${error.name}) at ${new Date().toISOString()}`);
+  }
+}
+
+const denied = (status) => (r) => r.status === status;
+const rejected = (r) => r.status === 401 || r.status === 403;
+
 export async function runAttackChecks(config) {
   if (config.step !== 10) throw new Error('Current step requires updating src/attack-check.mjs.');
   let app;
@@ -12,41 +56,94 @@ export async function runAttackChecks(config) {
     throw new Error('aleph.config.json must contain a valid public app URL.');
   }
 
-  
-  let anonObserved = '';
-  try {
-    const response = await fetch(new URL('/api/notes', app), {
-      redirect: 'error', signal: AbortSignal.timeout(10000),
-    });
-    let data;
-    try { data = await response.json(); } catch {}
-    if (response.status === 401 || response.status === 403) {
-      anonObserved = `Anonymous request correctly rejected (HTTP ${response.status}: ${data?.error || 'UNAUTHORIZED'})`;
-    } else {
-      anonObserved = `Anonymous request needs review (HTTP ${response.status})`;
+  const env = process.env;
+  const tokenA = env.ALEPH_CHECK_TOKEN_A;
+  const tokenB = env.ALEPH_CHECK_TOKEN_B;
+  const noteA = env.ALEPH_CHECK_NOTE_A;
+  const noteB = env.ALEPH_CHECK_NOTE_B;
+  const validIds = UUID.test(noteA ?? '') && UUID.test(noteB ?? '');
+  const loginReady = Boolean(tokenA && tokenB) && validIds;
+  const missing = notRun('set ALEPH_CHECK_TOKEN_A/B and ALEPH_CHECK_NOTE_A/B (test accounts) in your shell first.');
+  const restorePath = config.restoreRoute;
+  const restoreUsable = typeof restorePath === 'string' && restorePath.startsWith('/api/');
+  const noRestoreRoute = notRun('restoreRoute is not set in aleph.config.json.');
+  const results = [];
+
+  // 1) Restore first, so every check below runs after the data came back.
+  const restoreExpected = 'Account B restores its own note: HTTP 200 with mode updated, reinserted or unchanged';
+  results.push(loginReady && restoreUsable
+    ? await live('s10_restore_own_note', restoreExpected,
+      (r) => r.status === 200 && ['updated', 'reinserted', 'unchanged'].includes(r.mode),
+      () => send(app, restorePath, { method: 'POST', token: tokenB, body: { id: noteB } }))
+    : entry('s10_restore_own_note', restoreExpected, loginReady ? noRestoreRoute : missing));
+
+  // 2) Normal requests after the restore.
+  results.push(await live('s1_public_page_normal', 'The public page still opens: HTTP 200',
+    (r) => r.status === 200, () => send(app, '/')));
+  results.push(loginReady
+    ? await live('s8_own_note_read_after_restore', 'Account A reads its own note: HTTP 200',
+      (r) => r.status === 200, () => send(app, `/api/notes/${noteA}`, { token: tokenA }))
+    : entry('s8_own_note_read_after_restore', 'Account A reads its own note: HTTP 200', missing));
+
+  // 3) Forbidden requests that need no login at all.
+  results.push(await live('s1_anonymous_notes_list', 'Anonymous list request is rejected with HTTP 401 or 403',
+    rejected, () => send(app, '/api/notes')));
+  results.push(await live('s2_4_anonymous_note_by_id', 'Anonymous single-note request is rejected with HTTP 401 or 403',
+    rejected, () => send(app, `/api/notes/${randomUUID()}`)));
+  results.push(await live('s8_anonymous_announcement_write', 'Anonymous announcement update is rejected with HTTP 401 or 403',
+    rejected, () => send(app, `/api/announcements/${randomUUID()}`, { method: 'PUT', body: { title: 'x' } })));
+  const anonRestoreExpected = 'Anonymous restore call is rejected with HTTP 401 or 403';
+  results.push(restoreUsable
+    ? await live('s10_anonymous_restore_call', anonRestoreExpected,
+      rejected, () => send(app, restorePath, { method: 'POST', body: { id: randomUUID() } }))
+    : entry('s10_anonymous_restore_call', anonRestoreExpected, noRestoreRoute));
+  const originalExpected = 'The original table API rejects a request that carries no key: HTTP 401 or 403';
+  results.push(typeof config.originalApiUrl === 'string' && config.originalApiUrl.startsWith('https://')
+    ? await live('s5_original_api_without_key', originalExpected,
+      rejected, () => send(app, '', { base: new URL(config.originalApiUrl) }))
+    : entry('s5_original_api_without_key', originalExpected, notRun('originalApiUrl is not set.')));
+
+  // 4) Forbidden requests that need two test logins.
+  results.push(loginReady
+    ? await live('s8_cross_zone_note_read', 'Account B reading account A note is rejected with HTTP 403',
+      denied(403), () => send(app, `/api/notes/${noteA}`, { token: tokenB }))
+    : entry('s8_cross_zone_note_read', 'Account B reading account A note is rejected with HTTP 403', missing));
+  results.push(loginReady
+    ? await live('s8_announcement_write_non_instructor', 'A non-instructor announcement update is rejected with HTTP 403',
+      denied(403), () => send(app, `/api/announcements/${randomUUID()}`, { method: 'PUT', token: tokenA, body: { title: 'x' } }))
+    : entry('s8_announcement_write_non_instructor', 'A non-instructor announcement update is rejected with HTTP 403', missing));
+  const otherRestoreExpected = 'Account A restoring account B note is rejected with HTTP 403';
+  results.push(loginReady && restoreUsable
+    ? await live('s10_restore_other_users_note', otherRestoreExpected,
+      denied(403), () => send(app, restorePath, { method: 'POST', token: tokenA, body: { id: noteB } }))
+    : entry('s10_restore_other_users_note', otherRestoreExpected, loginReady ? noRestoreRoute : missing));
+
+  // 5) Local practice with virtual events (the decider and detector run in this process; not a judge result).
+  const local = async (id, expected, run) => {
+    try {
+      return entry(id, expected, `Local virtual run: ${await run()}`);
+    } catch (error) {
+      return entry(id, expected, `Could not be checked (${error.name})`);
     }
-  } catch (err) {
-    anonObserved = `Anonymous request could not be checked (${err.message})`;
-  }
+  };
+  const { normal, suspicious } = fixtureRequests();
+  results.push(await local('s6_unregistered_device_denied', 'Unregistered device is denied (local practice)', async () => {
+    const r = await decide({ ...normal, requestId: randomUUID(), deviceRegistered: false });
+    return `${r.decision} ${r.reasonCode}`;
+  }));
+  results.push(await local('s7_unusual_access_step_up', 'Unusual region, network and hour together ask for extra verification (local practice)', async () => {
+    const r = await decide({ ...suspicious, requestId: randomUUID() });
+    return `${r.decision} ${r.reasonCode}`;
+  }));
+  const start = Date.UTC(2026, 9, 1);
+  const reads = (count) => Array.from({ length: count }, (_, i) => ({
+    at: new Date(start + i * 2000).toISOString(), method: 'GET', identity: { sub: 'learner_fixture' },
+  }));
+  results.push(await local('s9_burst_read_proposes_revocation', '121 reads in 10 minutes propose a revocation (local practice)', async () => {
+    const r = detect(reads(121));
+    return `${r.action}${r.reasonCode ? ` ${r.reasonCode}` : ''}`;
+  }));
+  results.push(await local('s9_normal_reads_observed', '30 normal reads are only observed (local practice)', async () => detect(reads(30)).action));
 
-  const crossObserved = 'Not run: manually verify that the original API rejects an anon-key request.';
-  const zoneObserved = 'Not run: manually verify that another user cannot read or modify a private note.';
-
-  return [
-    {
-      attackId: 'anonymous_api_read',
-      expected: 'Anonymous request is rejected with HTTP 401 or 403',
-      observed: anonObserved,
-    },
-    {
-      attackId: 'original_direct_blocked',
-      expected: 'The original API rejects a direct anon-key request',
-      observed: crossObserved,
-    },
-    {
-      attackId: 'cross_zone_note_access',
-      expected: 'Another user is denied access to a private note with HTTP 403',
-      observed: zoneObserved,
-    },
-  ];
+  return results;
 }

@@ -77,22 +77,46 @@ automatically; compare it with the commit you trust and restore it by hand.
 
 ### Run after a restore (steps 1 to 9)
 
-Record only what you actually sent. Every row is **not run** until you run it.
+This README does not contain results. `npm run bundle` runs `src/attack-check.mjs`, which
+sends the requests below after the restore and writes only what really happened into the
+submission (`attackAttempts`: expected, observed with HTTP status and time). A request
+that could not be sent says `Not run: <reason>`. A result that is not the expected one
+says `Needs review`; it is never turned into a pass.
 
-| Step | Normal request | Forbidden request | Expected | Status |
+| Attack ID | Step | Normal or forbidden | Expected | Needs |
 |---|---|---|---|---|
-| 1 | Public page opens | Notes without login | 401 | not run |
-| 2-4 | Logged-in note list | Missing or invalid token | 401 | not run |
-| 5 | App API with login | Original Supabase table with the public key | rejected | not run |
-| 6 | Registered device read | Unregistered device (`npm run decider:test`) | deny | not run |
-| 7 | Normal read | Unusual region, network and hour together | step-up | not run |
-| 8 | Own note read | B reads A note; announcement write by anyone | 403 | not run |
-| 9 | Normal reads (`npm run detect:test`) | More than 120 reads in 10 minutes | revocation proposal | not run |
-| 10 | Restore B note, then read it | Restore as another user, or after a damaged backup | 403 / 409 | not run |
+| `s10_restore_own_note` | 10 | normal: B restores its own note (runs first) | 200 | 2 test logins |
+| `s1_public_page_normal` | 1 | normal: public page | 200 | nothing |
+| `s8_own_note_read_after_restore` | 8 | normal: A reads its own note | 200 | 2 test logins |
+| `s1_anonymous_notes_list` | 1 | forbidden: list without login | 401 or 403 | nothing |
+| `s2_4_anonymous_note_by_id` | 2-4 | forbidden: one note without login | 401 or 403 | nothing |
+| `s8_anonymous_announcement_write` | 8 | forbidden: announcement update without login | 401 or 403 | nothing |
+| `s10_anonymous_restore_call` | 10 | forbidden: restore without login | 401 or 403 | nothing |
+| `s5_original_api_without_key` | 5 | forbidden: original table API without a key | 401 or 403 | nothing |
+| `s8_cross_zone_note_read` | 8 | forbidden: B reads A note | 403 | 2 test logins |
+| `s8_announcement_write_non_instructor` | 8 | forbidden: non-instructor announcement update | 403 | 2 test logins |
+| `s10_restore_other_users_note` | 10 | forbidden: A restores B note | 403 | 2 test logins |
+| `s6_unregistered_device_denied` | 6 | forbidden: unregistered device | deny | local practice |
+| `s7_unusual_access_step_up` | 7 | forbidden: unusual region, network and hour together | step_up | local practice |
+| `s9_burst_read_proposes_revocation` | 9 | forbidden: 121 reads in 10 minutes | propose_revocation | local practice |
+| `s9_normal_reads_observed` | 9 | normal: 30 reads | observe | local practice |
 
-Order: tamper with the B note, call the restore route, read the B note and compare,
-send the step 1 to 9 forbidden requests again, then run `npm run policy:diff` and the
-local checks (`npm run decider:test`, `npm run detect:test`, `npm run test:restore`).
+The rows marked local practice run the decider and detector in this process with virtual
+requests; they are not judge results. The rows that need two test logins are sent only when
+you set these four values in your own shell (never in a file, chat or Git). Use the two test
+accounts, a note owned by each, and a token that is still valid:
+
+```powershell
+$env:ALEPH_CHECK_TOKEN_A = '<test account A token>'
+$env:ALEPH_CHECK_TOKEN_B = '<test account B token>'
+$env:ALEPH_CHECK_NOTE_A  = '<A note UUID>'
+$env:ALEPH_CHECK_NOTE_B  = '<B note UUID>'
+```
+
+Order: tamper with or delete the B note, then run `npm run bundle` from a clean commit.
+The restore call runs first, then every other check, so the other checks happen after the
+data came back. Also run `npm run policy:diff`, `npm run decider:test`, `npm run detect:test`
+and `npm run test:restore`.
 
 ## Required database setup
 
