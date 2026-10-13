@@ -93,10 +93,10 @@ reason. The operator's 41 judge tests are **not run** by this procedure and are 
 
 | 기록 | 파일 | 결과 |
 |---|---|---|
-| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `4aa1a242-8eb5-47a5-a025-a5640e6dc828`, 서버 시각 2026-10-13T07:46:35.414Z |
-| 같은 시점의 가린 서버 원본 줄 | `audit/step12/ops-snapshot-20261013T074636Z.json` (`maskedRecords`) | 계정 `owner_49c3b2ec3c`: 접근 사건 20줄, 그 사건의 최종 결과 7줄(`access_results`), 10분 GET 5줄, 감사 기록 8줄, 기기 15줄, 사본 1줄. 최종 결과: allowed 1, forbidden 1, instructor_required 1, device_signature_mismatch 2, device_signature_required 1, device_not_approved 1, 요약 요청 자신 1(this_request), 결과 표가 생기기 전 사건 12(not_recorded, 허용으로 채우지 않음). 다시 센 값과 화면 값 대조: rules 일치, detection.recentGetCount 일치, detection.outcomeCounts 일치, detection.recentEvents 일치, revocation 일치, restore 일치 |
+| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `22b192ee-32ca-4189-a625-0aeee9e07151`, 서버 시각 2026-10-13T07:54:06.726Z |
+| 같은 시점의 가린 서버 원본 줄 | `audit/step12/ops-snapshot-20261013T075408Z.json` (`maskedRecords`) | 계정 `owner_49c3b2ec3c`: 접근 사건 20줄, 그 사건의 최종 결과 15줄(`access_results`), 10분 GET 10줄, 감사 기록 9줄, 기기 17줄, 사본 1줄. 최종 결과: allowed 3, forbidden 2, instructor_required 2, device_signature_mismatch 4, device_signature_required 2, device_not_approved 2, 요약 요청 자신 1(this_request), 결과 표가 생기기 전 사건 4(not_recorded, 허용으로 채우지 않음). 다시 센 값과 화면 값 대조: rules 일치, detection.recentGetCount 일치, detection.outcomeCounts 일치, detection.recentEvents 일치, revocation 일치, restore 일치 |
 | 전체 계정의 가린 감사 기록 | `audit/step10/db-audit-trail.jsonl` | 같은 시점까지 이어 씀 (위 계정 줄은 `owner` 가 `owner_49c3b2ec3c` 인 줄) |
-| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T074628Z.md` | 학생 자기 점검 20건 / 요청 24행: as_expected 21, not_run 1(회수된 시험 계정 C 없음, 보내지 않음), local_as_expected 2(로컬 연습, API 결과 아님). 검사한 커밋 `e1a07fb`, 깨끗한 작업 트리 |
+| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T075359Z.md`, `src/recorded-checks.mjs`(같은 값, 제출 묶음이 파일을 읽지 않고 불러옴) | 학생 자기 점검 20건 / 요청 24행: as_expected 21, not_run 1(회수된 시험 계정 C 없음, 보내지 않음), local_as_expected 2(로컬 연습, API 결과 아님). 검사한 커밋 `3a4e724`, 깨끗한 작업 트리 |
 | 운영 심판 41종 시험 | — | **미실행** (이 저장소에서 실행하지 않음, 통과로 표시하지 않음) |
 
 작전실 화면의 "화면 값과 가린 서버 기록 대조" 표는 위 두 기록의 같은 항목 값을 그대로 나란히 보여 줍니다.
