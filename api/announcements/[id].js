@@ -88,7 +88,10 @@ export default async function handler(req, res) {
     );
     if (!roleResponse.ok) return res.status(502).json({ error: 'ROLE_CHECK_FAILED' });
     const roles = await roleResponse.json();
-    if (!roles.length) return res.status(403).json({ error: 'INSTRUCTOR_REQUIRED' });
+    const isInstructor = Array.isArray(roles) && roles.some((role) =>
+      typeof role?.user_id === 'string'
+      && role.user_id.toLowerCase() === verified.userId.toLowerCase());
+    if (!isInstructor) return res.status(403).json({ error: 'INSTRUCTOR_REQUIRED' });
 
     const updates = {};
     if (title !== undefined) updates.title = title;

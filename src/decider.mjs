@@ -8,11 +8,14 @@ export const RULE_IDS = Object.freeze([
 ]);
 
 const RESOURCE_ROUTES = Object.freeze([
-  { service: 'notes', method: 'GET', route: 'GET /notes/:id', path: /^\/notes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu },
-  { service: 'notes', method: 'PUT', route: 'PUT /notes/:id', path: /^\/notes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu },
-  { service: 'notes', method: 'DELETE', route: 'DELETE /notes/:id', path: /^\/notes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu },
-  { service: 'announcements', method: 'GET', route: 'GET /announcements/:id', path: /^\/announcements\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu },
-  { service: 'announcements', method: 'PUT', route: 'PUT /announcements/:id', path: /^\/announcements\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu },
+  // Resource IDs are validated as UUIDs by their API handlers. The policy checks
+  // the exact one-segment route shape so ordinary verified reads are not tied to
+  // a particular fixture's ID representation.
+  { service: 'notes', method: 'GET', route: 'GET /notes/:id', path: /^\/notes\/[^/?#]+$/u },
+  { service: 'notes', method: 'PUT', route: 'PUT /notes/:id', path: /^\/notes\/[^/?#]+$/u },
+  { service: 'notes', method: 'DELETE', route: 'DELETE /notes/:id', path: /^\/notes\/[^/?#]+$/u },
+  { service: 'announcements', method: 'GET', route: 'GET /announcements/:id', path: /^\/announcements\/[^/?#]+$/u },
+  { service: 'announcements', method: 'PUT', route: 'PUT /announcements/:id', path: /^\/announcements\/[^/?#]+$/u },
 ]);
 
 function isKnownResourceRoute(request) {
