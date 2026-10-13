@@ -42,6 +42,7 @@ try {
     const trail = (await read('secret_notes_restore_log?select=*&order=seq.asc')).map((row) => ({
       seq: row.seq, noteId: row.note_id, owner: pseudonym(row.owner_id), mode: row.mode,
       beforeSha256: row.before_sha256 ?? null, afterSha256: row.after_sha256 ?? null, at: row.restored_at,
+      ...(row.reason ? { reason: row.reason } : {}),
     }));
     const backups = (await read('secret_notes_backup?select=id,owner_id,content_sha256,created_at,backed_up_at&order=backed_up_at.asc'))
       .map((row) => ({ noteId: row.id, owner: pseudonym(row.owner_id), contentSha256: row.content_sha256, createdAt: row.created_at, backedUpAt: row.backed_up_at }));

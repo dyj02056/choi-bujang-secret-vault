@@ -101,12 +101,22 @@ test('다른 사용자(A)는 B 메모를 복구할 수 없다', async () => {
   const result = await run(db, { ownerId: OWNER_A });
   assert.equal(result.status, 403);
   assert.equal(db.notes[0].content, '변조된 내용', '거부되면 쓰지 않습니다');
+  assert.equal(db.log.length, 1, '거절된 호출도 감사 기록에 남습니다');
+  assert.equal(db.log[0].mode, 'refused');
+  assert.equal(db.log[0].reason, 'not_owner');
+  assert.equal(db.log[0].owner_id, OWNER_A, '거절 기록의 owner_id 는 호출한 사람입니다');
+  assert.equal(result.body.audit.seq, db.log[0].seq);
 });
 
 test('사본이 없거나 변조되면 복구를 중단한다', async () => {
   const none = makeDb();
   none.backup.length = 0;
-  assert.equal((await run(none)).status, 404);
+  none.notes[0].content = '변조된 내용';
+  const missing = await run(none);
+  assert.equal(missing.status, 404);
+  assert.deepEqual(none.log.map((row) => [row.mode, row.reason, row.note_id]), [['refused', 'no_backup', NOTE_B]]);
+  assert.equal(missing.body.audit.recorded, true);
+  assert.equal(none.notes[0].content, '변조된 내용');
 
   const forged = makeDb();
   forged.backup[0].content = '사본 내용 변조';
@@ -115,6 +125,7 @@ test('사본이 없거나 변조되면 복구를 중단한다', async () => {
   assert.equal(result.status, 409);
   assert.equal(result.body.error, 'BACKUP_INTEGRITY_FAILED');
   assert.equal(forged.notes[0].content, '변조된 내용');
+  assert.equal(forged.log[0].reason, 'backup_integrity_failed');
 });
 
 test('같은 ID가 다른 소유자로 남아 있으면 덮어쓰지 않는다', async () => {
@@ -124,14 +135,18 @@ test('같은 ID가 다른 소유자로 남아 있으면 덮어쓰지 않는다',
   const result = await run(db);
   assert.equal(result.body.error, 'OWNER_CONFLICT');
   assert.equal(db.notes[0].content, '다른 사람 내용');
+  assert.equal(db.log[0].reason, 'owner_conflict');
 });
 
-test('잘못된 ID는 DB를 읽기 전에 거부한다', async () => {
+test('잘못된 ID는 자료를 읽기 전에 거부하고 거절만 기록한다', async () => {
   const db = makeDb();
-  for (const bad of [undefined, '', 'x', '../notes', `${NOTE_B}&owner_id=neq.x`, 42]) {
+  const bads = [undefined, '', 'x', '../notes', `${NOTE_B}&owner_id=neq.x`, 42];
+  for (const bad of bads) {
     assert.equal((await run(db, { id: bad })).status, 400);
   }
-  assert.equal(db.calls.length, 0);
+  assert.equal(db.calls.every((call) => call === 'POST secret_notes_restore_log'), true, '감사 표 외에는 건드리지 않습니다');
+  assert.equal(db.log.length, bads.length);
+  assert.equal(db.log.every((row) => row.mode === 'refused' && row.reason === 'invalid_id' && row.note_id === null), true);
 });
 
 test('복구 뒤 같은 요청을 다시 보내도 상태가 늘어나지 않는다', async () => {
@@ -193,12 +208,14 @@ test('감사 기록을 남길 수 없으면 아무것도 바꾸지 않고 중단
   assert.equal(gone.notes.some((note) => note.id === NOTE_B), false);
 });
 
-test('변경 없는 호출은 기록에 실패해도 자료를 건드리지 않고 결과만 알린다', async () => {
+test('변경 없는 호출도 기록에 실패하면 실패로 알리고 자료는 건드리지 않는다', async () => {
   const db = makeDb();
   db.failLog = true;
   const result = await run(db);
-  assert.equal(result.status, 200);
+  assert.equal(result.status, 502);
+  assert.equal(result.body.error, 'AUDIT_UNAVAILABLE');
   assert.equal(result.body.audit.recorded, false);
+  assert.equal(db.calls.some((call) => /^(PATCH|POST) secret_notes$/.test(call)), false);
 });
 
 test('복구는 지정한 한 건만 바꾸고 다른 메모와 기존 감사 기록은 그대로 둔다', async () => {
@@ -242,4 +259,32 @@ test('첫 버전 사본에 생성 시각이 함께 저장된다', async () => {
     id: NOTE_B, ownerId: OWNER_B, title: 't', content: 'c', createdAt: '2026-10-01T00:00:00.000Z',
   });
   assert.equal(sent.created_at, '2026-10-01T00:00:00.000Z');
+});
+
+test('10단계 전에 만든 메모(사본 없음)도 처음 바뀌기 직전 상태가 사본이 되어 변조 뒤 복구된다', async () => {
+  const { ensureBackup } = await import('../src/note-backup.mjs');
+  const db = makeDb();
+  db.backup.length = 0;
+  const OLD = '2026-09-01T00:00:00.000Z';
+  db.notes[0].created_at = OLD;
+  const backupFetch = async (url, options) => {
+    const body = JSON.parse(options.body);
+    if (!db.backup.some((row) => row.id === body.id)) db.backup.push({ created_at: null, ...body });
+    return { ok: true, status: 201 };
+  };
+  // 수정 API가 바꾸기 직전에 부르는 것과 같습니다.
+  assert.equal(await ensureBackup({ fetchImpl: backupFetch, supabaseUrl: 'https://example.invalid', serviceKey: 'test-key-not-real', note: { ...db.notes[0] } }), true);
+  db.notes[0].content = '변조된 내용';
+  // 두 번째 변경 때는 이미 사본이 있으므로 변조된 내용으로 덮어쓰지 않습니다.
+  assert.equal(await ensureBackup({ fetchImpl: backupFetch, supabaseUrl: 'https://example.invalid', serviceKey: 'test-key-not-real', note: { ...db.notes[0] } }), true);
+  assert.equal(db.backup.length, 1);
+  assert.equal(db.backup[0].content, '가상 내용');
+  assert.equal(db.backup[0].created_at, OLD);
+
+  const result = await run(db);
+  assert.equal(result.status, 200);
+  assert.equal(result.body.mode, 'updated');
+  assert.equal(db.notes[0].content, '가상 내용');
+  assert.equal(db.notes[1].content, 'A 내용');
+  assert.deepEqual(db.log.map((row) => row.mode), ['updated']);
 });

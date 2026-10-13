@@ -34,8 +34,11 @@ function isKnownResourceRoute(request) {
       || typeof request.path !== 'string' || typeof request.route !== 'string') {
     return false;
   }
-  if (request.service === 'restore') {
-    return request.method === 'POST' && request.route === 'POST /restore/notes'
+  // 복구 경로는 엔진이 붙인 서비스 이름과 상관없이 정확히 POST /restore/notes 모양일 때만 허용합니다.
+  // 복구처럼 보이는 다른 요청(다른 메서드, 하위 경로, 다른 대상)은 여기서 모두 거부합니다.
+  if (request.service === 'restore' || RESTORE_PATH.test(request.path)
+      || /^[A-Z]+ \/(?:api\/)?restore(?:\/|$)/u.test(request.route)) {
+    return request.method === 'POST' && ACTION_ROUTES.includes(request.route)
       && RESTORE_PATH.test(request.path);
   }
   if (!Object.hasOwn(RESOURCE_METHODS, request.service)

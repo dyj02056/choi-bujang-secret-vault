@@ -29,3 +29,13 @@ export async function saveFirstBackup({
     return false;
   }
 }
+
+// 10단계 배포 전에 만들어져 사본이 없는 메모는, 처음 수정·삭제되기 직전의 상태를 사본으로 남깁니다.
+// 이미 사본이 있으면 그대로 두므로(덮어쓰지 않음) 변조된 뒤의 내용이 사본이 되지 않습니다.
+// 성공하면 이 메모에는 반드시 사본이 있습니다. 실패하면 호출한 쪽이 수정·삭제를 멈춥니다.
+export function ensureBackup({ fetchImpl = fetch, supabaseUrl, serviceKey, note }) {
+  return saveFirstBackup({
+    fetchImpl, supabaseUrl, serviceKey, id: note.id, ownerId: note.owner_id,
+    title: note.title ?? '', content: note.content ?? '', createdAt: note.created_at,
+  });
+}

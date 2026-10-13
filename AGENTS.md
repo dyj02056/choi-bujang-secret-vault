@@ -6,7 +6,7 @@
 
 9단계 `src/detect.mjs`를 고칠 때는 `docs/DETECT_EVENTS.md`의 가상 사건 형식을 먼저 읽으세요. `npm run detect:test`가 통과해도 운영 반 엔진의 사건 전달·접속 회수가 연결됐다고 쓰지 마세요.
 
-10단계 사본과 감사 기록: 메모 사본은 Supabase의 비공개 표 `secret_notes_backup`(메모를 만들 때 첫 버전이 자동으로 한 번만 저장됨)에 있고, 정책 사본은 `policy/safe-policy.json`(해시로 검증)입니다. 복구와 사본 작업의 기록은 두 곳입니다. 실서버의 복구 호출은 표 `secret_notes_restore_log`와 복구 응답의 `audit.seq`에 남고, 메모 API의 생성·수정·삭제와 복구는 모두 같은 표에 기록됩니다(`src/note-audit.mjs`가 바뀌기 전·후 내용 해시만 남기고 본문은 남기지 않습니다). 수정·삭제 코드를 고칠 때 이 기록을 빼거나, 기록하지 못했는데 자료를 바꾸도록 만들지 마세요. 로컬 절차(`npm run backup:notes`, `backup:verify`, `policy:snapshot`, `policy:restore`)는 `audit/restore-audit.log`에 한 줄씩 추가됩니다. 이 로그 파일은 추가만 하세요. 줄을 지우거나 고치거나 파일을 덮어쓰지 말고, 실제로 실행한 작업만 기록하며, 실행하지 않은 사본 생성·검증을 기록한 것처럼 줄을 만들지 마세요. 메모 제목·본문, 토큰, 키는 기록에 넣지 마세요. 복구 코드는 지정한 메모 한 건만 바꾸고 다른 메모, 목록 순서(`created_at`), 판정기 규칙, 기존 감사 기록은 보존해야 합니다. 10단계에서 일어난 일의 전체 기록은 `audit/step10/`에 있습니다(`INDEX.md`에 파일 목록과 시간순 표, `npm run audit:export`가 만드는 `export-<UTC 시각>.json`, `deployments.json`). 내보낸 파일은 덮어쓰지 말고 새 내보내기는 새 이름으로 만드세요. 계정 ID 원문, 메모 제목·본문, 토큰, 키는 이 디렉토리에 넣지 마세요(계정은 `owner_` 가명만 씁니다). 확인되지 않은 사건은 추측해서 적지 말고 `INDEX.md`의 "확인되지 않은 것"에 남기세요. 반 엔진의 기록은 운영 측 것이라 이 저장소에는 없습니다.
+10단계 사본과 감사 기록: 메모 사본은 Supabase의 비공개 표 `secret_notes_backup`(메모를 만들 때 첫 버전이 자동으로 한 번만 저장됨)에 있고, 정책 사본은 `policy/safe-policy.json`(해시로 검증)입니다. 복구와 사본 작업의 기록은 두 곳입니다. 실서버의 복구 호출은 표 `secret_notes_restore_log`와 복구 응답의 `audit.seq`에 남고, 메모 API의 생성·수정·삭제와 복구는 모두 같은 표에 기록됩니다(`src/note-audit.mjs`가 바뀌기 전·후 내용 해시만 남기고 본문은 남기지 않습니다). 로그인한 사람의 복구 호출은 거절돼도 `refused`와 이유 코드로 남습니다. 수정·삭제·복구는 감사 기록이 남았을 때만 진행하며 예외가 없습니다. 사본이 없던 메모는 처음 수정·삭제되기 직전 상태가 사본이 되고, 사본을 남기지 못하면 바꾸지 않습니다. 수정·삭제 코드를 고칠 때 이 기록을 빼거나, 기록하지 못했는데 자료를 바꾸도록 만들지 마세요. 로컬 절차(`npm run backup:notes`, `backup:verify`, `policy:snapshot`, `policy:restore`)는 `audit/restore-audit.log`에 한 줄씩 추가됩니다. 이 로그 파일은 추가만 하세요. 줄을 지우거나 고치거나 파일을 덮어쓰지 말고, 실제로 실행한 작업만 기록하며, 실행하지 않은 사본 생성·검증을 기록한 것처럼 줄을 만들지 마세요. 메모 제목·본문, 토큰, 키는 기록에 넣지 마세요. 복구 코드는 지정한 메모 한 건만 바꾸고 다른 메모, 목록 순서(`created_at`), 판정기 규칙, 기존 감사 기록은 보존해야 합니다. 10단계에서 일어난 일의 전체 기록은 `audit/step10/`에 있습니다(`INDEX.md`에 파일 목록과 시간순 표, `npm run audit:export`가 만드는 `export-<UTC 시각>.json`, `deployments.json`). 내보낸 파일은 덮어쓰지 말고 새 내보내기는 새 이름으로 만드세요. 계정 ID 원문, 메모 제목·본문, 토큰, 키는 이 디렉토리에 넣지 마세요(계정은 `owner_` 가명만 씁니다). 확인되지 않은 사건은 추측해서 적지 말고 `INDEX.md`의 "확인되지 않은 것"에 남기세요. 반 엔진의 기록은 운영 측 것이라 이 저장소에는 없습니다.
 
 비밀번호, 토큰, 서버 전용 키, 기기 개인키, 실제 개인정보를 코드·로그·답변·Git·제출 묶음에 넣지 마세요. 값이 필요하면 학생이 공식 설정 화면의 비밀 입력란에 직접 넣도록 안내하고, 값 자체를 요구하거나 다시 출력하지 마세요.
 
@@ -21,13 +21,13 @@
 | 무엇 | 경로 | 내용 |
 |---|---|---|
 | 처음 볼 문서 | `audit/step10/INDEX.md` | 파일 목록과 시간순 사건표, 확인되지 않은 것 |
-| 메모 감사 기록(생성·수정·삭제·복구) | `audit/step10/db-audit-trail.jsonl` | 표 `secret_notes_restore_log`의 모든 줄. 한 줄에 사건 하나: `seq`, `noteId`, `owner`(가명), `mode`(`created`, `edited`, `deleted`, `updated`, `reinserted`, `unchanged`), 바뀌기 전·후 내용 해시, 시각 |
+| 메모 감사 기록(생성·수정·삭제·복구) | `audit/step10/db-audit-trail.jsonl` | 표 `secret_notes_restore_log`의 모든 줄. 한 줄에 사건 하나: `seq`, `noteId`, `owner`(가명), `mode`(`created`, `edited`, `deleted`, `updated`, `reinserted`, `unchanged`, `refused`), 거절 이유(`reason`), 바뀌기 전·후 내용 해시, 시각 |
 | 메모 사본 정보 | `audit/step10/db-backups.jsonl` | 표 `secret_notes_backup`의 정보(메모 ID, `owner`, 내용 해시, 만든 시각). 제목과 본문은 없음 |
 | 한 시점의 전체 내보내기 | `audit/step10/export-<UTC 시각>.json` | 위 두 기록과 10단계 저장점 커밋, 그 시점 `bundle`의 직접 점검 15개 결과 |
 | 배포 이력 | `audit/step10/deployments.json` | 10단계 저장점의 Vercel 배포(배포 ID, 시각, 커밋, 상태) |
 | 로컬 절차 기록 | `audit/restore-audit.log` | 정책 사본 검증·복원, 메모 사본 생성·검증, 내보내기를 실행한 기록 |
-| 표를 만드는 SQL | `supabase/migrations/004_secret_notes_backup.sql`, `005_restore_log_unchanged.sql`, `006_note_audit_events.sql` | 사본 표, 감사 표, 추가 전용 트리거, 이벤트 이름과 해시 열 |
-| 기록을 남기는 코드 | `src/note-audit.mjs`, `src/restore-note.mjs`, `api/notes.js`, `api/notes/[id].js`, `api/restore/notes.js` | 생성·수정·삭제·복구 때 기록을 쓰는 곳 |
+| 표를 만드는 SQL | `supabase/migrations/004_secret_notes_backup.sql`, `005_restore_log_unchanged.sql`, `006_note_audit_events.sql`, `007_audit_refusals_no_truncate.sql` | 사본 표, 감사 표, 추가 전용 트리거, 이벤트 이름과 해시 열, 거절 기록, 표 비우기(TRUNCATE) 금지 |
+| 기록을 남기는 코드 | `src/note-audit.mjs`, `src/restore-note.mjs`, `src/note-backup.mjs`, `api/notes.js`, `api/notes/[id].js`, `api/restore/notes.js` | 생성·수정·삭제·복구(거절 포함) 때 기록과 사본을 쓰는 곳 |
 
 - 위 `.jsonl` 파일은 `npm run audit:export`가 데이터베이스에서 새로 생긴 줄만 뒤에 이어 씁니다. 이미 있는 줄은 지우거나 고치지 않습니다.
 - 계정은 `owner_` 뒤 10자리 해시로만 적습니다. 메모 제목·본문, 토큰, 키는 어느 파일에도 없습니다.

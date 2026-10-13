@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { createLoginVerifier } from '../../src/verify-login.mjs';
 import { ownerKeyOf } from '../../src/owner-key.mjs';
 import { restoreNote } from '../../src/restore-note.mjs';
+import { auditField, recordNoteEvent } from '../../src/note-audit.mjs';
 
 try {
   process.loadEnvFile?.(resolve(process.cwd(), '.env'));
@@ -44,12 +45,17 @@ export default async function handler(req, res) {
   const ownerId = ownerKeyOf(verified);
   if (!ownerId) return res.status(401).json({ error: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
 
+  // 로그인한 사람의 복구 호출은 거절되더라도 감사 표에 남깁니다(자료는 바꾸지 않습니다).
+  const refuse = async (status, error, message) => {
+    const audit = await recordNoteEvent({ supabaseUrl, serviceKey, noteId: null, ownerId, mode: 'refused', reason: 'bad_request' });
+    return res.status(status).json({ error, message, audit: auditField(audit) });
+  };
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'METHOD_NOT_ALLOWED', message: '지원하지 않는 메서드입니다.' });
+    return refuse(405, 'METHOD_NOT_ALLOWED', '지원하지 않는 메서드입니다.');
   }
   // 쿼리로 기능을 고르지 않고, 본문에서는 id 하나만 읽습니다. 본문의 소유자·역할은 보지 않습니다.
   if (req.query && Object.keys(req.query).length > 0) {
-    return res.status(400).json({ error: 'BAD_REQUEST', message: '쿼리는 사용할 수 없습니다.' });
+    return refuse(400, 'BAD_REQUEST', '쿼리는 사용할 수 없습니다.');
   }
   const id = req.body && typeof req.body === 'object' ? req.body.id : undefined;
 

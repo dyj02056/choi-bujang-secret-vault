@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { createLoginVerifier } from '../../src/verify-login.mjs';
 import { ownerKeyOf } from '../../src/owner-key.mjs';
 import { auditField, blocksChange, recordNoteEvent } from '../../src/note-audit.mjs';
+import { ensureBackup } from '../../src/note-backup.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
   // DB에서 메모 한 건 조회하는 내부 헬퍼 (owner_id 포함)
   async function fetchNote(noteId) {
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/secret_notes?id=eq.${noteId}&select=id,title,content,owner_id`,
+      `${supabaseUrl}/rest/v1/secret_notes?id=eq.${noteId}&select=id,title,content,owner_id,created_at`,
       {
         headers: {
           apikey: supabaseKey,
@@ -131,6 +132,11 @@ export default async function handler(req, res) {
       if (body !== undefined) updates.content = body;
       // owner_id는 절대 본문에서 받지 않음 (소유자 변경 차단)
 
+      // 10단계: 사본이 없던 메모는 바뀌기 직전 상태를 사본으로 남깁니다. 남기지 못하면 바꾸지 않습니다.
+      if (!(await ensureBackup({ supabaseUrl, serviceKey: supabaseKey, note: existing }))) {
+        return res.status(502).json({ error: 'BACKUP_UNAVAILABLE', message: '사본을 남길 수 없어 수정하지 않았습니다.' });
+      }
+
       // 10단계: 바꾸기 전에 감사 기록(바뀌기 전·후 내용 해시)을 남깁니다. 기록하지 못하면 바꾸지 않습니다.
       const audit = await recordNoteEvent({
         supabaseUrl, serviceKey: supabaseKey, noteId: id, ownerId, mode: 'edited',
@@ -183,6 +189,11 @@ export default async function handler(req, res) {
       if (typeof existing.owner_id !== 'string'
           || existing.owner_id.toLowerCase() !== ownerId.toLowerCase()) {
         return res.status(403).json({ error: 'FORBIDDEN', message: '본인 메모만 삭제할 수 있습니다.' });
+      }
+
+      // 10단계: 사본이 없던 메모는 지우기 직전 상태를 사본으로 남깁니다. 남기지 못하면 지우지 않습니다.
+      if (!(await ensureBackup({ supabaseUrl, serviceKey: supabaseKey, note: existing }))) {
+        return res.status(502).json({ error: 'BACKUP_UNAVAILABLE', message: '사본을 남길 수 없어 삭제하지 않았습니다.' });
       }
 
       // 10단계: 지우기 전에 감사 기록(지워지는 내용의 해시)을 남깁니다. 기록하지 못하면 지우지 않습니다.

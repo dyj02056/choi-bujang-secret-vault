@@ -25,8 +25,7 @@ function makeDb({ auditColumns = true } = {}) {
     }
     const body = JSON.parse(options.body);
     if (table === 'secret_notes_restore_log') {
-      const wide = ['created', 'edited', 'deleted'].includes(body.mode) || 'before_sha256' in body;
-      if (!auditColumns && wide) { db.rejected += 1; return reply(400, {}); }
+      if (!auditColumns && 'before_sha256' in body) { db.rejected += 1; return reply(400, {}); }
       const row = { seq: store.length + 1, ...body };
       store.push(row);
       return reply(201, [row]);
@@ -85,22 +84,36 @@ test('생성, 수정, 삭제, 복구가 하나의 기록으로 이어지고 내�
   assert.equal(JSON.stringify(db.log).includes('변조된 내용'), false);
 });
 
-test('표나 열이 아직 없으면(006 전) 예전 복구 값은 해시 없이 기록하고 새 값은 막지 않는다', async () => {
+test('표나 열이 준비되지 않아 기록하지 못하면 해시를 빼고 다시 쓰지 않고 수정·삭제·복구를 막는다', async () => {
   const db = makeDb({ auditColumns: false });
-  const legacy = await recordNoteEvent({ ...base(db), mode: 'updated', before: TAMPERED, after: ORIGINAL });
-  assert.equal(legacy.recorded, true, '해시 열이 없어도 예전 방식으로 기록합니다');
-  assert.equal('before_sha256' in db.log[0], false);
+  for (const mode of ['updated', 'edited', 'deleted']) {
+    const result = await recordNoteEvent({ ...base(db), mode, before: ORIGINAL, after: TAMPERED });
+    assert.equal(result.recorded, false);
+    assert.equal(blocksChange(result), true, `${mode}: 기록이 없으면 바꾸지 않습니다`);
+  }
+  assert.equal(db.log.length, 0, '해시 없는 줄로 바꿔 쓰지 않습니다');
+  assert.equal(db.rejected, 3, '한 번씩만 시도합니다');
 
-  const edit = await recordNoteEvent({ ...base(db), mode: 'edited', before: ORIGINAL, after: TAMPERED });
-  assert.equal(edit.recorded, false);
-  assert.equal(edit.schema, true);
-  assert.equal(blocksChange(edit), false, '마이그레이션 전에는 수정·삭제를 멈추지 않습니다');
+  const db2 = makeDb({ auditColumns: false });
+  db2.notes.push({ id: NOTE, owner_id: OWNER, ...TAMPERED });
+  db2.backup.push({ id: NOTE, owner_id: OWNER, ...ORIGINAL, content_sha256: noteHash(ORIGINAL.title, ORIGINAL.content), created_at: null });
+  const restored = await restoreNote({ fetchImpl: db2.fetch, supabaseUrl: URL_BASE, serviceKey: KEY, ownerId: OWNER, id: NOTE });
+  assert.equal(restored.status, 502);
+  assert.equal(db2.notes[0].content, '변조된 내용');
+});
+
+test('거절 기록은 정해진 이유 코드만 받고, 다른 동작에는 이유를 붙이지 않는다', async () => {
+  const db = makeDb();
+  assert.equal((await recordNoteEvent({ ...base(db), mode: 'refused', reason: 'no_backup' })).recorded, true);
+  assert.equal((await recordNoteEvent({ ...base(db), mode: 'refused', reason: 'whatever' })).recorded, false);
+  assert.equal((await recordNoteEvent({ ...base(db), mode: 'refused' })).recorded, false);
+  await recordNoteEvent({ ...base(db), mode: 'edited', before: ORIGINAL, after: TAMPERED, reason: 'no_backup' });
+  assert.deepEqual(db.log.map((row) => [row.mode, row.reason]), [['refused', 'no_backup'], ['edited', undefined]]);
 });
 
 test('네트워크나 서버 오류로 기록하지 못하면 수정·삭제를 막는다', async () => {
   const down = await recordNoteEvent({ ...base(makeDb()), fetchImpl: async () => { throw new Error('network'); }, mode: 'deleted', before: ORIGINAL, after: null });
   assert.equal(down.recorded, false);
-  assert.equal(down.schema, false);
   assert.equal(blocksChange(down), true);
 
   const serverError = await recordNoteEvent({

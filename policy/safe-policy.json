@@ -1,6 +1,21 @@
 {
   "schema": "aleph.policy.safe.v1",
   "version": 1,
+  "source": {
+    "basedOnCommit": "46c9f94",
+    "basedOnStep": 9,
+    "sameAsBase": [
+      "ruleIds",
+      "resourceMethods",
+      "allowedRoutes /api/notes, /api/notes/:id, /api/announcements/:id"
+    ],
+    "addedInStep10": [
+      "actionRoutes POST /restore/notes",
+      "allowedRoutes /api/restore/notes",
+      "restoreRoute /api/restore/notes"
+    ],
+    "note": "sha256 covers only the policy object. This source block records where the copy came from."
+  },
   "policy": {
     "ruleIds": [
       "device_registered",
