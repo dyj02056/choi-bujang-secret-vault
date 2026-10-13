@@ -18,7 +18,7 @@ try {
   const dirty = execFileSync('git', ['-C', ROOT, 'status', '--porcelain'], { encoding: 'utf8', windowsHide: true }).trim();
   const details = [];
   const startedAt = new Date().toISOString();
-  const results = await runAttackChecks(config, { details });
+  const results = await runAttackChecks(config, { details, sendLive: true });
   const counts = details.reduce((acc, row) => ({ ...acc, [row.verdict]: (acc[row.verdict] ?? 0) + 1 }), {});
   const table = {
     schema: 'aleph.ops.checks.v1',

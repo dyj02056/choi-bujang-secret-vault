@@ -87,12 +87,18 @@ reason. The operator's 41 judge tests are **not run** by this procedure and are 
 
 | 기록 | 파일 | 결과 |
 |---|---|---|
-| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `5be40f2a-2004-4f15-9c13-7fde74c8ebc5`, 서버 시각 2026-10-13T07:15:49.056Z |
-| 같은 시점의 가린 서버 기록 | `audit/step12/ops-snapshot-20261013T071549Z.json` | 항목 대조: rules 일치, detection.recentGetCount 일치, detection.outcomeCounts 일치, detection.recentEvents 일치, revocation 일치, restore 일치 |
-| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T071542Z.md` | 학생 자기 점검 20건 / 요청 23행: as_expected 21, local_as_expected 2 (검사한 커밋 `0a7fc6e`) |
+| 작전실 실제 API 응답 | `public/ops-summary.json` (화면이 그대로 표시) | `GET /api/ops/summary` HTTP 200, 요청 ID `e5668869-cedc-4a9d-a41c-dd76173456b2`, 서버 시각 2026-10-13T07:22:46.912Z |
+| 같은 시점의 가린 서버 기록 | `audit/step12/ops-snapshot-20261013T072247Z.json` | 항목 대조: rules 일치, detection.recentGetCount 일치, detection.outcomeCounts 일치, detection.recentEvents 일치, revocation 일치, restore 일치 |
+| 1~11단계 점검표 | `public/ops-checks.json`, `audit/step12/checks-20261013T072241Z.md` | 학생 자기 점검 20건 / 요청 23행: as_expected 21, local_as_expected 2 (검사한 커밋 `c2011fc`, 그 커밋 위의 작업 트리) |
 | 운영 심판 41종 시험 | — | **미실행** (이 저장소에서 실행하지 않음, 통과로 표시하지 않음) |
 
 작전실 화면의 "화면 값과 가린 서버 기록 대조" 표는 위 두 기록의 같은 항목 값을 그대로 나란히 보여 줍니다.
+
+순서: `npm run ops:record`가 점검표 요청을 먼저 보내고 바로 이어 작전실 실측을 받습니다. 그 뒤 이 기록을 커밋하고
+`npm run bundle`을 실행하면, 제출 묶음은 **요청을 다시 보내지 않고** 커밋된 점검표(`public/ops-checks.json`)의 실제 결과를
+요청 ID·시각과 함께 그대로 옮깁니다(`src/attack-check.mjs`의 `recordedAttackChecks`, 출처 표시 `[recorded by npm run ops:checks …]`).
+그래서 화면, 가린 서버 기록, 제출 묶음이 같은 서버 상태를 가리킵니다. 실측 뒤에 앱이나 API를 쓰면 서버 기록이 늘어나므로,
+심판을 돌리기 전에는 쓰지 않습니다. 새로 보내야 하면 `ALEPH_CHECK_LIVE=1`로 실행합니다.
 그 전에 만든 `audit/step12/` 파일(토큰 만료로 미실행·401이 남은 실행 포함)도 실제로 일어난 기록이라 지우지 않았습니다.
 
 ### Install, run, stop, restore (from the checked commit)

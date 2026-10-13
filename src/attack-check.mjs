@@ -15,6 +15,8 @@
 // runAttackChecks(config, { details }) also pushes one structured row per check into `details`
 // (step, normal/forbidden, expected, observed HTTP result, server request ID, check time) for the step 12 table.
 import { randomUUID } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fixtureRequests } from '../scripts/fixture-7.mjs';
 import { checkAccess } from './access-guard.mjs';
 import { decide } from './decider.mjs';
@@ -60,8 +62,45 @@ function tokenExpiry(token) {
 }
 const rejected = (r) => r.status === 401 || r.status === 403;
 
-export async function runAttackChecks(config, { details = [] } = {}) {
+// Step 12: the operations room shows a check table and a screen snapshot recorded by `npm run ops:record`
+// (checks first, then the snapshot of the server state they left). If `npm run bundle` sent the requests again,
+// the server records would move past what the screen shows. So by default the bundle copies those recorded
+// results (real requests, with their request IDs and times) instead of sending new ones. Set ALEPH_CHECK_LIVE=1
+// to send live requests instead. A missing or older table means the checks run live as before.
+const ROOT = resolve(import.meta.dirname, '..');
+function readJson(path) {
+  try {
+    return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
+  } catch {
+    return null;
+  }
+}
+export function recordedAttackChecks(config) {
+  const table = readJson(resolve(ROOT, 'public', 'ops-checks.json'));
+  const snap = readJson(resolve(ROOT, 'public', 'ops-summary.json'));
+  if (!table || table.schema !== 'aleph.ops.checks.v1' || table.step !== config.step || !Array.isArray(table.rows)) return null;
+  if (!snap?.api?.body?.generatedAt || Date.parse(snap.api.body.generatedAt) < Date.parse(table.finishedAt)) return null;
+  const order = [...new Set(table.rows.map((row) => row.attackId))];
+  if (order.length !== table.selfChecks?.checks) return null;
+  const source = `recorded by npm run ops:checks at ${table.finishedAt}; screen snapshot req=${snap.api.requestId}`;
+  return order.map((attackId) => {
+    const rows = table.rows.filter((row) => row.attackId === attackId);
+    const expected = rows[0].expected;
+    if (rows.some((row) => row.verdict === 'not_run')) return entry(attackId, expected, notRun(`${rows[0].notRunReason ?? 'not sent'} [${source}]`));
+    const local = rows.every((row) => row.verdict === 'local_as_expected');
+    const ok = rows.every((row) => row.verdict === 'as_expected' || row.verdict === 'local_as_expected');
+    const text = rows.map((row) => (local ? row.observed : `${rows.length > 1 ? `${row.request}: ` : ''}${row.observed} req=${row.requestId}`)).join('; ');
+    const head = ok ? (local ? 'As expected (local virtual run)' : 'As expected') : 'Needs review';
+    return entry(attackId, expected, `${head}: ${text} at ${rows.at(-1).checkedAt} [${source}]`);
+  });
+}
+
+export async function runAttackChecks(config, { details = [], sendLive = process.env.ALEPH_CHECK_LIVE === '1' } = {}) {
   if (config.step !== 12) throw new Error('Current step requires updating src/attack-check.mjs.');
+  if (!sendLive) {
+    const recorded = recordedAttackChecks(config);
+    if (recorded) return recorded;
+  }
   let app;
   try {
     app = new URL(config.publicAppUrl);
