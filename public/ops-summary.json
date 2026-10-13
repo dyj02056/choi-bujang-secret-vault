@@ -1,0 +1,131 @@
+{
+  "schema": "aleph.ops.snapshot.v1",
+  "app": "https://choi-bujang-secret-vault-tau.vercel.app",
+  "api": {
+    "route": "GET /api/ops/summary",
+    "status": 200,
+    "requestId": "079dbcfb-e7b5-4c01-8a4a-9da668f1ee03",
+    "receivedAt": "2026-10-13T07:09:37.964Z",
+    "body": {
+      "schema": "aleph.ops.summary.v1",
+      "generatedAt": "2026-10-13T07:09:37.465Z",
+      "rules": {
+        "source": "src/decider.mjs (학생 판정기)",
+        "ruleIds": [
+          "device_registered",
+          "step_up_required",
+          "resource_zone_route"
+        ],
+        "resourceMethods": {
+          "notes": [
+            "GET",
+            "PUT",
+            "DELETE"
+          ],
+          "announcements": [
+            "GET"
+          ]
+        },
+        "actionRoutes": [
+          "POST /restore/notes"
+        ]
+      },
+      "detection": {
+        "source": "src/detect.mjs 규칙을 서버 기록 access_events 에 적용",
+        "windowMinutes": 10,
+        "limit": 120,
+        "recentGetCount": 5,
+        "recentEvents": [
+          {
+            "requestId": "079dbcfb-e7b5-4c01-8a4a-9da668f1ee03",
+            "route": "GET /ops/summary",
+            "outcome": "allowed",
+            "at": "2026-10-13T07:09:37.105155+00:00"
+          },
+          {
+            "requestId": "9b97b069-c1dd-481d-bf4f-061c1e43378c",
+            "route": "GET /notes/:id",
+            "outcome": "device_not_approved",
+            "at": "2026-10-13T07:09:30.584977+00:00"
+          },
+          {
+            "requestId": "672e02ac-9019-4dff-9c57-01d67573d9b9",
+            "route": "PUT /notes/:id",
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T07:09:29.268135+00:00"
+          },
+          {
+            "requestId": "20b610ef-7d81-4050-a698-5057b66f7a0b",
+            "route": "GET /notes",
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T07:09:27.185405+00:00"
+          },
+          {
+            "requestId": "bd8063a0-ea6e-4c5d-96bb-3817d0ffdf9a",
+            "route": "GET /notes/:id",
+            "outcome": "device_signature_required",
+            "at": "2026-10-13T07:09:24.71507+00:00"
+          },
+          {
+            "requestId": "036d4db0-a8c6-4f40-a5a7-96e458de3ec3",
+            "route": "POST /restore/notes",
+            "outcome": "allowed",
+            "at": "2026-10-13T07:09:21.985038+00:00"
+          },
+          {
+            "requestId": "0e6a7f75-8454-420e-b41f-32e7b14534ea",
+            "route": "PUT /announcements/:id",
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T07:09:19.178507+00:00"
+          },
+          {
+            "requestId": "ce79a660-2422-4d6f-91f4-e2c4c5fdaec2",
+            "route": "GET /notes/:id",
+            "outcome": "device_signature_mismatch",
+            "at": "2026-10-13T07:09:12.450473+00:00"
+          }
+        ],
+        "outcomeCounts": {
+          "allowed": 2,
+          "device_not_approved": 1,
+          "device_signature_mismatch": 4,
+          "device_signature_required": 1
+        }
+      },
+      "revocation": {
+        "revoked": false,
+        "reason": null,
+        "revokedAt": null,
+        "devices": {
+          "approved": 3,
+          "pending": 0,
+          "revoked": 0
+        }
+      },
+      "restore": {
+        "auditRows": 1,
+        "byMode": {
+          "refused": 1
+        },
+        "backups": 1,
+        "latest": {
+          "seq": 10,
+          "mode": "refused",
+          "reason": "not_owner",
+          "note": "note_e294dae70b",
+          "at": "2026-10-13T07:09:23.278849+00:00"
+        }
+      }
+    }
+  },
+  "comparison": {
+    "rules": true,
+    "detection.recentGetCount": true,
+    "detection.outcomeCounts": true,
+    "detection.recentEvents": true,
+    "revocation": true,
+    "restore": true
+  },
+  "allMatch": true,
+  "serverRecordFile": "audit/step12/ops-snapshot-20261013T070937Z.json"
+}

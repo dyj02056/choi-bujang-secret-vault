@@ -70,11 +70,25 @@ export function deviceIdOfCredential(credentialIdB64url) {
 }
 
 // 요청이 실제로 가리키는 경로(쿼리 포함). 서명은 이 값과 비교합니다.
+// Vercel 은 동적 경로 파일(api/notes/[id].js)을 부를 때 경로의 값을 쿼리 id=<값> 으로 덧붙이거나,
+// 경로에 파일 이름([id])을 남길 수 있습니다. 브라우저가 실제로 보낸 주소로 되돌린 뒤 서명과 비교합니다.
+// 되돌리는 것은 경로 마지막 칸과 같은 값의 id 쿼리 한 개뿐이며, 그 밖의 쿼리는 그대로 둡니다.
 export function requestPath(req) {
   const raw = typeof req.url === 'string' ? req.url : '';
   try {
     const url = new URL(raw, 'https://app.invalid');
-    return `${url.pathname}${url.search}`;
+    let path = url.pathname;
+    const id = typeof req.query?.id === 'string' ? req.query.id : null;
+    if (id) path = path.replace(/\/(?:\[id\]|%5Bid%5D)(?=\/|$)/iu, `/${encodeURIComponent(id)}`);
+    const last = path.split('/').pop();
+    let search = url.search;
+    if (search && last) {
+      const parts = search.slice(1).split('&');
+      const index = parts.lastIndexOf(`id=${last}`);
+      if (index >= 0) parts.splice(index, 1);
+      search = parts.length ? `?${parts.join('&')}` : '';
+    }
+    return `${path}${search}`;
   } catch {
     return '';
   }

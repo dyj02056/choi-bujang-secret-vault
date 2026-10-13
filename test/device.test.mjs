@@ -221,3 +221,18 @@ test('회수된 신원은 새 기기를 승인받을 수 없다', async () => {
   assert.equal(result.body.error, 'IDENTITY_REVOKED');
   assert.equal(db.devices.length, 0);
 });
+
+test('Vercel 이 동적 경로에 덧붙인 id 쿼리나 [id] 이름이 있어도 서명한 주소로 비교한다', async () => {
+  const db = makeDb();
+  const device = approvedDevice(db);
+  const path = `/api/notes/${NOTE}`;
+  const appended = await check(db, { method: 'GET', url: `${path}?id=${NOTE}`, query: { id: NOTE }, headers: { host: HOST, ...device.signHeaders({ path }) } });
+  assert.equal(appended.ok, true, 'Vercel 이 붙인 ?id= 는 서명 비교에서 뺍니다');
+  const named = await check(db, { method: 'GET', url: '/api/notes/[id]', query: { id: NOTE }, headers: { host: HOST, ...device.signHeaders({ path }) } });
+  assert.equal(named.ok, true, '[id] 는 실제 값으로 되돌립니다');
+  const other = '22222222-2222-4222-8222-222222222222';
+  const moved = await check(db, { method: 'GET', url: `/api/notes/${other}?id=${other}`, query: { id: other }, headers: { host: HOST, ...device.signHeaders({ path }) } });
+  assert.equal(moved.error, 'DEVICE_SIGNATURE_MISMATCH', '다른 메모로 경로를 바꾸면 여전히 거부됩니다');
+  const extra = await check(db, { method: 'GET', url: `${path}?x=1&id=${NOTE}`, query: { id: NOTE, x: '1' }, headers: { host: HOST, ...device.signHeaders({ path }) } });
+  assert.equal(extra.error, 'DEVICE_SIGNATURE_MISMATCH', '서명 뒤 붙인 다른 쿼리는 여전히 거부됩니다');
+});
