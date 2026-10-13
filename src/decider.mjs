@@ -7,11 +7,13 @@ export const RULE_IDS = Object.freeze([
   'resource_zone_route',
 ]);
 
-// Exact (service, method) pairs. Ownership and the instructor role are not in the
-// decision contract, so the API handlers stay the last gate for those checks.
+// Exact (service, method) pairs. The decision contract has no owner or role, so the
+// policy never allows a write to class announcements (POST, PUT, PATCH, DELETE are all
+// denied for everyone) and never opens a list route. Whether a single note belongs to
+// the caller is compared by the API handlers, not here.
 const RESOURCE_METHODS = Object.freeze({
   notes: Object.freeze(['GET', 'PUT', 'DELETE']),
-  announcements: Object.freeze(['GET', 'PUT']),
+  announcements: Object.freeze(['GET']),
 });
 
 // "/notes/<id>" or "/api/notes/<id>" only: one segment. The API handlers validate the
@@ -46,30 +48,6 @@ function requiresStepUp(request) {
     && (signals?.hour < 6 || signals?.hour >= 22);
 }
 
-// The contract carries no owner or role, so a private note is bound to the first
-// verified subject the engine lets read or write it. Any other subject is denied that
-// exact note. Process-local and bounded; the API handlers still check owner_id.
-const NOTE_OWNERS = new Map();
-const NOTE_OWNER_LIMIT = 5000;
-
-function noteKey(request) {
-  return request.service === 'notes' ? request.path.split('/').pop() : null;
-}
-
-function isOtherUsersNote(request) {
-  const key = noteKey(request);
-  if (key === null) return false;
-  const owner = NOTE_OWNERS.get(key);
-  return owner !== undefined && owner !== request.subjectId;
-}
-
-function bindNoteOwner(request) {
-  const key = noteKey(request);
-  if (key === null || NOTE_OWNERS.has(key)) return;
-  if (NOTE_OWNERS.size >= NOTE_OWNER_LIMIT) NOTE_OWNERS.delete(NOTE_OWNERS.keys().next().value);
-  NOTE_OWNERS.set(key, request.subjectId);
-}
-
 export async function decide(request) {
   if (request.deviceRegistered !== true) {
     return {
@@ -91,16 +69,6 @@ export async function decide(request) {
     };
   }
 
-  if (isOtherUsersNote(request)) {
-    return {
-      schema: 'aleph.decision.v1',
-      requestId: request.requestId,
-      decision: 'deny',
-      reasonCode: 'resource_route_denied',
-      ruleIds: [RULE_IDS[2]],
-    };
-  }
-
   if (requiresStepUp(request) && request.stepUp?.verified !== true) {
     return {
       schema: 'aleph.decision.v1',
@@ -111,7 +79,6 @@ export async function decide(request) {
     };
   }
 
-  bindNoteOwner(request);
   return {
     schema: 'aleph.decision.v1',
     requestId: request.requestId,

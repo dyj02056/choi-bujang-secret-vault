@@ -7,10 +7,12 @@ listed in the server-side `instructor_roles` table can modify an announcement.
 The browser UI and existing note addresses are unchanged.
 
 The decision policy accepts only exact single-resource routes with no query
-string: note read, update, or delete; and announcement read or update. The
-decision contract has no instructor role, so the API checks `instructor_roles`
-for every announcement update. A note is bound to the first subject the policy lets use it,
-and other subjects are denied that note. Unknown or nested routes are denied. Registered devices remain required, and a risky
+string: note read, update, or delete; and announcement read. The decision
+contract has no instructor role, so the policy denies every announcement write
+(POST, PUT, PATCH, DELETE) for everyone and never opens a whole-list route.
+Whether one note belongs to the caller is compared only at the API
+(`owner_id`), and announcement updates are checked there against
+`instructor_roles`. Unknown or nested routes are denied. Registered devices remain required, and a risky
 private-note read still requires additional verification before it is allowed.
 
 ## Required database setup
