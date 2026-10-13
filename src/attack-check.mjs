@@ -15,13 +15,12 @@
 // runAttackChecks(config, { details }) also pushes one structured row per check into `details`
 // (step, normal/forbidden, expected, observed HTTP result, server request ID, check time) for the step 12 table.
 import { randomUUID } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { fixtureRequests } from '../scripts/fixture-7.mjs';
 import { checkAccess } from './access-guard.mjs';
 import { decide } from './decider.mjs';
 import { detect } from './detect.mjs';
 import { createVirtualDevice } from './device-client.mjs';
+import { RECORDED } from './recorded-checks.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const cut = (text) => (text.length > 290 ? `${text.slice(0, 287)}...` : text);
@@ -67,22 +66,16 @@ const rejected = (r) => r.status === 401 || r.status === 403;
 // the server records would move past what the screen shows. So by default the bundle copies those recorded
 // results (real requests, with their request IDs and times) instead of sending new ones. Set ALEPH_CHECK_LIVE=1
 // to send live requests instead. A missing or older table means the checks run live as before.
-const ROOT = resolve(import.meta.dirname, '..');
-function readJson(path) {
-  try {
-    return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
-  } catch {
-    return null;
-  }
-}
-export function recordedAttackChecks(config) {
-  const table = readJson(resolve(ROOT, 'public', 'ops-checks.json'));
-  const snap = readJson(resolve(ROOT, 'public', 'ops-summary.json'));
+// The recorded results come from src/recorded-checks.mjs, a plain data module that npm run ops:checks / ops:snapshot
+// write from public/ops-checks.json and public/ops-summary.json, so this module reads no files when it is imported.
+export function recordedAttackChecks(config, recorded = RECORDED) {
+  const table = recorded?.table;
+  const snap = recorded?.snapshot;
   if (!table || table.schema !== 'aleph.ops.checks.v1' || table.step !== config.step || !Array.isArray(table.rows)) return null;
-  if (!snap?.api?.body?.generatedAt || Date.parse(snap.api.body.generatedAt) < Date.parse(table.finishedAt)) return null;
+  if (!snap?.generatedAt || Date.parse(snap.generatedAt) < Date.parse(table.finishedAt)) return null;
   const order = [...new Set(table.rows.map((row) => row.attackId))];
   if (order.length !== table.selfChecks?.checks) return null;
-  const source = `recorded by npm run ops:checks at ${table.finishedAt}; screen snapshot req=${snap.api.requestId}`;
+  const source = `recorded by npm run ops:checks at ${table.finishedAt}; screen snapshot req=${snap.requestId}`;
   return order.map((attackId) => {
     const rows = table.rows.filter((row) => row.attackId === attackId);
     const expected = rows[0].expected;
@@ -94,7 +87,7 @@ export function recordedAttackChecks(config) {
       : local ? row.observed : `${rows.length > 1 ? `${row.request}: ` : ''}${row.observed} req=${row.requestId}`)).join('; ');
     const partial = sent.length < rows.length;
     const head = !ok ? 'Needs review' : local ? 'Local practice only, not an API result' : partial ? 'Partly run, sent part as expected' : 'As expected';
-    return entry(attackId, expected, `${head}: ${text} at ${rows.at(-1).checkedAt} [${source}]`);
+    return entry(attackId, expected, `${head}: ${text} at ${sent.at(-1).checkedAt} [${source}]`);
   });
 }
 

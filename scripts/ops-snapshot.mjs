@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createVirtualDevice } from '../src/device-client.mjs';
+import { writeRecordedChecks } from './recorded-checks.mjs';
 import { createHash } from 'node:crypto';
 import { ACTION_ROUTES, RESOURCE_METHODS, RULE_IDS } from '../src/decider.mjs';
 
@@ -182,6 +183,7 @@ try {
     // 다시 센 값의 근거가 된 가린 원본 줄(같은 계정, 같은 기준 시각)
     maskedRecords,
   }, null, 2)}\n`, 'utf8');
+  writeRecordedChecks();
   process.stdout.write(`작전실 실측: 요청 ID ${snapshot.api.requestId} · 서버 기록 대조 ${allMatch ? '모두 일치' : '불일치 있음'}\n`
     + Object.entries(comparison).map(([name, ok]) => `  ${ok ? '일치' : '불일치'} ${name}`).join('\n')
     + `\n  audit/step12/ops-snapshot-${stamp}.json · public/ops-summary.json\n`);

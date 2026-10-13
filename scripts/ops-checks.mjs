@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { runAttackChecks } from '../src/attack-check.mjs';
+import { writeRecordedChecks } from './recorded-checks.mjs';
 
 // 12단계: 1~11단계 정상·금지 요청을 실제로 보내고, 기대 결과·실제 API 결과·요청 ID·확인 시각을 한 표로 남깁니다.
 //   npm run ops:checks
@@ -53,6 +54,7 @@ try {
   ].join('\n');
   writeFileSync(resolve(dir, `checks-${stamp}.md`), md, { encoding: 'utf8', flag: 'wx' });
   writeFileSync(resolve(ROOT, 'public', 'ops-checks.json'), `${JSON.stringify(table, null, 2)}\n`, 'utf8');
+  writeRecordedChecks();
   process.stdout.write(`점검표: audit/step12/checks-${stamp}.md · public/ops-checks.json\n`
     + `  자기 점검 ${results.length}건 / 요청 ${details.length}행 · ${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(', ')}\n`
     + '  운영 심판 41종: 미실행\n');
