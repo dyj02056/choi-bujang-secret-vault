@@ -106,11 +106,12 @@ reason. The operator's 41 judge tests are **not run** by this procedure and are 
 `scripts/ops-snapshot.mjs`가 화면 API와 다른 코드로 이 줄들을 다시 세어 화면 값과 비교합니다. 누구나 같은 줄로 다시 셀 수 있습니다.
 실측 끝에 `npm run audit:export`도 실행되어 `audit/step10/db-audit-trail.jsonl`(전체 계정의 가린 감사 기록)이 같은 시점까지 이어 쓰입니다.
 
-순서: `npm run ops:record`가 점검표 요청을 먼저 보내고 바로 이어 작전실 실측을 받습니다. 그 뒤 이 기록을 커밋하고
-`npm run bundle`을 실행하면, 제출 묶음은 **요청을 다시 보내지 않고** 커밋된 점검표(`public/ops-checks.json`)의 실제 결과를
-요청 ID·시각과 함께 그대로 옮깁니다(`src/attack-check.mjs`의 `recordedAttackChecks`, 출처 표시 `[recorded by npm run ops:checks …]`).
-그래서 화면, 가린 서버 기록, 제출 묶음이 같은 서버 상태를 가리킵니다. 실측 뒤에 앱이나 API를 쓰면 서버 기록이 늘어나므로,
-심판을 돌리기 전에는 쓰지 않습니다. 새로 보내야 하면 `ALEPH_CHECK_LIVE=1`로 실행합니다.
+순서: `npm run ops:record`가 점검표 요청을 먼저 보내고 바로 이어 작전실 실측을 받습니다. 그 기록을 커밋한 뒤 심판을 돌립니다.
+`npm run bundle`(심판도 자기 실행기에서 다시 돌림)은 **그 실행에서 실제로 요청을 보내고** 그 결과만 적습니다. 그 실행에서 보내지 않은 점검은
+예전 실측이 있어도 결과로 옮기지 않고 `not_run: <이유>`로 적습니다(예: 시험 계정 로그인이 없는 환경에서는 로그인이 필요한 점검이 모두 `not_run`).
+요청마다 머리글 `x-aleph-attack-id`에 점검 ID를 붙이고, API 는 로그인 전 거절(401)에도 요청 ID(`x-aleph-request-id`)를 돌려줍니다.
+로그인이 있으면 마지막 점검 `s12_ops_room_live_summary`가 작전실 API 를 실제로 불러, 그 실행에서 A 가 보낸 요청이 같은 HTTP 상태로 화면에 보이는지 대조합니다.
+로그인 없는 요청(익명 401)은 계정이 없어 작전실 기록에 들어가지 않으므로, 로그인 없이 돌린 제출 묶음은 커밋된 작전실 실측의 서버 기록을 바꾸지 않습니다.
 그 전에 만든 `audit/step12/` 파일(토큰 만료로 미실행·401이 남은 실행 포함)도 실제로 일어난 기록이라 지우지 않았습니다.
 
 ### Install, run, stop, restore (from the checked commit)

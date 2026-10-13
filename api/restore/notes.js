@@ -5,7 +5,7 @@ import { createLoginVerifier } from '../../src/verify-login.mjs';
 import { ownerKeyOf } from '../../src/owner-key.mjs';
 import { restoreNote } from '../../src/restore-note.mjs';
 import { auditField, recordNoteEvent } from '../../src/note-audit.mjs';
-import { guardRequest } from '../../src/access-guard.mjs';
+import { guardRequest, tagRequest } from '../../src/access-guard.mjs';
 
 try {
   process.loadEnvFile?.(resolve(process.cwd(), '.env'));
@@ -29,6 +29,7 @@ async function getVerifier() {
 }
 
 export default async function handler(req, res) {
+  tagRequest(res);
   res.setHeader('Cache-Control', 'no-store');
 
   const supabaseUrl = process.env.SUPABASE_URL;

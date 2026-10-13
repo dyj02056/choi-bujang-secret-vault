@@ -15,21 +15,19 @@
 // runAttackChecks(config, { details }) also pushes one structured row per check into `details`
 // (step, normal/forbidden, expected, observed HTTP result, server request ID, check time) for the step 12 table.
 import { randomUUID } from 'node:crypto';
-import { fixtureRequests } from '../scripts/fixture-7.mjs';
-import { decide } from './decider.mjs';
-import { detect } from './detect.mjs';
-// Static imports are only the starter files (decider, detect, fixture). The judge's runner imports this module
-// with the committed files; the device client and access guard are loaded only when requests are really sent.
+// The only static import is node:crypto: the judge's runner imports this module by itself. The device client is loaded
+// only when signed requests are really sent (test logins present).
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const cut = (text) => (text.length > 290 ? `${text.slice(0, 287)}...` : text);
 const entry = (attackId, expected, observed) => ({ attackId, expected: cut(expected), observed: cut(observed) });
-const notRun = (reason) => `Not run: ${reason}`;
+const notRun = (reason) => `not_run: ${reason}`;
+let currentAttack = null;
 
 // device signs the request; signAs lets a check sign one path/body and then send another (tampering).
 async function send(app, path, { method = 'GET', token, body, base, device, signAs } = {}) {
   const url = base ?? new URL(path, app);
-  const headers = {};
+  const headers = currentAttack ? { 'x-aleph-attack-id': currentAttack } : {};
   if (token) headers.Authorization = `Bearer ${token}`;
   if (device) {
     Object.assign(headers, device.signHeaders({ method, path: url.pathname + url.search, body, ...signAs }));
@@ -43,11 +41,11 @@ async function send(app, path, { method = 'GET', token, body, base, device, sign
   try { data = await response.json(); } catch { /* body is not JSON */ }
   return {
     status: response.status, error: data?.error, mode: data?.mode, audit: data?.audit, deviceStatus: data?.device?.status,
-    requestId: response.headers.get('x-aleph-request-id') ?? null, accessToken: data?.accessToken,
+    requestId: response.headers.get('x-aleph-request-id') ?? null, accessToken: data?.accessToken, data,
   };
 }
 
-const describe = (r) => `HTTP ${r.status}${r.error ? ` ${r.error}` : ''}${r.deviceStatus ? ` device=${r.deviceStatus}` : ''}${r.mode ? ` mode=${r.mode}` : ''}${r.audit ? ` audit=${r.audit.recorded ? `#${r.audit.seq}` : 'missing'}` : ''}`;
+const describe = (r) => `HTTP ${r.status}${r.error ? ` ${r.error}` : ''}${r.deviceStatus ? ` device=${r.deviceStatus}` : ''}${r.mode ? ` mode=${r.mode}` : ''}${r.audit ? ` audit=${r.audit.recorded ? `#${r.audit.seq}` : 'missing'}` : ''}${r.note ? `; ${r.note}` : ''}`;
 const denied = (status) => (r) => r.status === status;
 // Reads only the expiry time of a token from the shell, to avoid sending an expired one. Nothing else is trusted.
 function tokenExpiry(token) {
@@ -60,278 +58,11 @@ function tokenExpiry(token) {
 }
 const rejected = (r) => r.status === 401 || r.status === 403;
 
-// Step 12: the operations room shows a check table and a screen snapshot recorded by `npm run ops:record`
-// (checks first, then the snapshot of the server state they left). If `npm run bundle` sent the requests again,
-// the server records would move past what the screen shows. So by default the bundle copies those recorded
-// results (real requests, with their request IDs and times) instead of sending new ones. Set ALEPH_CHECK_LIVE=1
-// to send live requests instead. A missing or older table means the checks run live as before.
-// The recorded results are the block below, written by npm run ops:checks / ops:snapshot (scripts/recorded-checks.mjs)
-// from public/ops-checks.json and public/ops-summary.json. This module reads no files when it is imported. Do not edit it by hand.
-// <recorded-checks>
-const RECORDED = {
-  "table": {
-    "schema": "aleph.ops.checks.v1",
-    "step": 12,
-    "commit": "53d3e9bd7bb8b6d13480790ea5e8afe0a94eb3a8",
-    "finishedAt": "2026-10-13T08:00:33.489Z",
-    "selfChecks": {
-      "checks": 20
-    },
-    "rows": [
-      {
-        "attackId": "s11_device_approval",
-        "request": "A approval",
-        "expected": "A virtual passkey that signs its own registration, with a recent login, is approved: HTTP 200, device=approved",
-        "observed": "HTTP 200 device=approved",
-        "requestId": "none",
-        "checkedAt": "2026-10-13T07:59:46.833Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s11_device_approval",
-        "request": "B approval",
-        "expected": "A virtual passkey that signs its own registration, with a recent login, is approved: HTTP 200, device=approved",
-        "observed": "HTTP 200 device=approved",
-        "requestId": "none",
-        "checkedAt": "2026-10-13T07:59:49.805Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s10_restore_own_note",
-        "request": "B restore",
-        "expected": "Account B restores its own note: HTTP 200, mode updated/reinserted/unchanged, and an audit record number",
-        "observed": "HTTP 200 mode=unchanged audit=#27",
-        "requestId": "97034ed1-17a4-4a66-97c3-72febbaf7ade",
-        "checkedAt": "2026-10-13T07:59:55.702Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s12_after_restore_unsigned_write_and_out_of_zone",
-        "request": "unsigned update",
-        "expected": "After the restore: B unsigned update of its own note is rejected (401 DEVICE_SIGNATURE_REQUIRED), then B signed read of A note is rejected (403)",
-        "observed": "HTTP 401 DEVICE_SIGNATURE_REQUIRED",
-        "requestId": "30600b0a-a434-4583-932c-3dea4b0e1fbf",
-        "checkedAt": "2026-10-13T07:59:58.026Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s12_after_restore_unsigned_write_and_out_of_zone",
-        "request": "out-of-zone read",
-        "expected": "After the restore: B unsigned update of its own note is rejected (401 DEVICE_SIGNATURE_REQUIRED), then B signed read of A note is rejected (403)",
-        "observed": "HTTP 403 FORBIDDEN",
-        "requestId": "72493b7a-fabd-4e2a-8506-ebd1ba315fcb",
-        "checkedAt": "2026-10-13T08:00:01.143Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s1_public_page_normal",
-        "request": "public page",
-        "expected": "The public page still opens: HTTP 200",
-        "observed": "HTTP 200",
-        "requestId": "none",
-        "checkedAt": "2026-10-13T08:00:01.769Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s8_own_note_read_after_restore",
-        "request": "A own read",
-        "expected": "Account A reads its own note: HTTP 200",
-        "observed": "HTTP 200",
-        "requestId": "c9ff3ee2-d65b-4f06-8263-16c091582634",
-        "checkedAt": "2026-10-13T08:00:05.587Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s12_anonymous_then_cross_read",
-        "request": "anonymous read",
-        "expected": "Back to back: anonymous read of A note is rejected (401), then B signed read of the same A note is rejected (403)",
-        "observed": "HTTP 401 UNAUTHORIZED",
-        "requestId": "none",
-        "checkedAt": "2026-10-13T08:00:05.811Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s12_anonymous_then_cross_read",
-        "request": "cross read",
-        "expected": "Back to back: anonymous read of A note is rejected (401), then B signed read of the same A note is rejected (403)",
-        "observed": "HTTP 403 FORBIDDEN",
-        "requestId": "e5827545-8f37-4775-8239-344512541726",
-        "checkedAt": "2026-10-13T08:00:08.020Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s1_anonymous_notes_list",
-        "request": "anonymous list",
-        "expected": "Anonymous list request is rejected with HTTP 401 or 403",
-        "observed": "HTTP 401 UNAUTHORIZED",
-        "requestId": "none",
-        "checkedAt": "2026-10-13T08:00:08.336Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s2_4_anonymous_note_by_id",
-        "request": "anonymous note",
-        "expected": "Anonymous single-note request is rejected with HTTP 401 or 403",
-        "observed": "HTTP 401 UNAUTHORIZED",
-        "requestId": "none",
-        "checkedAt": "2026-10-13T08:00:08.549Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s8_anonymous_announcement_write",
-        "request": "anonymous announcement write",
-        "expected": "Anonymous announcement update is rejected with HTTP 401 or 403",
-        "observed": "HTTP 401 UNAUTHORIZED",
-        "requestId": "none",
-        "checkedAt": "2026-10-13T08:00:08.882Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s10_anonymous_restore_call",
-        "request": "anonymous restore",
-        "expected": "Anonymous restore call is rejected with HTTP 401 or 403",
-        "observed": "HTTP 401 UNAUTHORIZED",
-        "requestId": "none",
-        "checkedAt": "2026-10-13T08:00:09.112Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s5_original_api_without_key",
-        "request": "original API",
-        "expected": "The original table API rejects a request that carries no key: HTTP 401 or 403",
-        "observed": "HTTP 401",
-        "requestId": "none",
-        "checkedAt": "2026-10-13T08:00:10.458Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s8_cross_zone_note_read",
-        "request": "cross read",
-        "expected": "Account B reading account A note is rejected with HTTP 403",
-        "observed": "HTTP 403 FORBIDDEN",
-        "requestId": "9ce2c5a6-d462-437f-9938-b147f4cee45d",
-        "checkedAt": "2026-10-13T08:00:14.717Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s8_announcement_write_non_instructor",
-        "request": "non-instructor write",
-        "expected": "A non-instructor announcement update is rejected with HTTP 403",
-        "observed": "HTTP 403 INSTRUCTOR_REQUIRED",
-        "requestId": "dadc6990-d146-43bf-a87c-bcdeb8b3e157",
-        "checkedAt": "2026-10-13T08:00:18.632Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s10_restore_other_users_note",
-        "request": "other restore",
-        "expected": "Account A restoring account B note is rejected with HTTP 403",
-        "observed": "HTTP 403 FORBIDDEN audit=#28",
-        "requestId": "226fc8f2-4927-4e08-b368-151dd78db890",
-        "checkedAt": "2026-10-13T08:00:23.086Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s11_unsigned_protected_request",
-        "request": "unsigned read",
-        "expected": "A logged-in protected request without a device signature is rejected: HTTP 401 DEVICE_SIGNATURE_REQUIRED",
-        "observed": "HTTP 401 DEVICE_SIGNATURE_REQUIRED",
-        "requestId": "35496a83-3850-4ea9-b870-8cd299462d50",
-        "checkedAt": "2026-10-13T08:00:25.328Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s11_signed_path_changed",
-        "request": "path changed",
-        "expected": "A request signed for one note and sent to another path is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH",
-        "observed": "HTTP 403 DEVICE_SIGNATURE_MISMATCH",
-        "requestId": "3f38e3c2-7b2d-4356-a71d-407c6af763c3",
-        "checkedAt": "2026-10-13T08:00:28.290Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s11_signed_body_changed",
-        "request": "body changed",
-        "expected": "An update whose body changed after signing is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH",
-        "observed": "HTTP 403 DEVICE_SIGNATURE_MISMATCH",
-        "requestId": "ffb2bf22-f959-4de2-9606-8d615d9416c2",
-        "checkedAt": "2026-10-13T08:00:30.799Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s12_unregistered_device_then_revoked_identity",
-        "request": "unregistered device",
-        "expected": "A signed request from a never-approved device is rejected (403 DEVICE_NOT_APPROVED); then a revoked identity is rejected (403 IDENTITY_REVOKED)",
-        "observed": "HTTP 403 DEVICE_NOT_APPROVED",
-        "requestId": "d45fc45c-6ee4-455b-8be7-f4e4cf872c72",
-        "checkedAt": "2026-10-13T08:00:33.482Z",
-        "verdict": "as_expected"
-      },
-      {
-        "attackId": "s12_unregistered_device_then_revoked_identity",
-        "request": "revoked identity",
-        "expected": "A signed request from a never-approved device is rejected (403 DEVICE_NOT_APPROVED); then a revoked identity is rejected (403 IDENTITY_REVOKED)",
-        "observed": "not run",
-        "requestId": "none",
-        "checkedAt": null,
-        "verdict": "not_run",
-        "notRunReason": "no revoked test account C (ALEPH_CHECK_EMAIL_C/PASSWORD_C), so this request was not sent"
-      },
-      {
-        "attackId": "s6_s7_decider_local",
-        "request": "local virtual run",
-        "expected": "Unregistered device is denied; unusual region, network and hour ask for extra verification (local practice)",
-        "observed": "deny device_not_registered; step_up step_up_required",
-        "requestId": "local",
-        "checkedAt": "2026-10-13T08:00:33.485Z",
-        "verdict": "local_as_expected"
-      },
-      {
-        "attackId": "s9_s12_detector_and_revocation_local",
-        "request": "local virtual run",
-        "expected": "121 reads in 10 minutes propose a revocation, 30 are only observed, and the access guard refuses a revoked identity (local practice)",
-        "observed": "propose_revocation burst_read; observe; 403 IDENTITY_REVOKED",
-        "requestId": "local",
-        "checkedAt": "2026-10-13T08:00:33.489Z",
-        "verdict": "local_as_expected"
-      }
-    ]
-  },
-  "snapshot": {
-    "requestId": "dfd26d96-815c-4838-902e-43dcbca66da9",
-    "generatedAt": "2026-10-13T08:00:41.296Z"
-  }
-};
-// </recorded-checks>
-export function recordedAttackChecks(config, recorded = RECORDED) {
-  const table = recorded?.table;
-  const snap = recorded?.snapshot;
-  if (!table || table.schema !== 'aleph.ops.checks.v1' || table.step !== config.step || !Array.isArray(table.rows)) return null;
-  if (!snap?.generatedAt || Date.parse(snap.generatedAt) < Date.parse(table.finishedAt)) return null;
-  const order = [...new Set(table.rows.map((row) => row.attackId))];
-  if (order.length !== table.selfChecks?.checks) return null;
-  const source = `recorded by npm run ops:checks at ${table.finishedAt}; screen snapshot req=${snap.requestId}`;
-  return order.map((attackId) => {
-    const rows = table.rows.filter((row) => row.attackId === attackId);
-    const expected = rows[0].expected;
-    const sent = rows.filter((row) => row.verdict !== 'not_run');
-    if (!sent.length) return entry(attackId, expected, notRun(`${rows[0].notRunReason ?? rows[0].reason ?? 'not sent'} [${source}]`));
-    const local = sent.every((row) => row.verdict === 'local_as_expected');
-    const ok = sent.every((row) => row.verdict === 'as_expected' || row.verdict === 'local_as_expected');
-    const text = rows.map((row) => (row.verdict === 'not_run' ? `${row.request}: Not run (${row.reason ?? row.notRunReason ?? 'not sent'})`
-      : local ? row.observed : `${rows.length > 1 ? `${row.request}: ` : ''}${row.observed} req=${row.requestId}`)).join('; ');
-    const partial = sent.length < rows.length;
-    const head = !ok ? 'Needs review' : local ? 'Local practice only, not an API result' : partial ? 'Partly run, sent part as expected' : 'As expected';
-    return entry(attackId, expected, `${head}: ${text} at ${sent.at(-1).checkedAt} [${source}]`);
-  });
-}
-
-export async function runAttackChecks(config, { details = [], sendLive = process.env.ALEPH_CHECK_LIVE === '1' } = {}) {
+// Step 12: `npm run bundle` sends every check live. The judge compares each attackId with the requests really sent
+// in that run, so a check whose request was not sent in this run is written as "not_run: <reason>" (never as a result),
+// even if an earlier `npm run ops:checks` run sent it. Each request carries its attackId (header x-aleph-attack-id).
+export async function runAttackChecks(config, { details = [] } = {}) {
   if (config.step !== 12) throw new Error('Current step requires updating src/attack-check.mjs.');
-  if (!sendLive) {
-    const recorded = recordedAttackChecks(config);
-    if (recorded) return recorded;
-  }
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -349,45 +80,36 @@ export async function runAttackChecks(config, { details = [], sendLive = process
     for (const row of rows) details.push({ attackId: meta.id, step: meta.step, kind: meta.kind, expected, ...row });
   };
   // One live check: one or more requests, all judged together. Each request gets its own row in `details`.
+  const sentBy = { A: [], B: [] };
   const live = async (meta, expected, steps, notRunParts = []) => {
     const rows = [];
+    currentAttack = meta.id;
     try {
       let ok = true;
-      for (const { run, accept, label } of steps) {
+      for (const { run, accept, label, who } of steps) {
         const result = await run();
         const at = new Date().toISOString();
         const fine = accept(result);
         ok &&= fine;
+        if (who && result.requestId) sentBy[who].push({ requestId: result.requestId, status: result.status });
         rows.push({ request: label, observed: describe(result), requestId: result.requestId ?? 'none', checkedAt: at, verdict: fine ? 'as_expected' : 'needs_review' });
       }
       const sentRows = rows.length;
       for (const part of notRunParts) rows.push({ request: part.label, observed: 'not run', requestId: 'none', checkedAt: null, verdict: 'not_run', reason: part.reason });
       const many = rows.length > 1;
-      const text = rows.map((row) => (row.verdict === 'not_run' ? `${row.request}: Not run (${row.reason})` : `${many ? `${row.request}: ` : ''}${row.observed} req=${row.requestId}`)).join('; ');
+      const text = rows.map((row) => (row.verdict === 'not_run' ? `${row.request}: not_run (${row.reason})` : `${many ? `${row.request}: ` : ''}${row.observed} req=${row.requestId}`)).join('; ');
       const head = !ok ? 'Needs review' : notRunParts.length ? 'Partly run, sent part as expected' : 'As expected';
       record(meta, expected, `${head}: ${text} at ${rows[sentRows - 1].checkedAt}`, rows);
     } catch (error) {
       const at = new Date().toISOString();
       rows.push({ request: 'error', observed: `Could not be checked (${error.name})`, requestId: 'none', checkedAt: at, verdict: 'error' });
       record(meta, expected, `Could not be checked (${error.name}) at ${at}`, rows);
+    } finally {
+      currentAttack = null;
     }
   };
   const skip = (meta, expected, reason) => record(meta, expected, notRun(reason),
     [{ request: '-', observed: 'not run', requestId: 'none', checkedAt: null, verdict: 'not_run', reason }]);
-  const local = async (meta, expected, checks) => {
-    const parts = [];
-    let ok = true;
-    for (const [wanted, run] of checks) {
-      let got;
-      try { got = await run(); } catch (error) { got = `error ${error.name}`; }
-      ok &&= got === wanted;
-      parts.push(got);
-    }
-    const at = new Date().toISOString();
-    record(meta, expected, `${ok ? 'Local practice only, not an API result' : 'Needs review (local practice)'}: ${parts.join('; ')}`,
-      [{ request: 'local virtual run', observed: parts.join('; '), requestId: 'local', checkedAt: at, verdict: ok ? 'local_as_expected' : 'needs_review' }]);
-  };
-
   // Login: a fresh login through POST /api/session with the test accounts comes first; a token from the shell is used
   // only when no login is given, and only while it has not expired (an expired token is reported, never sent).
   const env = process.env;
@@ -424,12 +146,12 @@ export async function runAttackChecks(config, { details = [], sendLive = process
   const restorePath = config.restoreRoute;
   const restoreUsable = typeof restorePath === 'string' && restorePath.startsWith('/api/');
 
-  const { createVirtualDevice } = await import('./device-client.mjs');
-  const { checkAccess } = await import('./access-guard.mjs');
+  // The device client is loaded only when the test logins are there, i.e. when signed requests will really be sent.
+  const { createVirtualDevice } = loginReady ? await import('./device-client.mjs') : { createVirtualDevice: null };
 
   // 0) Step 11: each test account gets one virtual device, approved by the server (recent login required).
-  const deviceA = createVirtualDevice({ origin: app.origin });
-  const deviceB = createVirtualDevice({ origin: app.origin });
+  const deviceA = loginReady ? createVirtualDevice({ origin: app.origin }) : null;
+  const deviceB = loginReady ? createVirtualDevice({ origin: app.origin }) : null;
   const approval = (device, token) => send(app, '/api/devices', {
     method: 'POST', token, device, body: { ...device.registration(), label: 'bundle self-check' },
   });
@@ -469,7 +191,7 @@ export async function runAttackChecks(config, { details = [], sendLive = process
   const ownMeta = { id: 's8_own_note_read_after_restore', step: '8', kind: 'normal' };
   if (loginReady) {
     await live(ownMeta, 'Account A reads its own note: HTTP 200',
-      [{ label: 'A own read', run: () => send(app, `/api/notes/${noteA}`, { token: tokenA, device: deviceA }), accept: (r) => r.status === 200 }]);
+      [{ label: 'A own read', who: 'A', run: () => send(app, `/api/notes/${noteA}`, { token: tokenA, device: deviceA }), accept: (r) => r.status === 200 }]);
   } else skip(ownMeta, 'Account A reads its own note: HTTP 200', missing);
 
   // 4) Step 12 focus: an anonymous read and another user's note read sent back to back in the same run.
@@ -480,7 +202,12 @@ export async function runAttackChecks(config, { details = [], sendLive = process
       { label: 'anonymous read', run: () => send(app, `/api/notes/${noteA}`), accept: denied(401) },
       { label: 'cross read', run: () => send(app, `/api/notes/${noteA}`, { token: tokenB, device: deviceB }), accept: denied(403) },
     ]);
-  } else skip(pairMeta, pairExpected, missing);
+  } else {
+    // Without the test logins only the anonymous half can be sent; the cross read is written as not_run.
+    await live(pairMeta, pairExpected, [
+      { label: 'anonymous read', run: () => send(app, `/api/notes/${UUID.test(noteA ?? '') ? noteA : randomUUID()}`), accept: denied(401) },
+    ], [{ label: 'cross read', reason: missing }]);
+  }
 
   // 5) Forbidden requests that need no login at all.
   await live({ id: 's1_anonymous_notes_list', step: '1', kind: 'forbidden' }, 'Anonymous list request is rejected with HTTP 401 or 403',
@@ -506,16 +233,16 @@ export async function runAttackChecks(config, { details = [], sendLive = process
     [{ id: 's8_cross_zone_note_read', step: '8', kind: 'forbidden' }, 'Account B reading account A note is rejected with HTTP 403',
       { label: 'cross read', run: () => send(app, `/api/notes/${noteA}`, { token: tokenB, device: deviceB }), accept: denied(403) }],
     [{ id: 's8_announcement_write_non_instructor', step: '8', kind: 'forbidden' }, 'A non-instructor announcement update is rejected with HTTP 403',
-      { label: 'non-instructor write', run: () => send(app, `/api/announcements/${randomUUID()}`, { method: 'PUT', token: tokenA, device: deviceA, body: { title: 'x' } }), accept: denied(403) }],
+      { label: 'non-instructor write', who: 'A', run: () => send(app, `/api/announcements/${randomUUID()}`, { method: 'PUT', token: tokenA, device: deviceA, body: { title: 'x' } }), accept: denied(403) }],
     [{ id: 's10_restore_other_users_note', step: '10', kind: 'forbidden' }, 'Account A restoring account B note is rejected with HTTP 403',
-      { label: 'other restore', run: () => send(app, restorePath, { method: 'POST', token: tokenA, device: deviceA, body: { id: noteB } }), accept: denied(403) }],
+      { label: 'other restore', who: 'A', run: () => send(app, restorePath, { method: 'POST', token: tokenA, device: deviceA, body: { id: noteB } }), accept: denied(403) }],
     [{ id: 's11_unsigned_protected_request', step: '11', kind: 'forbidden' }, 'A logged-in protected request without a device signature is rejected: HTTP 401 DEVICE_SIGNATURE_REQUIRED',
-      { label: 'unsigned read', run: () => send(app, `/api/notes/${noteA}`, { token: tokenA }), accept: (r) => r.status === 401 && r.error === 'DEVICE_SIGNATURE_REQUIRED' }],
+      { label: 'unsigned read', who: 'A', run: () => send(app, `/api/notes/${noteA}`, { token: tokenA }), accept: (r) => r.status === 401 && r.error === 'DEVICE_SIGNATURE_REQUIRED' }],
     [{ id: 's11_signed_path_changed', step: '11', kind: 'forbidden' }, 'A request signed for one note and sent to another path is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH',
-      { label: 'path changed', run: () => send(app, '/api/notes', { token: tokenA, device: deviceA, signAs: { path: `/api/notes/${noteA}` } }), accept: (r) => r.status === 403 && r.error === 'DEVICE_SIGNATURE_MISMATCH' }],
+      { label: 'path changed', who: 'A', run: () => send(app, '/api/notes', { token: tokenA, device: deviceA, signAs: { path: `/api/notes/${noteA}` } }), accept: (r) => r.status === 403 && r.error === 'DEVICE_SIGNATURE_MISMATCH' }],
     // The body check targets a random note ID, so nothing can change even if the signature were not checked.
     [{ id: 's11_signed_body_changed', step: '11', kind: 'forbidden' }, 'An update whose body changed after signing is rejected: HTTP 403 DEVICE_SIGNATURE_MISMATCH',
-      { label: 'body changed', run: () => send(app, `/api/notes/${randomUUID()}`, { method: 'PUT', token: tokenA, device: deviceA, body: { title: 'changed after signing' }, signAs: { body: { title: 'signed title' } } }), accept: (r) => r.status === 403 && r.error === 'DEVICE_SIGNATURE_MISMATCH' }],
+      { label: 'body changed', who: 'A', run: () => send(app, `/api/notes/${randomUUID()}`, { method: 'PUT', token: tokenA, device: deviceA, body: { title: 'changed after signing' }, signAs: { body: { title: 'signed title' } } }), accept: (r) => r.status === 403 && r.error === 'DEVICE_SIGNATURE_MISMATCH' }],
   ];
   for (const [meta, expected, step] of login2) {
     if (!loginReady || (meta.id === 's10_restore_other_users_note' && !restoreUsable)) skip(meta, expected, loginReady ? 'restoreRoute is not set in aleph.config.json.' : missing);
@@ -527,7 +254,7 @@ export async function runAttackChecks(config, { details = [], sendLive = process
   const revokedExpected = 'A signed request from a never-approved device is rejected (403 DEVICE_NOT_APPROVED); then a revoked identity is rejected (403 IDENTITY_REVOKED)';
   if (loginReady) {
     const stranger = createVirtualDevice({ origin: app.origin });
-    const steps = [{ label: 'unregistered device', run: () => send(app, `/api/notes/${noteA}`, { token: tokenA, device: stranger }), accept: (r) => r.status === 403 && r.error === 'DEVICE_NOT_APPROVED' }];
+    const steps = [{ label: 'unregistered device', who: 'A', run: () => send(app, `/api/notes/${noteA}`, { token: tokenA, device: stranger }), accept: (r) => r.status === 403 && r.error === 'DEVICE_NOT_APPROVED' }];
     if (tokenC) {
       // C is a test account the student revoked beforehand (npm run ops:revoke). Its device cannot be approved any more.
       const deviceC = createVirtualDevice({ origin: app.origin });
@@ -538,27 +265,28 @@ export async function runAttackChecks(config, { details = [], sendLive = process
     }
   } else skip(revokedMeta, revokedExpected, missing);
 
-  // 8) Local practice with virtual requests and events (the decider, detector and access guard run in this process).
-  const { normal, suspicious } = fixtureRequests();
-  await local({ id: 's6_s7_decider_local', step: '6-7', kind: 'forbidden' },
-    'Unregistered device is denied; unusual region, network and hour ask for extra verification (local practice)', [
-      ['deny device_not_registered', async () => { const r = await decide({ ...normal, requestId: randomUUID(), deviceRegistered: false }); return `${r.decision} ${r.reasonCode}`; }],
-      ['step_up step_up_required', async () => { const r = await decide({ ...suspicious, requestId: randomUUID() }); return `${r.decision} ${r.reasonCode}`; }],
-    ]);
-  const start = Date.UTC(2026, 9, 1);
-  const reads = (count) => Array.from({ length: count }, (_, i) => ({
-    at: new Date(start + i * 2000).toISOString(), method: 'GET', identity: { sub: 'learner_fixture' },
-  }));
-  await local({ id: 's9_s12_detector_and_revocation_local', step: '9, 12', kind: 'forbidden' },
-    '121 reads in 10 minutes propose a revocation, 30 are only observed, and the access guard refuses a revoked identity (local practice)', [
-      ['propose_revocation burst_read', async () => { const r = detect(reads(121)); return `${r.action} ${r.reasonCode}`; }],
-      ['observe', async () => detect(reads(30)).action],
-      ['403 IDENTITY_REVOKED', async () => {
-        const fakeDb = async (url) => ({ ok: true, status: 200, json: async () => (String(url).includes('identity_revocations') ? [{ reason: 'manual' }] : []) });
-        const r = await checkAccess({ req: { method: 'GET', url: '/api/notes', headers: {} }, verified: { kind: 'student', userId: randomUUID() }, fetchImpl: fakeDb, supabaseUrl: 'https://local.invalid', serviceKey: 'local-practice' });
-        return `${r.status} ${r.error}`;
-      }],
-    ]);
+  // 8) Step 12 operations room, live: A reads GET /api/ops/summary right after the checks above and the check compares
+  // each of A's requests from this run (request ID and HTTP status it received) with what the screen API shows.
+  // Anonymous requests are not in it (no account). Nothing is computed into the screen; this only compares.
+  const opsMeta = { id: 's12_ops_room_live_summary', step: '12', kind: 'normal' };
+  const opsExpected = "The operations room API answers 200 to approved device A and shows each of A's requests from this run with the same final HTTP status";
+  if (loginReady) {
+    await live(opsMeta, opsExpected, [{ label: 'ops summary', run: async () => {
+      const r = await send(app, '/api/ops/summary', { token: tokenA, device: deviceA });
+      const events = Array.isArray(r.data?.detection?.recentEvents) ? r.data.detection.recentEvents : [];
+      const mine = sentBy.A;
+      const same = mine.filter((x) => events.some((event) => event.requestId === x.requestId && event.status === x.status));
+      r.note = `screen shows ${same.length} of ${mine.length} A requests of this run with the same HTTP status`;
+      r.matched = r.status === 200 && mine.length > 0 && same.length === mine.length;
+      return r;
+    }, accept: (r) => r.matched }]);
+  } else skip(opsMeta, opsExpected, missing);
+
+  // 9) Steps 6-7 and 9 rules have no request of their own here: they are practised locally (npm run decider:test,
+  // npm run detect:test) and on the server through the checks above. No result is written for them.
+  skip({ id: 's6_s9_rules_local_practice', step: '6-7, 9', kind: 'forbidden' },
+    'Decider (unregistered device, step-up) and detector (burst read) rules on virtual requests',
+    'no HTTP request is sent for this check in npm run bundle; local practice only (npm run decider:test, npm run detect:test), not an API result');
 
   return results;
 }

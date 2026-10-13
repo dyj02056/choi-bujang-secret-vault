@@ -5,7 +5,7 @@ import { createLoginVerifier } from '../../src/verify-login.mjs';
 import { ownerKeyOf } from '../../src/owner-key.mjs';
 import { auditField, blocksChange, recordNoteEvent } from '../../src/note-audit.mjs';
 import { ensureBackup } from '../../src/note-backup.mjs';
-import { guardRequest } from '../../src/access-guard.mjs';
+import { guardRequest, tagRequest } from '../../src/access-guard.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
@@ -36,6 +36,7 @@ async function getVerifier() {
 }
 
 export default async function handler(req, res) {
+  tagRequest(res);
   res.setHeader('Cache-Control', 'no-store');
 
   const supabaseUrl = process.env.SUPABASE_URL;

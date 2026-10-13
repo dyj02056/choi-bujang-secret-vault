@@ -6,7 +6,7 @@ import { createLoginVerifier } from '../src/verify-login.mjs';
 import { ownerKeyOf } from '../src/owner-key.mjs';
 import { saveFirstBackup } from '../src/note-backup.mjs';
 import { auditField, recordNoteEvent } from '../src/note-audit.mjs';
-import { guardRequest } from '../src/access-guard.mjs';
+import { guardRequest, tagRequest } from '../src/access-guard.mjs';
 
 // 로컬 환경 실행 시 .env 자동 로드
 try {
@@ -36,6 +36,7 @@ async function getVerifier() {
 }
 
 export default async function handler(req, res) {
+  tagRequest(res);
   res.setHeader('Cache-Control', 'no-store');
 
   const supabaseUrl = process.env.SUPABASE_URL;

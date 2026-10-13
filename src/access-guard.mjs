@@ -107,6 +107,12 @@ export async function checkAccess({ req, verified, fetchImpl = fetch, supabaseUr
   }
 }
 
+// 로그인 전 거절(401)에도 요청 ID 를 돌려줍니다. 사건 표에는 남기지 않습니다(계정이 없으므로).
+// 관문을 지나면 guardRequest 가 기록된 요청 ID 로 바꿉니다.
+export function tagRequest(res) {
+  res.setHeader(REQUEST_ID_HEADER, randomUUID());
+}
+
 // 최종 결과 한 줄. 사건 줄(access_events)이 있는 요청만 남깁니다.
 export async function recordResult({ fetchImpl = fetch, supabaseUrl, serviceKey, requestId, status, error = null }) {
   const db = store(supabaseUrl, serviceKey);
