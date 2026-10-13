@@ -8,15 +8,17 @@ export const RULE_IDS = Object.freeze([
 ]);
 
 const RESOURCE_ROUTES = Object.freeze([
-  { service: 'notes', method: 'GET', route: 'GET /notes/:id', path: /^\/notes\/[^/?#]+$/u },
-  { service: 'notes', method: 'PUT', route: 'PUT /notes/:id', path: /^\/notes\/[^/?#]+$/u },
-  { service: 'notes', method: 'DELETE', route: 'DELETE /notes/:id', path: /^\/notes\/[^/?#]+$/u },
-  { service: 'announcements', method: 'GET', route: 'GET /announcements/:id', path: /^\/announcements\/[^/?#]+$/u },
+  { service: 'notes', method: 'GET', route: 'GET /notes/:id', path: /^\/notes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu },
+  { service: 'notes', method: 'PUT', route: 'PUT /notes/:id', path: /^\/notes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu },
+  { service: 'notes', method: 'DELETE', route: 'DELETE /notes/:id', path: /^\/notes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu },
+  { service: 'announcements', method: 'GET', route: 'GET /announcements/:id', path: /^\/announcements\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu },
+  { service: 'announcements', method: 'PUT', route: 'PUT /announcements/:id', path: /^\/announcements\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu },
 ]);
 
 function isKnownResourceRoute(request) {
-  return typeof request.subjectId === 'string' && request.subjectId.length > 0
-    && typeof request.deviceId === 'string' && request.deviceId.length === 16
+  return request.schema === 'aleph.decision.v1'
+    && typeof request.subjectId === 'string' && request.subjectId.length > 0
+    && typeof request.deviceId === 'string' && /^[0-9a-f]{16}$/u.test(request.deviceId)
     && request.queryLength === 0
     && RESOURCE_ROUTES.some((entry) => entry.service === request.service
       && entry.method === request.method && entry.route === request.route

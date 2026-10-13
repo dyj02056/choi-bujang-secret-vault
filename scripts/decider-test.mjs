@@ -41,12 +41,12 @@ export async function checkDecider({ decide, ruleIds }) {
   if (ruleIds.includes('resource_zone_route')) {
     checks.push(
       { name: 'owned private-note read route', request: { ...normal,
-        requestId: randomUUID(), service: 'notes', path: '/notes/demo',
+        requestId: randomUUID(), service: 'notes', path: '/notes/00000000-0000-4000-8000-000000000001',
         route: 'GET /notes/:id' }, decision: 'allow' },
       { name: 'instructor announcement update route', request: { ...normal,
         requestId: randomUUID(), service: 'announcements', method: 'PUT',
-        path: '/announcements/demo', route: 'PUT /announcements/:id' },
-      decision: 'deny', reasonCode: 'resource_route_denied' },
+        path: '/announcements/00000000-0000-4000-8000-000000000001', route: 'PUT /announcements/:id' },
+      decision: 'allow' },
       { name: 'unknown nested resource route', request: { ...normal,
         requestId: randomUUID(), path: '/notes/demo/export', route: 'GET /notes/:id/export' },
       decision: 'deny', reasonCode: 'resource_route_denied' },

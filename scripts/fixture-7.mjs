@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const request = (signals, recentEvents) => ({
   schema: 'aleph.decision.v1', requestId: randomUUID(), classId: 'class_fixture',
   projectId: 'project_fixture', subjectId: 'learner_fixture', deviceId: 'a'.repeat(16),
-  service: 'notes', method: 'GET', path: '/notes/demo', route: 'GET /notes/:id',
+  service: 'notes', method: 'GET', path: '/notes/00000000-0000-4000-8000-000000000001', route: 'GET /notes/:id',
   queryLength: 0, querySha256: createHash('sha256').update('').digest('hex'),
   at: new Date().toISOString(), policyRevision: 1, deviceRegistered: true,
   stepUp: { verified: false, authAgeSeconds: null }, recentEvents, signals,
